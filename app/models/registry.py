@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.models import ModelVersion
 
 
@@ -11,7 +11,7 @@ class ModelRegistry:
         if existing:
             raise ValueError(f"Model {name}@{version} already registered")
         mv = ModelVersion(name=name, version=version, description=description,
-                          active=False, created_at=datetime.utcnow())
+                          active=False, created_at=datetime.now(timezone.utc))
         self.session.add(mv)
         self.session.commit()
         return mv
