@@ -1,8 +1,10 @@
+import logging
 from datetime import datetime, timezone
 from app.db.models import League, Team, Fixture, OddsSnapshot
 from app.collector.odds_api import OddsAPIClient
 from app.collector.espn_api import ESPNClient
-from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 ESPN_TO_ODDS_API_LEAGUE = {
     "eng.1": "soccer_epl",
@@ -13,10 +15,12 @@ ESPN_TO_ODDS_API_LEAGUE = {
 
 
 class DataCollector:
-    def __init__(self, session):
+    def __init__(self, session, odds_client=None, espn_client=None):
         self.session = session
-        self.odds_client = OddsAPIClient(api_key=settings.odds_api_key)
-        self.espn_client = ESPNClient()
+        if odds_client is None or espn_client is None:
+            from app.config import settings
+        self.odds_client = odds_client or OddsAPIClient(api_key=settings.odds_api_key)
+        self.espn_client = espn_client or ESPNClient()
 
     def run(self):
         espn_data = self.espn_client.fetch_all_leagues()
@@ -28,7 +32,9 @@ class DataCollector:
                 continue
             for espn_fixture in fixtures:
                 fixture = self._upsert_fixture(espn_fixture, league)
-                sport_key = ESPN_TO_ODDS_API_LEAGUE[espn_id]
+                sport_key = ESPN_TO_ODDS_API_LEAGUE.get(espn_id)
+                if not sport_key:
+                    continue
                 odds_fixture = self._find_odds_fixture(
                     odds_data.get(sport_key, []),
                     espn_fixture["home_team"],
@@ -37,6 +43,13 @@ class DataCollector:
                 if odds_fixture:
                     for bookmaker in odds_fixture["bookmakers"]:
                         self._save_odds_snapshot(fixture.id, bookmaker)
+                else:
+                    logger.warning(
+                        "No odds match found for %s vs %s (league: %s)",
+                        espn_fixture["home_team"],
+                        espn_fixture["away_team"],
+                        espn_id,
+                    )
 
         self.session.commit()
 
@@ -47,6 +60,7 @@ class DataCollector:
 
         if existing:
             existing.status = espn_fixture["status"]
+            existing.kickoff_at = datetime.fromisoformat(espn_fixture["kickoff_at"].replace("Z", "+00:00"))
             return existing
 
         fixture = Fixture(

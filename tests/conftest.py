@@ -13,8 +13,13 @@ def engine():
 
 @pytest.fixture
 def db(engine):
-    Session = sessionmaker(bind=engine)
+    # Wrap each test in a connection-level transaction so session.commit()
+    # inside the test is still rolled back at teardown.
+    connection = engine.connect()
+    transaction = connection.begin()
+    Session = sessionmaker(bind=connection)
     session = Session()
     yield session
-    session.rollback()
     session.close()
+    transaction.rollback()
+    connection.close()

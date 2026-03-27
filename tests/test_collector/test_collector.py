@@ -17,7 +17,7 @@ def test_collect_upserts_teams(db):
                       "home_team": "Arsenal", "away_team": "Chelsea",
                       "status": "scheduled", "home_score": None, "away_score": None,
                       "ht_home_score": None, "ht_away_score": None}]
-    collector = DataCollector(db)
+    collector = DataCollector(db, odds_client=MagicMock(), espn_client=MagicMock())
     collector._upsert_fixture(espn_fixtures[0], league)
     teams = db.query(Team).all()
     assert {t.name for t in teams} == {"Arsenal", "Chelsea"}
@@ -29,12 +29,55 @@ def test_collect_upserts_fixture(db):
                     "home_team": "Arsenal", "away_team": "Chelsea",
                     "status": "scheduled", "home_score": None, "away_score": None,
                     "ht_home_score": None, "ht_away_score": None}
-    collector = DataCollector(db)
+    collector = DataCollector(db, odds_client=MagicMock(), espn_client=MagicMock())
     fixture = collector._upsert_fixture(espn_fixture, league)
     assert fixture.espn_id == "e1"
     # Run again — should not create a duplicate
     fixture2 = collector._upsert_fixture(espn_fixture, league)
     assert db.query(Fixture).count() == 1
+
+
+def test_run_creates_fixture_and_odds_snapshot(db):
+    league = make_league(db)
+
+    espn_fixture = {
+        "espn_id": "e1",
+        "kickoff_at": "2026-04-01T15:00Z",
+        "home_team": "Arsenal",
+        "away_team": "Chelsea",
+        "status": "scheduled",
+        "home_score": None,
+        "away_score": None,
+        "ht_home_score": None,
+        "ht_away_score": None,
+    }
+
+    odds_fixture = {
+        "home_team": "Arsenal",
+        "away_team": "Chelsea",
+        "bookmakers": [
+            {
+                "key": "betmgm",
+                "title": "BetMGM",
+                "h2h": {"home": 2.10, "draw": 3.50, "away": 3.20},
+                "totals": {"line": 2.5, "over": 1.90, "under": 1.90},
+                "ht_h2h": None,
+                "ht_totals": None,
+            }
+        ],
+    }
+
+    mock_espn = MagicMock()
+    mock_espn.fetch_all_leagues.return_value = {"eng.1": [espn_fixture]}
+
+    mock_odds = MagicMock()
+    mock_odds.fetch_all_leagues.return_value = {"soccer_epl": [odds_fixture]}
+
+    collector = DataCollector(db, odds_client=mock_odds, espn_client=mock_espn)
+    collector.run()
+
+    assert db.query(Fixture).count() == 1
+    assert db.query(OddsSnapshot).count() == 1
 
 
 def test_save_odds_snapshot_creates_row(db):
@@ -55,7 +98,7 @@ def test_save_odds_snapshot_creates_row(db):
         "totals": {"line": 2.5, "over": 1.90, "under": 1.90},
         "ht_h2h": None, "ht_totals": None,
     }
-    collector = DataCollector(db)
+    collector = DataCollector(db, odds_client=MagicMock(), espn_client=MagicMock())
     collector._save_odds_snapshot(fixture.id, bookmaker_data)
     snap = db.query(OddsSnapshot).first()
     assert snap.bookmaker == "betmgm"
