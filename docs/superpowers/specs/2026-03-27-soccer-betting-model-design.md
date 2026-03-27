@@ -9,6 +9,8 @@
 ## 1. Goals
 
 - Predict match outcomes (home / draw / away) against live sports betting lines
+- Predict total goals (over/under lines) for full match and first half
+- Predict half-time outcomes independently from full-match outcomes
 - Track multiple prediction model versions simultaneously
 - Backtest new model versions against historical data before activating
 - Evaluate models by two metrics: prediction accuracy and ROI
@@ -82,12 +84,22 @@ python cli.py register-model   # Add a new model version to the registry
 leagues         (id, name, country, espn_id)
 teams           (id, name, league_id, espn_id)
 fixtures        (id, home_team_id, away_team_id, league_id, kickoff_at, status)
-odds_snapshots  (id, fixture_id, bookmaker, home_odds, draw_odds, away_odds, captured_at)
+odds_snapshots  (id, fixture_id, bookmaker,
+                 home_odds, draw_odds, away_odds,           -- match result
+                 ht_home_odds, ht_draw_odds, ht_away_odds,  -- half-time result
+                 total_goals_line, over_odds, under_odds,   -- full match over/under
+                 ht_goals_line, ht_over_odds, ht_under_odds, -- half-time over/under
+                 captured_at)
 models          (id, name, version, description, active, created_at)
-predictions     (id, model_id, fixture_id, predicted_outcome, confidence, odds_snapshot_id, created_at)
-results         (id, fixture_id, home_score, away_score, outcome, verified_at)
-performance     (id, model_id, total_predictions, correct, accuracy, roi, updated_at)
-backtest_runs   (id, model_id, date_from, date_to, total, correct, accuracy, roi, run_at)
+predictions     (id, model_id, fixture_id, bet_type,        -- bet_type: "match_result" | "ht_result" | "total_goals" | "ht_goals"
+                 predicted_outcome, confidence, odds_snapshot_id, created_at)
+results         (id, fixture_id,
+                 home_score, away_score, outcome,           -- full match
+                 ht_home_score, ht_away_score, ht_outcome,  -- half-time
+                 total_goals, ht_total_goals,               -- goal totals
+                 verified_at)
+performance     (id, model_id, bet_type, total_predictions, correct, accuracy, roi, updated_at)
+backtest_runs   (id, model_id, bet_type, date_from, date_to, total, correct, accuracy, roi, run_at)
 scheduler_log   (id, job_name, status, error, started_at, completed_at)
 ```
 
@@ -103,19 +115,23 @@ from dataclasses import dataclass
 
 @dataclass
 class Prediction:
-    outcome: str          # "home" | "draw" | "away"
+    bet_type: str         # "match_result" | "ht_result" | "total_goals" | "ht_goals"
+    outcome: str          # match_result/ht_result: "home"|"draw"|"away"
+                          # total_goals/ht_goals: "over"|"under"
     confidence: float     # 0.0 – 1.0
+    line: float | None    # goals line for over/under bets, None for result bets
 
 class BaseModel(ABC):
     name: str
     version: str
 
     @abstractmethod
-    def predict(self, fixture: dict, odds: dict, history: list[dict]) -> Prediction:
+    def predict(self, fixture: dict, odds: dict, history: list[dict]) -> list[Prediction]:
         """
         fixture  — upcoming match data (teams, league, kickoff)
-        odds     — latest odds snapshot for this fixture
+        odds     — latest odds snapshot for this fixture (includes all bet types)
         history  — recent results for both teams (configurable lookback)
+        Returns a list — model can predict one or all bet types per fixture
         """
         ...
 ```
@@ -127,9 +143,13 @@ class MyModelV1(BaseModel):
     name = "my_model"
     version = "1.0"
 
-    def predict(self, fixture, odds, history) -> Prediction:
-        # your logic here
-        return Prediction(outcome="home", confidence=0.65)
+    def predict(self, fixture, odds, history) -> list[Prediction]:
+        # your logic here — return predictions for whichever bet types you want to cover
+        return [
+            Prediction(bet_type="match_result", outcome="home", confidence=0.65, line=None),
+            Prediction(bet_type="total_goals", outcome="over", confidence=0.58, line=2.5),
+            Prediction(bet_type="ht_goals", outcome="under", confidence=0.61, line=1.5),
+        ]
 ```
 
 ---
