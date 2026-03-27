@@ -54,3 +54,32 @@ def test_model_without_predict_raises():
             name = "bad"
             version = "1.0"
         BadModel()
+
+
+def test_prediction_rejects_invalid_bet_type():
+    with pytest.raises(ValueError, match="Invalid bet_type"):
+        ModelPrediction(bet_type="invalid", outcome="home", confidence=0.5, line=None)
+
+
+def test_prediction_rejects_confidence_out_of_range():
+    with pytest.raises(ValueError, match="confidence"):
+        ModelPrediction(bet_type="match_result", outcome="home", confidence=1.5, line=None)
+
+
+def test_prediction_rejects_line_on_result_bet():
+    with pytest.raises(ValueError, match="line must be None"):
+        ModelPrediction(bet_type="match_result", outcome="home", confidence=0.5, line=2.5)
+
+
+def test_prediction_requires_line_on_goals_bet():
+    with pytest.raises(ValueError, match="line is required"):
+        ModelPrediction(bet_type="total_goals", outcome="over", confidence=0.5, line=None)
+
+
+def test_base_model_subclass_missing_name_raises():
+    with pytest.raises(TypeError, match="name"):
+        class NoName(BaseModel):
+            version = "1.0"
+            def predict(self, fixture, odds, history):
+                return []
+        NoName()
