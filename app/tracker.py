@@ -1,5 +1,8 @@
+import logging
 from datetime import datetime, timezone
 from app.db.models import Fixture, Result, Prediction, OddsSnapshot, Performance
+
+logger = logging.getLogger(__name__)
 
 
 def compute_outcome(home: int, away: int) -> str:
@@ -50,7 +53,7 @@ class ResultsTracker:
 
     def save_result(self, fixture_id: int, home_score: int, away_score: int,
                     ht_home_score: int | None = None, ht_away_score: int | None = None):
-        ht_outcome = compute_outcome(ht_home_score, ht_away_score) if ht_home_score is not None else None
+        ht_outcome = compute_outcome(ht_home_score, ht_away_score) if (ht_home_score is not None and ht_away_score is not None) else None
         result = Result(
             fixture_id=fixture_id,
             home_score=home_score,
@@ -60,7 +63,7 @@ class ResultsTracker:
             ht_away_score=ht_away_score,
             ht_outcome=ht_outcome,
             total_goals=home_score + away_score,
-            ht_total_goals=(ht_home_score + ht_away_score) if ht_home_score is not None else None,
+            ht_total_goals=(ht_home_score + ht_away_score) if (ht_home_score is not None and ht_away_score is not None) else None,
             verified_at=datetime.now(timezone.utc),
         )
         self.session.add(result)
@@ -69,13 +72,33 @@ class ResultsTracker:
     def evaluate_predictions(self, fixture_id: int):
         result = self.session.query(Result).filter_by(fixture_id=fixture_id).first()
         if not result:
+            logger.warning("No result found for fixture %s — skipping evaluation", fixture_id)
             return
         predictions = self.session.query(Prediction).filter_by(fixture_id=fixture_id).all()
+
+        # Guard: check if already evaluated (any performance row updated after result was verified)
+        already_evaluated = False
+        for pred in predictions:
+            perf_existing = self.session.query(Performance).filter_by(
+                model_id=pred.model_id, bet_type=pred.bet_type
+            ).first()
+            if (perf_existing and perf_existing.updated_at and result.verified_at
+                    and perf_existing.updated_at >= result.verified_at):
+                already_evaluated = True
+                break
+
+        if already_evaluated:
+            logger.warning("Predictions for fixture %s already evaluated, skipping", fixture_id)
+            return
+
         for pred in predictions:
             snap = self.session.query(OddsSnapshot).filter_by(id=pred.odds_snapshot_id).first()
             is_correct = prediction_correct(pred, result)
             odds = get_odds_for_prediction(pred, snap) if snap else None
-            roi_delta = (odds - 1) if (is_correct and odds) else -1.0
+            if is_correct and odds is not None:
+                roi_delta = odds - 1
+            else:
+                roi_delta = -1.0
             self._update_performance(pred.model_id, pred.bet_type, is_correct, roi_delta)
         self.session.commit()
 
