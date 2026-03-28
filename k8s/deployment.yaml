@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soccer-betting-model
+  namespace: tenant-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: soccer-betting-model
+  template:
+    metadata:
+      labels:
+        app: soccer-betting-model
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          image: your-registry/soccer-betting-model:latest
+          command: ["python", "cli.py", "scheduler"]
+          envFrom:
+            - configMapRef:
+                name: betting-config
+            - secretRef:
+                name: betting-secrets
+          ports:
+            - containerPort: 9090
+              name: metrics
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

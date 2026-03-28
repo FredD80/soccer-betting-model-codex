@@ -1,0 +1,13 @@
+# Placeholder for future UI — no routes active yet
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: soccer-betting-model
+  namespace: tenant-b
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: betting.local
+      http:
+        paths: []
