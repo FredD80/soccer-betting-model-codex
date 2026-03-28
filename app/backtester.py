@@ -1,42 +1,18 @@
+import logging
 from datetime import datetime, timezone
 from app.db.models import ModelVersion, Fixture, OddsSnapshot, Result, BacktestRun
 from app.models.base import BaseModel, ModelPrediction
+from app.tracker import prediction_correct, get_odds_for_prediction
+
+logger = logging.getLogger(__name__)
 
 
-def _prediction_correct(pred: ModelPrediction, result: Result) -> bool:
-    """Check if a ModelPrediction matches the actual Result."""
-    if pred.bet_type == "match_result":
-        return pred.outcome == result.outcome
-    if pred.bet_type == "ht_result":
-        return pred.outcome == result.ht_outcome
-    if pred.bet_type == "total_goals":
-        if pred.line is None or result.total_goals is None:
-            return False
-        return (pred.outcome == "over" and result.total_goals > pred.line) or \
-               (pred.outcome == "under" and result.total_goals < pred.line)
-    if pred.bet_type == "ht_goals":
-        if pred.line is None or result.ht_total_goals is None:
-            return False
-        return (pred.outcome == "over" and result.ht_total_goals > pred.line) or \
-               (pred.outcome == "under" and result.ht_total_goals < pred.line)
-    return False
-
-
-def _get_odds_for_prediction(pred: ModelPrediction, snap: OddsSnapshot) -> float | None:
-    """Get the odds from an OddsSnapshot for a given ModelPrediction."""
-    mapping = {
-        ("match_result", "home"): snap.home_odds,
-        ("match_result", "draw"): snap.draw_odds,
-        ("match_result", "away"): snap.away_odds,
-        ("ht_result", "home"): snap.ht_home_odds,
-        ("ht_result", "draw"): snap.ht_draw_odds,
-        ("ht_result", "away"): snap.ht_away_odds,
-        ("total_goals", "over"): snap.over_odds,
-        ("total_goals", "under"): snap.under_odds,
-        ("ht_goals", "over"): snap.ht_over_odds,
-        ("ht_goals", "under"): snap.ht_under_odds,
-    }
-    return mapping.get((pred.bet_type, pred.outcome))
+class _PredictionAdapter:
+    """Adapts ModelPrediction to the interface expected by tracker functions."""
+    def __init__(self, mp: ModelPrediction):
+        self.predicted_outcome = mp.outcome
+        self.bet_type = mp.bet_type
+        self.line = mp.line
 
 
 class Backtester:
@@ -110,8 +86,9 @@ class Backtester:
             for pred in predictions:
                 stats = bet_type_stats.setdefault(pred.bet_type, {"total": 0, "correct": 0, "roi_sum": 0.0})
 
-                is_correct = _prediction_correct(pred, result)
-                odds = _get_odds_for_prediction(pred, snap)
+                adapted = _PredictionAdapter(pred)
+                is_correct = prediction_correct(adapted, result)
+                odds = get_odds_for_prediction(adapted, snap)
 
                 # Calculate ROI delta for this bet
                 if is_correct and odds is not None:
@@ -140,3 +117,4 @@ class Backtester:
             self.session.add(run)
 
         self.session.commit()
+        logger.info("Backtest %s@%s: %d fixtures processed", model_name, model_version, len(fixtures))
