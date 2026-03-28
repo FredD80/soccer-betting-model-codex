@@ -1,0 +1,108 @@
+import logging
+from datetime import datetime, timezone
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from app.db.connection import get_session
+from app.db.models import SchedulerLog
+from app.collector.collector import DataCollector
+from app.predictor import PredictionEngine
+from app.tracker import ResultsTracker
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+def collect_job(model_classes):
+    session = get_session()
+    log = SchedulerLog(job_name="collect", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        DataCollector(session).run()
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("collect_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def predict_job(model_classes):
+    session = get_session()
+    log = SchedulerLog(job_name="predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        PredictionEngine(session, model_classes=model_classes).run()
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def track_results_job():
+    session = get_session()
+    log = SchedulerLog(job_name="track_results", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.db.models import Fixture, Result
+        from app.collector.espn_api import ESPNClient
+        espn = ESPNClient()
+        all_fixtures = espn.fetch_all_leagues()
+        tracker = ResultsTracker(session)
+        for league_id, fixtures in all_fixtures.items():
+            for espn_fixture in fixtures:
+                if espn_fixture["status"] != "completed":
+                    continue
+                db_fixture = session.query(Fixture).filter_by(espn_id=espn_fixture["espn_id"]).first()
+                if not db_fixture:
+                    continue
+                existing = session.query(Result).filter_by(fixture_id=db_fixture.id).first()
+                if existing:
+                    continue
+                if espn_fixture["home_score"] is None:
+                    continue
+                tracker.save_result(
+                    db_fixture.id,
+                    home_score=espn_fixture["home_score"],
+                    away_score=espn_fixture["away_score"],
+                    ht_home_score=espn_fixture.get("ht_home_score"),
+                    ht_away_score=espn_fixture.get("ht_away_score"),
+                )
+                tracker.evaluate_predictions(db_fixture.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("track_results_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def start_scheduler(model_classes):
+    scheduler = BlockingScheduler()
+    scheduler.add_job(
+        collect_job, IntervalTrigger(hours=settings.collection_interval_hours),
+        args=[model_classes], id="collect", replace_existing=True
+    )
+    scheduler.add_job(
+        predict_job, IntervalTrigger(minutes=30),
+        args=[model_classes], id="predict", replace_existing=True
+    )
+    scheduler.add_job(
+        track_results_job, IntervalTrigger(hours=1),
+        id="track_results", replace_existing=True
+    )
+    logger.info("Scheduler started")
+    scheduler.start()
