@@ -23,6 +23,30 @@ def migrate():
 
 
 @cli.command()
+def seed():
+    """Seed the database with the 4 supported leagues."""
+    from app.db.models import League
+    session = get_session()
+    leagues = [
+        {"name": "Premier League", "country": "England", "espn_id": "eng.1", "odds_api_key": "soccer_epl"},
+        {"name": "La Liga", "country": "Spain", "espn_id": "esp.1", "odds_api_key": "soccer_spain_la_liga"},
+        {"name": "Bundesliga", "country": "Germany", "espn_id": "ger.1", "odds_api_key": "soccer_germany_bundesliga"},
+        {"name": "Serie A", "country": "Italy", "espn_id": "ita.1", "odds_api_key": "soccer_italy_serie_a"},
+    ]
+    try:
+        added = 0
+        for data in leagues:
+            existing = session.query(League).filter_by(espn_id=data["espn_id"]).first()
+            if not existing:
+                session.add(League(**data))
+                added += 1
+        session.commit()
+        click.echo(f"Seeded {added} league(s). {4 - added} already existed.")
+    finally:
+        session.close()
+
+
+@cli.command()
 def collect():
     """Run data collection now (fixtures + odds)."""
     from app.collector.collector import DataCollector

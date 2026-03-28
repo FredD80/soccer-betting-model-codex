@@ -87,6 +87,16 @@ class Backtester:
                 stats = bet_type_stats.setdefault(pred.bet_type, {"total": 0, "correct": 0, "roi_sum": 0.0})
 
                 adapted = _PredictionAdapter(pred)
+
+                # Push-aware ROI for backtester
+                if adapted.bet_type in ("total_goals", "ht_goals"):
+                    total = result.total_goals if adapted.bet_type == "total_goals" else result.ht_total_goals
+                    if total is not None and adapted.line is not None and total == adapted.line:
+                        roi_delta = 0.0  # push
+                        stats["total"] += 1
+                        stats["roi_sum"] += roi_delta
+                        continue
+
                 is_correct = prediction_correct(adapted, result)
                 odds = get_odds_for_prediction(adapted, snap)
 

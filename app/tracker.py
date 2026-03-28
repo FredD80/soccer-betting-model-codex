@@ -31,6 +31,22 @@ def prediction_correct(pred: Prediction, result: Result) -> bool:
     return False
 
 
+def prediction_roi_multiplier(pred: Prediction, result: Result) -> float:
+    """Returns 1.0 for win, 0.0 for push, -1.0 for loss/miss."""
+    if pred.bet_type in ("match_result", "ht_result"):
+        outcome = result.outcome if pred.bet_type == "match_result" else result.ht_outcome
+        return 1.0 if pred.predicted_outcome == outcome else -1.0
+
+    total = result.total_goals if pred.bet_type == "total_goals" else result.ht_total_goals
+    if total is None or pred.line is None:
+        return -1.0
+    if total == pred.line:
+        return 0.0  # push — exact line hit
+    if pred.predicted_outcome == "over":
+        return 1.0 if total > pred.line else -1.0
+    return 1.0 if total < pred.line else -1.0
+
+
 def get_odds_for_prediction(pred: Prediction, snap: OddsSnapshot) -> float | None:
     mapping = {
         ("match_result", "home"): snap.home_odds,
@@ -93,10 +109,13 @@ class ResultsTracker:
 
         for pred in predictions:
             snap = self.session.query(OddsSnapshot).filter_by(id=pred.odds_snapshot_id).first()
-            is_correct = prediction_correct(pred, result)
+            multiplier = prediction_roi_multiplier(pred, result)
+            is_correct = multiplier > 0
             odds = get_odds_for_prediction(pred, snap) if snap else None
-            if is_correct and odds is not None:
+            if multiplier == 1.0 and odds is not None:
                 roi_delta = odds - 1
+            elif multiplier == 0.0:
+                roi_delta = 0.0  # push — refund
             else:
                 roi_delta = -1.0
             self._update_performance(pred.model_id, pred.bet_type, is_correct, roi_delta)

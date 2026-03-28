@@ -12,7 +12,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def collect_job(model_classes):
+def collect_job():
     session = get_session()
     log = SchedulerLog(job_name="collect", status="running", started_at=datetime.now(timezone.utc))
     session.add(log)
@@ -94,7 +94,7 @@ def start_scheduler(model_classes):
     scheduler = BlockingScheduler()
     scheduler.add_job(
         collect_job, IntervalTrigger(hours=settings.collection_interval_hours),
-        args=[model_classes], id="collect", replace_existing=True
+        id="collect", replace_existing=True
     )
     scheduler.add_job(
         predict_job, IntervalTrigger(minutes=30),
