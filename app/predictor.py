@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime, timezone, timedelta
 from app.db.models import ModelVersion, Fixture, OddsSnapshot, Prediction, Result
 from app.models.base import BaseModel, ModelPrediction
+
+logger = logging.getLogger(__name__)
 
 
 class PredictionEngine:
@@ -24,9 +27,12 @@ class PredictionEngine:
                 history = self._get_history(fixture)
                 odds_dict = self._snapshot_to_dict(snap)
                 fixture_dict = self._fixture_to_dict(fixture)
-                predictions = model.predict(fixture_dict, odds_dict, history)
-                for pred in predictions:
-                    self._save_prediction(mv.id, fixture.id, snap.id, pred)
+                try:
+                    predictions = model.predict(fixture_dict, odds_dict, history)
+                    for pred in predictions:
+                        self._save_prediction(mv.id, fixture.id, snap.id, pred)
+                except Exception as e:
+                    logger.error("Model %s@%s failed on fixture %s: %s", mv.name, mv.version, fixture.id, e)
 
         self.session.commit()
 
@@ -36,9 +42,11 @@ class PredictionEngine:
         else:
             from app.config import settings
             lead = settings.prediction_lead_hours
-        cutoff = datetime.now(timezone.utc) + timedelta(hours=lead)
+        now = datetime.now(timezone.utc)
+        cutoff = now + timedelta(hours=lead)
         return (self.session.query(Fixture)
                 .filter(Fixture.status == "scheduled")
+                .filter(Fixture.kickoff_at >= now)
                 .filter(Fixture.kickoff_at <= cutoff)
                 .all())
 
@@ -49,8 +57,10 @@ class PredictionEngine:
                 .first())
 
     def _get_history(self, fixture: Fixture, lookback: int = 10) -> list[dict]:
+        now = datetime.now(timezone.utc)
         recent = (self.session.query(Result)
                   .join(Fixture, Result.fixture_id == Fixture.id)
+                  .filter(Fixture.kickoff_at < now)
                   .filter(
                       (Fixture.home_team_id == fixture.home_team_id) |
                       (Fixture.away_team_id == fixture.home_team_id) |
@@ -63,6 +73,11 @@ class PredictionEngine:
         return [self._result_to_dict(r) for r in recent]
 
     def _save_prediction(self, model_id: int, fixture_id: int, snap_id: int, pred: ModelPrediction):
+        existing = (self.session.query(Prediction)
+                    .filter_by(model_id=model_id, fixture_id=fixture_id, bet_type=pred.bet_type)
+                    .first())
+        if existing:
+            return
         p = Prediction(
             model_id=model_id,
             fixture_id=fixture_id,
