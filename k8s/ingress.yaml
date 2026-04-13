@@ -1,13 +1,29 @@
-# Placeholder for future UI — no routes active yet
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: soccer-betting-model
+  name: soccer-ingress
   namespace: tenant-b
   annotations:
-    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
+  ingressClassName: nginx
   rules:
-    - host: betting.local
+    - host: soccer.yourdomain.com
       http:
-        paths: []
+        paths:
+          # FastAPI — /api/picks/today → fastapi service :8000 /picks/today
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: fastapi
+                port:
+                  number: 8000
+          # React dashboard — everything else
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: dashboard
+                port:
+                  number: 80

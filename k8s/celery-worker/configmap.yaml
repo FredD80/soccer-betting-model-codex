@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: celery-worker-config
+  namespace: tenant-b
+data:
+  CELERY_CONCURRENCY: "2"          # 2 concurrent tasks per worker pod
+  CELERY_QUEUES: "default"
+  # Red card normalization weights (used by FormCacheBuilder)
+  RED_CARD_WEIGHT_BEFORE_60: "0.25"
+  RED_CARD_WEIGHT_AFTER_60: "0.75"

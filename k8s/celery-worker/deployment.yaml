@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: tenant-b
+  labels:
+    app: celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: worker
+          image: your-registry/soccer-betting-model:latest
+          command:
+            - celery
+            - -A
+            - app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=$(CELERY_CONCURRENCY)
+            - --queues=$(CELERY_QUEUES)
+          envFrom:
+            - secretRef:
+                name: soccer-secrets
+            - configMapRef:
+                name: soccer-config
+            - configMapRef:
+                name: celery-worker-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"

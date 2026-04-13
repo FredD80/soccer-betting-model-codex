@@ -15,6 +15,14 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+
   app:
     build: .
     env_file: .env
@@ -25,5 +33,40 @@ services:
     ports:
       - "9090:9090"
 
+  worker:
+    build: .
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command:
+      - celery
+      - -A
+      - app.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=2
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "8080:80"
+
 volumes:
   postgres-data:
+  redis-data:
