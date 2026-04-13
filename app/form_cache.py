@@ -94,6 +94,23 @@ class FormCacheBuilder:
             self.session.add(FormCache(team_id=team_id, is_home=is_home, **kwargs))
         return True
 
+    def populate_xg_from_understat(self, understat_matches: list[dict], team_name: str, team_id: int, is_home: bool) -> None:
+        """Update form_cache xG fields from a list of Understat match dicts."""
+        side = "h" if is_home else "a"
+        opp = "a" if is_home else "h"
+        xg_scored = [float(m[side]["xG"]) for m in understat_matches if m[side]["title"] == team_name]
+        xg_conceded = [float(m[opp]["xG"]) for m in understat_matches if m[side]["title"] == team_name]
+        if not xg_scored:
+            return
+        lookback = xg_scored[-self.lookback:]
+        lookback_c = xg_conceded[-self.lookback:]
+        cache = (self.session.query(FormCache)
+                 .filter_by(team_id=team_id, is_home=is_home).first())
+        if cache:
+            cache.xg_scored_avg = sum(lookback) / len(lookback)
+            cache.xg_conceded_avg = sum(lookback_c) / len(lookback_c)
+            self.session.commit()
+
     def _fetch_last_n(self, team_id: int, is_home: bool) -> list:
         team_filter = (
             Fixture.home_team_id == team_id if is_home
