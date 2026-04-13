@@ -24,14 +24,16 @@ def migrate():
 
 @cli.command()
 def seed():
-    """Seed the database with the 4 supported leagues."""
+    """Seed the database with the 6 supported leagues."""
     from app.db.models import League
     session = get_session()
     leagues = [
-        {"name": "Premier League", "country": "England", "espn_id": "eng.1", "odds_api_key": "soccer_epl"},
-        {"name": "La Liga", "country": "Spain", "espn_id": "esp.1", "odds_api_key": "soccer_spain_la_liga"},
-        {"name": "Bundesliga", "country": "Germany", "espn_id": "ger.1", "odds_api_key": "soccer_germany_bundesliga"},
-        {"name": "Serie A", "country": "Italy", "espn_id": "ita.1", "odds_api_key": "soccer_italy_serie_a"},
+        {"name": "Premier League",   "country": "England", "espn_id": "eng.1",          "odds_api_key": "soccer_epl"},
+        {"name": "La Liga",          "country": "Spain",   "espn_id": "esp.1",          "odds_api_key": "soccer_spain_la_liga"},
+        {"name": "Bundesliga",       "country": "Germany", "espn_id": "ger.1",          "odds_api_key": "soccer_germany_bundesliga"},
+        {"name": "Serie A",          "country": "Italy",   "espn_id": "ita.1",          "odds_api_key": "soccer_italy_serie_a"},
+        {"name": "Ligue 1",          "country": "France",  "espn_id": "fra.1",          "odds_api_key": "soccer_france_ligue_one"},
+        {"name": "Champions League", "country": "Europe",  "espn_id": "uefa.champions", "odds_api_key": "soccer_uefa_champs_league"},
     ]
     try:
         added = 0
@@ -41,7 +43,7 @@ def seed():
                 session.add(League(**data))
                 added += 1
         session.commit()
-        click.echo(f"Seeded {added} league(s). {4 - added} already existed.")
+        click.echo(f"Seeded {added} league(s). {6 - added} already existed.")
     finally:
         session.close()
 
