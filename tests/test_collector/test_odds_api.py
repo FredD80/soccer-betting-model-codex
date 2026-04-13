@@ -116,3 +116,75 @@ def test_fetch_all_leagues_calls_each_sport_key():
     client = OddsAPIClient(api_key="testkey")
     results = client.fetch_all_leagues()
     assert len(results) == 6
+
+
+SAMPLE_WITH_SPREADS = [
+    {
+        "id": "abc456",
+        "sport_key": "soccer_epl",
+        "home_team": "Arsenal",
+        "away_team": "Chelsea",
+        "commence_time": "2026-04-01T15:00:00Z",
+        "bookmakers": [
+            {
+                "key": "betmgm",
+                "title": "BetMGM",
+                "markets": [
+                    {
+                        "key": "h2h",
+                        "outcomes": [
+                            {"name": "Arsenal", "price": 2.10},
+                            {"name": "Draw", "price": 3.50},
+                            {"name": "Chelsea", "price": 3.20},
+                        ],
+                    },
+                    {
+                        "key": "totals",
+                        "outcomes": [
+                            {"name": "Over", "price": 1.90, "point": 2.5},
+                            {"name": "Under", "price": 1.90, "point": 2.5},
+                        ],
+                    },
+                    {
+                        "key": "spreads",
+                        "outcomes": [
+                            {"name": "Arsenal", "price": 1.95, "point": -0.5},
+                            {"name": "Chelsea", "price": 1.85, "point": 0.5},
+                        ],
+                    },
+                ],
+            }
+        ],
+    }
+]
+
+
+@rsps.activate
+def test_fetch_odds_extracts_spreads():
+    rsps.add(
+        rsps.GET,
+        "https://api.the-odds-api.com/v4/sports/soccer_epl/odds/",
+        json=SAMPLE_WITH_SPREADS,
+        status=200,
+    )
+    client = OddsAPIClient(api_key="testkey")
+    fixtures = client.fetch_odds("soccer_epl")
+    bookmaker = fixtures[0]["bookmakers"][0]
+    assert bookmaker["spreads"]["home_line"] == -0.5
+    assert bookmaker["spreads"]["home_odds"] == 1.95
+    assert bookmaker["spreads"]["away_line"] == 0.5
+    assert bookmaker["spreads"]["away_odds"] == 1.85
+
+
+@rsps.activate
+def test_fetch_odds_spreads_none_when_missing():
+    rsps.add(
+        rsps.GET,
+        "https://api.the-odds-api.com/v4/sports/soccer_epl/odds/",
+        json=SAMPLE_RESPONSE,
+        status=200,
+    )
+    client = OddsAPIClient(api_key="testkey")
+    fixtures = client.fetch_odds("soccer_epl")
+    bookmaker = fixtures[0]["bookmakers"][0]
+    assert bookmaker["spreads"] is None

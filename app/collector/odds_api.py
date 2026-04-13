@@ -22,7 +22,7 @@ class OddsAPIClient:
         params = {
             "apiKey": self.api_key,
             "regions": "us,uk",
-            "markets": "h2h,totals,h2h_h1,totals_h1",
+            "markets": "h2h,totals,h2h_h1,totals_h1,spreads",
             "oddsFormat": "decimal",
         }
         response = requests.get(url, params=params, timeout=30)
@@ -52,6 +52,7 @@ class OddsAPIClient:
             "totals": self._parse_totals(markets.get("totals")),
             "ht_h2h": self._parse_h2h(markets.get("h2h_h1"), home_team, away_team),
             "ht_totals": self._parse_totals(markets.get("totals_h1")),
+            "spreads": self._parse_spreads(markets.get("spreads"), home_team, away_team),
         }
 
     def _parse_h2h(self, market: dict | None, home_team: str, away_team: str) -> dict | None:
@@ -62,6 +63,19 @@ class OddsAPIClient:
             "home": outcomes.get(home_team),
             "draw": outcomes.get("Draw"),
             "away": outcomes.get(away_team),
+        }
+
+    def _parse_spreads(self, market: dict | None, home_team: str, away_team: str) -> dict | None:
+        if not market:
+            return None
+        outcomes = {o["name"]: o for o in market["outcomes"]}
+        home = outcomes.get(home_team, {})
+        away = outcomes.get(away_team, {})
+        return {
+            "home_line": home.get("point"),
+            "home_odds": home.get("price"),
+            "away_line": away.get("point"),
+            "away_odds": away.get("price"),
         }
 
     def _parse_totals(self, market: dict | None) -> dict | None:
