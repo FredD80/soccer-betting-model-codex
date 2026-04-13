@@ -90,6 +90,7 @@ class DataCollector:
         totals = bookmaker.get("totals") or {}
         ht_h2h = bookmaker.get("ht_h2h") or {}
         ht_totals = bookmaker.get("ht_totals") or {}
+        spreads = bookmaker.get("spreads") or {}
 
         snap = OddsSnapshot(
             fixture_id=fixture_id,
@@ -106,6 +107,10 @@ class DataCollector:
             ht_goals_line=ht_totals.get("line"),
             ht_over_odds=ht_totals.get("over"),
             ht_under_odds=ht_totals.get("under"),
+            spread_home_line=spreads.get("home_line"),
+            spread_home_odds=spreads.get("home_odds"),
+            spread_away_line=spreads.get("away_line"),
+            spread_away_odds=spreads.get("away_odds"),
             captured_at=datetime.now(timezone.utc),
         )
         self.session.add(snap)

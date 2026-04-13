@@ -54,6 +54,10 @@ class OddsSnapshot(Base):
     ht_over_odds = Column(Float)
     ht_under_odds = Column(Float)
     captured_at = Column(DateTime, nullable=False)
+    spread_home_line = Column(Float)    # e.g., -0.5, -1.0
+    spread_home_odds = Column(Float)
+    spread_away_line = Column(Float)    # e.g., +0.5, +1.0
+    spread_away_odds = Column(Float)
 
 
 class ModelVersion(Base):
@@ -91,6 +95,7 @@ class Result(Base):
     ht_outcome = Column(String)       # home | draw | away
     total_goals = Column(Integer)
     ht_total_goals = Column(Integer)
+    red_card_minute = Column(Integer)  # minute of first red card; None if no red card; set by API-Football (Phase 3)
     verified_at = Column(DateTime)
 
 
@@ -128,3 +133,47 @@ class SchedulerLog(Base):
     error = Column(Text)
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
+
+
+class FormCache(Base):
+    __tablename__ = "form_cache"
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    is_home = Column(Boolean, nullable=False)
+    goals_scored_avg = Column(Float, nullable=False)
+    goals_conceded_avg = Column(Float, nullable=False)
+    spread_cover_rate = Column(Float)      # weighted % of last 5 games team won
+    ou_hit_rate_15 = Column(Float)         # weighted % of last 5 games total goals > 1.5
+    ou_hit_rate_25 = Column(Float)         # weighted % of last 5 games total goals > 2.5
+    ou_hit_rate_35 = Column(Float)         # weighted % of last 5 games total goals > 3.5
+    xg_scored_avg = Column(Float)          # nullable — populated by Understat (Phase 2)
+    xg_conceded_avg = Column(Float)        # nullable — populated by Understat (Phase 2)
+    matches_count = Column(Integer, default=0)
+    updated_at = Column(DateTime)
+
+
+class SpreadPrediction(Base):
+    __tablename__ = "spread_predictions"
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    team_side = Column(String, nullable=False)   # "home" | "away"
+    goal_line = Column(Float, nullable=False)    # -1.5 | -1.0 | -0.5 | 0.5 | 1.0 | 1.5
+    cover_probability = Column(Float)
+    push_probability = Column(Float)             # non-zero only for integer lines (-1.0, +1.0)
+    ev_score = Column(Float)                     # model_prob minus implied_prob; None if no odds
+    confidence_tier = Column(String)             # SKIP | MEDIUM | HIGH | ELITE
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class OUAnalysis(Base):
+    __tablename__ = "ou_analysis"
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    line = Column(Float, nullable=False)         # 1.5 | 2.5 | 3.5
+    direction = Column(String, nullable=False)   # "over" | "under"
+    probability = Column(Float)
+    ev_score = Column(Float)                     # None if snapshot line doesn't match
+    confidence_tier = Column(String)             # SKIP | MEDIUM | HIGH | ELITE
+    created_at = Column(DateTime, default=datetime.utcnow)
