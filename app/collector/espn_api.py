@@ -2,7 +2,7 @@ import requests
 
 BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer"
 
-LEAGUE_ESPN_IDS = ["eng.1", "esp.1", "ger.1", "ita.1"]
+LEAGUE_ESPN_IDS = ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"]
 
 
 class ESPNClient:

@@ -65,11 +65,11 @@ def test_fetch_fixtures_parses_completed_with_scores():
 
 
 @rsps.activate
-def test_fetch_all_leagues_queries_all_four():
-    for league in ["eng.1", "esp.1", "ger.1", "ita.1"]:
+def test_fetch_all_leagues_queries_all_six():
+    for league in ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"]:
         rsps.add(rsps.GET,
                  f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league}/scoreboard",
                  json={"events": []}, status=200)
     client = ESPNClient()
     results = client.fetch_all_leagues()
-    assert set(results.keys()) == {"eng.1", "esp.1", "ger.1", "ita.1"}
+    assert set(results.keys()) == {"eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"}
