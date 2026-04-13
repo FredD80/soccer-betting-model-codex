@@ -4,7 +4,7 @@ metadata:
   name: betting-config
   namespace: tenant-b
 data:
-  COLLECTION_INTERVAL_HOURS: "6"
+  COLLECTION_INTERVAL_HOURS: "12"
   PREDICTION_LEAD_HOURS: "2"
   SPREAD_MODEL_VERSION: "1.0"
   OU_MODEL_VERSION: "1.0"

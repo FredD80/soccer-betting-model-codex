@@ -17,12 +17,12 @@ spec:
     spec:
       containers:
         - name: api
-          image: your-registry/soccer-api:latest
+          image: ghcr.io/fredd80/soccer-api:latest
           ports:
             - containerPort: 8000
           envFrom:
             - secretRef:
-                name: soccer-secrets
+                name: betting-secrets
           livenessProbe:
             httpGet:
               path: /health

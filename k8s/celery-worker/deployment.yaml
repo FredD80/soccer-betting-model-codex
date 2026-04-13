@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: your-registry/soccer-betting-model:latest
+          image: ghcr.io/fredd80/soccer-engine:latest
           command:
             - celery
             - -A
@@ -28,9 +28,9 @@ spec:
             - --queues=$(CELERY_QUEUES)
           envFrom:
             - secretRef:
-                name: soccer-secrets
+                name: betting-secrets
             - configMapRef:
-                name: soccer-config
+                name: betting-config
             - configMapRef:
                 name: celery-worker-config
           resources:

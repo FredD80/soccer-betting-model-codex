@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: dashboard
-          image: your-registry/soccer-dashboard:latest
+          image: ghcr.io/fredd80/soccer-dashboard:latest
           ports:
             - containerPort: 80
           resources:

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: your-registry/soccer-betting-model:latest
+          image: ghcr.io/fredd80/soccer-engine:latest
           command: ["python", "cli.py", "scheduler"]
           envFrom:
             - configMapRef:
