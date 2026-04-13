@@ -177,3 +177,99 @@ class OUAnalysis(Base):
     ev_score = Column(Float)                     # None if snapshot line doesn't match
     confidence_tier = Column(String)             # SKIP | MEDIUM | HIGH | ELITE
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class LineMovement(Base):
+    """Odds snapshots every 30min per tracked fixture — TimescaleDB hypertable."""
+    __tablename__ = "line_movement"
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    book = Column(String, nullable=False)           # e.g. "pinnacle", "draftkings"
+    market = Column(String, nullable=False)         # "spread" | "ou"
+    line = Column(Float, nullable=False)            # spread goal-line or O/U total
+    odds = Column(Integer)                          # American odds
+    recorded_at = Column(DateTime, nullable=False)
+
+
+class PlayerImpact(Base):
+    __tablename__ = "player_impact"
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    player_name = Column(String, nullable=False)
+    xg_contribution_pct = Column(Float)            # % of team's season xG
+    is_absent = Column(Boolean, default=False)
+    is_gk = Column(Boolean, default=False)
+    psxg_plus_minus = Column(Float)                # GK overperformance vs expected
+    source = Column(String)                        # "api_football" | "fbref"
+    updated_at = Column(DateTime)
+
+
+class DrawPropensity(Base):
+    __tablename__ = "draw_propensity"
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False, unique=True)
+    score = Column(Float)                          # 0.0 to 1.0
+    manager_draw_tendency = Column(Float)
+    table_utility = Column(Float)
+    motivation_asymmetry = Column(Float)
+    defensive_trend = Column(Float)
+    ucl_aggregate_context = Column(Float)
+    updated_at = Column(DateTime)
+
+
+class ManagerProfile(Base):
+    __tablename__ = "manager_profiles"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"))
+    tenure_games = Column(Integer, default=0)
+    draw_tendency_underdog = Column(Float)         # draw % as underdog vs top-6 away
+    tactical_archetype = Column(String)            # "High Press" | "Low Block" | etc.
+    updated_at = Column(DateTime)
+
+
+class RefereeProfile(Base):
+    __tablename__ = "referee_profiles"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    league = Column(String)
+    fouls_per_tackle = Column(Float)
+    penalty_rate = Column(Float)                   # penalties awarded per game
+    cards_per_game = Column(Float)
+    updated_at = Column(DateTime)
+
+
+class TacticalProfile(Base):
+    __tablename__ = "tactical_profiles"
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    season = Column(String, nullable=False)        # e.g. "2025-26"
+    archetype = Column(String)                     # "High Press" | "Low Block" | "Counter-Attack" | "Possession"
+    ppda = Column(Float)                           # Passes Allowed Per Defensive Action (from Understat)
+    press_resistance = Column(Float)               # dribble success rate vs high press
+    set_piece_pct_scored = Column(Float)           # % of goals from set pieces
+    aerial_win_rate = Column(Float)
+    updated_at = Column(DateTime)
+
+
+class StadiumProfile(Base):
+    __tablename__ = "stadium_profiles"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"))
+    enclosure_rating = Column(String, nullable=False)  # "Open" | "Semi-Enclosed" | "Closed"
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+
+class RotationFlag(Base):
+    __tablename__ = "rotation_flags"
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    rotation_probability = Column(Float)           # 0.0 to 1.0
+    ucl_fixture_id = Column(Integer, ForeignKey("fixtures.id"))
+    hours_between = Column(Float)                  # hours between fixtures
+    overridden_by_lineup = Column(Boolean, default=False)
+    updated_at = Column(DateTime)
