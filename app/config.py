@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     odds_api_key: str
     collection_interval_hours: int = 6
     prediction_lead_hours: int = 2
+    spread_model_version: str = "1.0"   # version string for spread_v1 model
+    ou_model_version: str = "1.0"       # version string for ou_v1 model
 
     class Config:
         env_file = ".env"

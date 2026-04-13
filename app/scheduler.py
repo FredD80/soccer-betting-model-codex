@@ -90,6 +90,78 @@ def track_results_job():
         session.close()
 
 
+def form_cache_job():
+    session = get_session()
+    log = SchedulerLog(job_name="form_cache", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.form_cache import FormCacheBuilder
+        count = FormCacheBuilder(session).build_all()
+        log.status = "success"
+        logger.info("form_cache_job: updated %d cache entries", count)
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("form_cache_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def spread_predict_job():
+    session = get_session()
+    log = SchedulerLog(job_name="spread_predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.spread_predictor import SpreadPredictor
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="spread_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(name="spread_v1", version=settings.spread_model_version,
+                              description="Phase 1 Poisson spread predictor", active=True)
+            session.add(mv)
+            session.flush()
+        SpreadPredictor(session).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("spread_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def ou_analyze_job():
+    session = get_session()
+    log = SchedulerLog(job_name="ou_analyze", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.ou_analyzer import OUAnalyzer
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="ou_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(name="ou_v1", version=settings.ou_model_version,
+                              description="Phase 1 Poisson O/U analyzer", active=True)
+            session.add(mv)
+            session.flush()
+        OUAnalyzer(session).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("ou_analyze_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
 def start_scheduler(model_classes):
     scheduler = BlockingScheduler()
     scheduler.add_job(
@@ -103,6 +175,18 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         track_results_job, IntervalTrigger(hours=1),
         id="track_results", replace_existing=True
+    )
+    scheduler.add_job(
+        form_cache_job, IntervalTrigger(hours=settings.collection_interval_hours),
+        id="form_cache", replace_existing=True
+    )
+    scheduler.add_job(
+        spread_predict_job, IntervalTrigger(minutes=30),
+        id="spread_predict", replace_existing=True
+    )
+    scheduler.add_job(
+        ou_analyze_job, IntervalTrigger(minutes=30),
+        id="ou_analyze", replace_existing=True
     )
     logger.info("Scheduler started")
     scheduler.start()

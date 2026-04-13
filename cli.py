@@ -61,6 +61,60 @@ def collect():
 
 
 @cli.command()
+def build_form_cache():
+    """Build/refresh form cache for all teams from completed results."""
+    from app.form_cache import FormCacheBuilder
+    session = get_session()
+    try:
+        count = FormCacheBuilder(session).build_all()
+        click.echo(f"Form cache updated: {count} team/home entries written.")
+    finally:
+        session.close()
+
+
+@cli.command()
+def predict_spreads():
+    """Run spread predictor for upcoming fixtures."""
+    from app.spread_predictor import SpreadPredictor
+    from app.db.models import ModelVersion
+    session = get_session()
+    try:
+        mv = session.query(ModelVersion).filter_by(name="spread_v1", active=True).first()
+        if not mv:
+            from app.config import settings
+            mv = ModelVersion(name="spread_v1", version=settings.spread_model_version,
+                              description="Phase 1 Poisson spread predictor", active=True)
+            session.add(mv)
+            session.flush()
+        SpreadPredictor(session).run(mv.id)
+        session.commit()
+        click.echo("Spread predictions complete.")
+    finally:
+        session.close()
+
+
+@cli.command()
+def predict_ou():
+    """Run O/U analyzer for upcoming fixtures."""
+    from app.ou_analyzer import OUAnalyzer
+    from app.db.models import ModelVersion
+    session = get_session()
+    try:
+        mv = session.query(ModelVersion).filter_by(name="ou_v1", active=True).first()
+        if not mv:
+            from app.config import settings
+            mv = ModelVersion(name="ou_v1", version=settings.ou_model_version,
+                              description="Phase 1 Poisson O/U analyzer", active=True)
+            session.add(mv)
+            session.flush()
+        OUAnalyzer(session).run(mv.id)
+        session.commit()
+        click.echo("O/U analysis complete.")
+    finally:
+        session.close()
+
+
+@cli.command()
 def predict():
     """Run prediction engine now for upcoming fixtures."""
     from app.predictor import PredictionEngine
