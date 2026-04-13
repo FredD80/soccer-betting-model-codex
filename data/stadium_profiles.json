@@ -1,0 +1,15 @@
+[
+  {"name": "Emirates Stadium", "team": "Arsenal", "enclosure_rating": "Semi-Enclosed", "latitude": 51.5549, "longitude": -0.1084},
+  {"name": "Stamford Bridge", "team": "Chelsea", "enclosure_rating": "Open", "latitude": 51.4816, "longitude": -0.1910},
+  {"name": "Anfield", "team": "Liverpool", "enclosure_rating": "Semi-Enclosed", "latitude": 53.4308, "longitude": -2.9608},
+  {"name": "Etihad Stadium", "team": "Manchester City", "enclosure_rating": "Semi-Enclosed", "latitude": 53.4831, "longitude": -2.2004},
+  {"name": "Old Trafford", "team": "Manchester United", "enclosure_rating": "Open", "latitude": 53.4631, "longitude": -2.2913},
+  {"name": "Tottenham Hotspur Stadium", "team": "Tottenham", "enclosure_rating": "Closed", "latitude": 51.6042, "longitude": -0.0665},
+  {"name": "Camp Nou", "team": "Barcelona", "enclosure_rating": "Open", "latitude": 41.3809, "longitude": 2.1228},
+  {"name": "Estadio Bernabeu", "team": "Real Madrid", "enclosure_rating": "Closed", "latitude": 40.4531, "longitude": -3.6883},
+  {"name": "Allianz Arena", "team": "Bayern Munich", "enclosure_rating": "Closed", "latitude": 48.2188, "longitude": 11.6247},
+  {"name": "Signal Iduna Park", "team": "Borussia Dortmund", "enclosure_rating": "Open", "latitude": 51.4926, "longitude": 7.4519},
+  {"name": "San Siro", "team": "AC Milan", "enclosure_rating": "Open", "latitude": 45.4782, "longitude": 9.1239},
+  {"name": "Stadio Olimpico", "team": "Roma", "enclosure_rating": "Open", "latitude": 41.9340, "longitude": 12.4547},
+  {"name": "Parc des Princes", "team": "PSG", "enclosure_rating": "Semi-Enclosed", "latitude": 48.8414, "longitude": 2.2530}
+]
