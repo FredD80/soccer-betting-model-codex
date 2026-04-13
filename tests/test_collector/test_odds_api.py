@@ -103,7 +103,10 @@ def test_fetch_odds_handles_missing_ht_markets():
 
 @rsps.activate
 def test_fetch_all_leagues_calls_each_sport_key():
-    for sport_key in ["soccer_epl", "soccer_spain_la_liga", "soccer_germany_bundesliga", "soccer_italy_serie_a"]:
+    for sport_key in [
+        "soccer_epl", "soccer_spain_la_liga", "soccer_germany_bundesliga",
+        "soccer_italy_serie_a", "soccer_france_ligue_one", "soccer_uefa_champs_league",
+    ]:
         rsps.add(
             rsps.GET,
             f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
@@ -112,4 +115,4 @@ def test_fetch_all_leagues_calls_each_sport_key():
         )
     client = OddsAPIClient(api_key="testkey")
     results = client.fetch_all_leagues()
-    assert len(results) == 4
+    assert len(results) == 6

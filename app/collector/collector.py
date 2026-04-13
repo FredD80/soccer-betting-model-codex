@@ -11,6 +11,8 @@ ESPN_TO_ODDS_API_LEAGUE = {
     "esp.1": "soccer_spain_la_liga",
     "ger.1": "soccer_germany_bundesliga",
     "ita.1": "soccer_italy_serie_a",
+    "fra.1": "soccer_france_ligue_one",
+    "uefa.champions": "soccer_uefa_champs_league",
 }
 
 
