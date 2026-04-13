@@ -12,6 +12,8 @@ celery_app = Celery(
     backend=REDIS_URL,
 )
 
+app = celery_app  # alias for `celery -A app.celery_app worker` discovery
+
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
