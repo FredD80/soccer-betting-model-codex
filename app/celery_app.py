@@ -64,6 +64,46 @@ def spread_predict_task():
         session.close()
 
 
+@celery_app.task(name="collect_line_movement")
+def collect_line_movement_task():
+    """Poll current odds for all upcoming fixtures and write LineMovement rows."""
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy.orm import Session
+    from app.db.connection import get_engine
+    from app.db.models import Fixture, LineMovement
+    from app.collector.odds_api import OddsAPIClient
+    from app.config import settings
+
+    engine = get_engine()
+    client = OddsAPIClient(api_key=settings.odds_api_key)
+    now = datetime.now(timezone.utc)
+    window = now + timedelta(days=7)
+
+    with Session(engine) as session:
+        upcoming = (session.query(Fixture)
+                    .filter(Fixture.kickoff_at >= now, Fixture.kickoff_at <= window)
+                    .all())
+        recorded = 0
+        for fixture in upcoming:
+            snapshots = client.fetch_odds_for_fixture(fixture.external_id)
+            for snap in snapshots:
+                for market in ("spreads", "totals"):
+                    lines = snap.get(market, [])
+                    for entry in lines:
+                        lm = LineMovement(
+                            fixture_id=fixture.id,
+                            book=snap.get("bookmaker", "unknown"),
+                            market="spread" if market == "spreads" else "ou",
+                            line=entry.get("line", 0.0),
+                            odds=entry.get("odds"),
+                            recorded_at=datetime.now(timezone.utc),
+                        )
+                        session.add(lm)
+                        recorded += 1
+        session.commit()
+        return {"recorded": recorded}
+
+
 @celery_app.task(name="app.celery_app.ou_analyze_task")
 def ou_analyze_task():
     """Run O/U analyzer for upcoming fixtures."""

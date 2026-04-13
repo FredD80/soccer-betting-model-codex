@@ -4,6 +4,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.db.connection import get_session
 from app.db.models import SchedulerLog
+from app.celery_app import celery_app
 from app.collector.collector import DataCollector
 from app.predictor import PredictionEngine
 from app.tracker import ResultsTracker
@@ -187,6 +188,11 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         ou_analyze_job, IntervalTrigger(minutes=30),
         id="ou_analyze", replace_existing=True
+    )
+    scheduler.add_job(
+        lambda: celery_app.send_task("collect_line_movement"),
+        IntervalTrigger(minutes=30), id="line_movement_poll",
+        replace_existing=True
     )
     logger.info("Scheduler started")
     scheduler.start()
