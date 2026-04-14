@@ -30,6 +30,11 @@ class SpreadPredictor:
 
     def run(self, model_id: int):
         upcoming = self._get_upcoming_fixtures()
+        if upcoming:
+            self.session.query(SpreadPrediction).filter(
+                SpreadPrediction.model_id == model_id,
+                SpreadPrediction.fixture_id.in_([f.id for f in upcoming]),
+            ).delete(synchronize_session=False)
         for fixture in upcoming:
             home_form = self._get_form(fixture.home_team_id, is_home=True)
             away_form = self._get_form(fixture.away_team_id, is_home=False)
@@ -140,33 +145,18 @@ class SpreadPredictor:
 
     def _upsert(self, model_id, fixture_id, team_side, line,
                 cover_p, push_p, edge, tier, final_p, kelly, steam_down):
-        existing = (
-            self.session.query(SpreadPrediction)
-            .filter_by(model_id=model_id, fixture_id=fixture_id, goal_line=line)
-            .first()
-        )
-        if existing:
-            existing.cover_probability = cover_p
-            existing.push_probability = push_p
-            existing.ev_score = edge
-            existing.confidence_tier = tier
-            existing.final_probability = final_p
-            existing.edge_pct = edge
-            existing.kelly_fraction = kelly
-            existing.steam_downgraded = steam_down
-        else:
-            self.session.add(SpreadPrediction(
-                model_id=model_id,
-                fixture_id=fixture_id,
-                team_side=team_side,
-                goal_line=line,
-                cover_probability=cover_p,
-                push_probability=push_p,
-                ev_score=edge,
-                confidence_tier=tier,
-                final_probability=final_p,
-                edge_pct=edge,
-                kelly_fraction=kelly,
-                steam_downgraded=steam_down,
-                created_at=datetime.now(timezone.utc),
-            ))
+        self.session.add(SpreadPrediction(
+            model_id=model_id,
+            fixture_id=fixture_id,
+            team_side=team_side,
+            goal_line=line,
+            cover_probability=cover_p,
+            push_probability=push_p,
+            ev_score=edge,
+            confidence_tier=tier,
+            final_probability=final_p,
+            edge_pct=edge,
+            kelly_fraction=kelly,
+            steam_downgraded=steam_down,
+            created_at=datetime.now(timezone.utc),
+        ))
