@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from app.db.connection import get_session
 from app.db.models import SchedulerLog
@@ -197,6 +198,11 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         lambda: celery_app.send_task("app.celery_app.monte_carlo_task"),
         IntervalTrigger(minutes=30), id="monte_carlo",
+        replace_existing=True
+    )
+    scheduler.add_job(
+        lambda: celery_app.send_task("app.celery_app.calibration_task"),
+        CronTrigger(hour=3, minute=0), id="calibration",
         replace_existing=True
     )
     logger.info("Scheduler started")

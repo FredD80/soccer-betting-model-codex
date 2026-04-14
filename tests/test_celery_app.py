@@ -9,3 +9,4 @@ def test_task_names_registered():
     assert "app.celery_app.form_cache_task" in registered
     assert "app.celery_app.spread_predict_task" in registered
     assert "app.celery_app.ou_analyze_task" in registered
+    assert "app.celery_app.calibration_task" in registered

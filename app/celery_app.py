@@ -196,6 +196,20 @@ def monte_carlo_task():
         session.close()
 
 
+@celery_app.task(name="app.celery_app.calibration_task")
+def calibration_task(window_days: int = 30):
+    """Compute rolling Brier + reliability curve per (active model, bet_type)."""
+    from app.db.connection import get_session
+    from scripts.compute_calibration import run as compute_run
+    session = get_session()
+    try:
+        compute_run(session, window_days=window_days)
+        logger.info("calibration_task: complete")
+        return {"status": "ok", "window_days": window_days}
+    finally:
+        session.close()
+
+
 @celery_app.task(name="app.celery_app.ou_analyze_task")
 def ou_analyze_task():
     """Run O/U analyzer for upcoming fixtures."""
