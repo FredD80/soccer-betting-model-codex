@@ -10,7 +10,9 @@ from app.collector.collector import DataCollector
 from app.predictor import PredictionEngine
 from app.tracker import ResultsTracker
 from app.config import settings
+from app.logging_config import configure_logging
 
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

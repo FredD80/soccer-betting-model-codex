@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
+from app.logging_config import configure_logging
+
+configure_logging()
 
 app = FastAPI(title="Soccer Prediction API", version="1.0.0")
 

@@ -1,6 +1,15 @@
 import logging
 import os
 from celery import Celery
+from celery.signals import setup_logging
+
+from app.logging_config import configure_logging
+
+
+@setup_logging.connect
+def _on_celery_setup_logging(**_kwargs):
+    configure_logging()
+
 
 logger = logging.getLogger(__name__)
 

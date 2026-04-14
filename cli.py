@@ -1,10 +1,10 @@
 import click
-import logging
 from app.db.connection import get_session
 from app.db.models import Base
 from app.db.connection import engine
+from app.logging_config import configure_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+configure_logging()
 
 # Import all user-defined model classes here as they are added
 MODEL_CLASSES = []  # e.g. [MyModelV1, MyModelV2]
