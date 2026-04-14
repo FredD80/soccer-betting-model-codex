@@ -55,7 +55,6 @@ class OUAnalyzer:
                 )
 
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
-            snap = self._latest_snapshot(fixture.id)
             w1, w2 = get_weights(self.session, league_espn_id, "ou")
 
             for line in OU_LINES:
@@ -63,10 +62,10 @@ class OUAnalyzer:
                 under_p = 1.0 - over_p
                 if over_p >= under_p:
                     direction, prob = "over", over_p
-                    implied, odds = self._implied_and_odds(snap, "over")
                 else:
                     direction, prob = "under", under_p
-                    implied, odds = self._implied_and_odds(snap, "under")
+                snap = self._latest_snapshot(fixture.id, line, direction)
+                implied, odds = self._implied_and_odds(snap, direction)
 
                 final_p = blend(prob, implied, w1, w2)
                 edge = (final_p - implied) if implied is not None else None
@@ -100,10 +99,13 @@ class OUAnalyzer:
     def _get_form(self, team_id: int, is_home: bool) -> FormCache | None:
         return self.session.query(FormCache).filter_by(team_id=team_id, is_home=is_home).first()
 
-    def _latest_snapshot(self, fixture_id: int) -> OddsSnapshot | None:
+    def _latest_snapshot(self, fixture_id: int, line: float, direction: str) -> OddsSnapshot | None:
+        odds_col = OddsSnapshot.over_odds if direction == "over" else OddsSnapshot.under_odds
         return (
             self.session.query(OddsSnapshot)
             .filter_by(fixture_id=fixture_id)
+            .filter(OddsSnapshot.total_goals_line == line)
+            .filter(odds_col.isnot(None))
             .order_by(OddsSnapshot.captured_at.desc())
             .first()
         )

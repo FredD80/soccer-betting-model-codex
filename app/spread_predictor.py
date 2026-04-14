@@ -56,12 +56,12 @@ class SpreadPredictor:
                 )
 
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
-            snap = self._latest_snapshot(fixture.id)
             w1, w2 = get_weights(self.session, league_espn_id, "spread")
 
             for line in GOAL_LINES:
                 win_p, push_p = cover_probability_dc(score_matrix, line)
                 team_side = "home" if line < 0 else "away"
+                snap = self._latest_snapshot(fixture.id, line)
                 implied, odds = self._implied_and_odds(snap, line)
                 final_p = blend(win_p, implied, w1, w2)
                 edge = (final_p - implied) if implied is not None else None
@@ -95,13 +95,19 @@ class SpreadPredictor:
     def _get_form(self, team_id: int, is_home: bool) -> FormCache | None:
         return self.session.query(FormCache).filter_by(team_id=team_id, is_home=is_home).first()
 
-    def _latest_snapshot(self, fixture_id: int) -> OddsSnapshot | None:
-        return (
-            self.session.query(OddsSnapshot)
-            .filter_by(fixture_id=fixture_id)
-            .order_by(OddsSnapshot.captured_at.desc())
-            .first()
-        )
+    def _latest_snapshot(self, fixture_id: int, line: float) -> OddsSnapshot | None:
+        q = self.session.query(OddsSnapshot).filter_by(fixture_id=fixture_id)
+        if line < 0:
+            q = q.filter(
+                OddsSnapshot.spread_home_line == line,
+                OddsSnapshot.spread_home_odds.isnot(None),
+            )
+        else:
+            q = q.filter(
+                OddsSnapshot.spread_away_line == line,
+                OddsSnapshot.spread_away_odds.isnot(None),
+            )
+        return q.order_by(OddsSnapshot.captured_at.desc()).first()
 
     def _implied_and_odds(self, snap: OddsSnapshot | None, line: float):
         if snap is None:
