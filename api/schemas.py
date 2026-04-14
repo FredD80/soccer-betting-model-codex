@@ -13,6 +13,8 @@ class SpreadPickResponse(BaseModel):
     edge_pct: float | None = None
     kelly_fraction: float | None = None
     steam_downgraded: bool = False
+    decimal_odds: float | None = None
+    american_odds: int | None = None
 
 
 class OUPickResponse(BaseModel):
@@ -25,6 +27,8 @@ class OUPickResponse(BaseModel):
     edge_pct: float | None = None
     kelly_fraction: float | None = None
     steam_downgraded: bool = False
+    decimal_odds: float | None = None
+    american_odds: int | None = None
 
 
 class FormSummary(BaseModel):

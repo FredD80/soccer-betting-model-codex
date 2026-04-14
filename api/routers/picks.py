@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.models import (
-    Fixture, League, Team, SpreadPrediction, OUAnalysis
+    Fixture, League, Team, SpreadPrediction, OUAnalysis, OddsSnapshot
 )
 from api.deps import get_session
 from api.schemas import FixturePickResponse, SpreadPickResponse, OUPickResponse
@@ -10,6 +10,42 @@ from api.schemas import FixturePickResponse, SpreadPickResponse, OUPickResponse
 router = APIRouter()
 
 _SHOW_TIERS = {"HIGH", "ELITE"}
+
+
+def _to_american(decimal_odds: float | None) -> int | None:
+    if decimal_odds is None or decimal_odds <= 1.0:
+        return None
+    if decimal_odds >= 2.0:
+        return int(round((decimal_odds - 1.0) * 100))
+    return int(round(-100.0 / (decimal_odds - 1.0)))
+
+
+def _spread_odds(session: Session, fixture_id: int, team_side: str, line: float) -> float | None:
+    q = session.query(OddsSnapshot).filter_by(fixture_id=fixture_id)
+    if team_side == "home":
+        q = q.filter(OddsSnapshot.spread_home_line == line,
+                     OddsSnapshot.spread_home_odds.isnot(None))
+        snap = q.order_by(OddsSnapshot.captured_at.desc()).first()
+        return snap.spread_home_odds if snap else None
+    q = q.filter(OddsSnapshot.spread_away_line == line,
+                 OddsSnapshot.spread_away_odds.isnot(None))
+    snap = q.order_by(OddsSnapshot.captured_at.desc()).first()
+    return snap.spread_away_odds if snap else None
+
+
+def _ou_odds(session: Session, fixture_id: int, line: float, direction: str) -> float | None:
+    col = OddsSnapshot.over_odds if direction == "over" else OddsSnapshot.under_odds
+    snap = (
+        session.query(OddsSnapshot)
+        .filter_by(fixture_id=fixture_id)
+        .filter(OddsSnapshot.total_goals_line == line)
+        .filter(col.isnot(None))
+        .order_by(OddsSnapshot.captured_at.desc())
+        .first()
+    )
+    if not snap:
+        return None
+    return snap.over_odds if direction == "over" else snap.under_odds
 
 
 def _team_name(session: Session, team_id: int) -> str:
@@ -32,6 +68,7 @@ def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None
     )
     if not picks:
         return None
+    dec = _spread_odds(session, fixture_id, picks.team_side, picks.goal_line)
     return SpreadPickResponse(
         team_side=picks.team_side,
         goal_line=picks.goal_line,
@@ -43,6 +80,8 @@ def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None
         edge_pct=picks.edge_pct,
         kelly_fraction=picks.kelly_fraction,
         steam_downgraded=bool(picks.steam_downgraded),
+        decimal_odds=dec,
+        american_odds=_to_american(dec),
     )
 
 
@@ -56,6 +95,7 @@ def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
     )
     if not pick:
         return None
+    dec = _ou_odds(session, fixture_id, pick.line, pick.direction)
     return OUPickResponse(
         line=pick.line,
         direction=pick.direction,
@@ -66,6 +106,8 @@ def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
         edge_pct=pick.edge_pct,
         kelly_fraction=pick.kelly_fraction,
         steam_downgraded=bool(pick.steam_downgraded),
+        decimal_odds=dec,
+        american_odds=_to_american(dec),
     )
 
 
