@@ -166,6 +166,32 @@ def ou_analyze_job():
         session.close()
 
 
+def moneyline_predict_job():
+    session = get_session()
+    log = SchedulerLog(job_name="moneyline_predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.moneyline_predictor import MoneylinePredictor
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="moneyline_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(name="moneyline_v1", version="1.0.0",
+                              description="Dixon-Coles 3-way moneyline", active=True)
+            session.add(mv)
+            session.flush()
+        MoneylinePredictor(session).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("moneyline_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
 def start_scheduler(model_classes):
     scheduler = BlockingScheduler()
     scheduler.add_job(
@@ -191,6 +217,10 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         ou_analyze_job, IntervalTrigger(minutes=30),
         id="ou_analyze", replace_existing=True
+    )
+    scheduler.add_job(
+        moneyline_predict_job, IntervalTrigger(minutes=30),
+        id="moneyline_predict", replace_existing=True
     )
     scheduler.add_job(
         lambda: celery_app.send_task("collect_line_movement"),

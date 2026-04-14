@@ -115,6 +115,26 @@ def predict_ou():
 
 
 @cli.command()
+def predict_moneyline():
+    """Run 3-way moneyline predictor for upcoming fixtures."""
+    from app.moneyline_predictor import MoneylinePredictor
+    from app.db.models import ModelVersion
+    session = get_session()
+    try:
+        mv = session.query(ModelVersion).filter_by(name="moneyline_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(name="moneyline_v1", version="1.0.0",
+                              description="Dixon-Coles 3-way moneyline", active=True)
+            session.add(mv)
+            session.flush()
+        MoneylinePredictor(session).run(mv.id)
+        session.commit()
+        click.echo("Moneyline predictions complete.")
+    finally:
+        session.close()
+
+
+@cli.command()
 def predict():
     """Run prediction engine now for upcoming fixtures."""
     from app.predictor import PredictionEngine

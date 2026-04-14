@@ -31,6 +31,19 @@ class OUPickResponse(BaseModel):
     american_odds: int | None = None
 
 
+class MoneylinePickResponse(BaseModel):
+    outcome: str                 # "home" | "draw" | "away"
+    probability: float
+    ev_score: float | None
+    confidence_tier: str
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    kelly_fraction: float | None = None
+    steam_downgraded: bool = False
+    decimal_odds: float | None = None
+    american_odds: int | None = None
+
+
 class FormSummary(BaseModel):
     goals_scored_avg: float
     goals_conceded_avg: float
@@ -47,7 +60,8 @@ class FixturePickResponse(BaseModel):
     kickoff_at: datetime
     best_spread: SpreadPickResponse | None   # highest EV spread pick
     best_ou: OUPickResponse | None           # highest EV O/U pick
-    top_ev: float | None                     # max of best_spread.ev, best_ou.ev for sorting
+    best_moneyline: MoneylinePickResponse | None = None  # highest EV 3-way moneyline pick
+    top_ev: float | None                     # max of best_spread/ou/moneyline ev for sorting
 
 
 class FixtureDetailResponse(BaseModel):

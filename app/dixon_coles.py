@@ -133,3 +133,19 @@ def ou_probability_dc(
             if h + a > line:
                 over_p += float(score_matrix[h, a])
     return over_p
+
+
+def moneyline_probability_dc(score_matrix: np.ndarray) -> tuple[float, float, float]:
+    """Return (home_win, draw, away_win) probabilities from a DC score matrix."""
+    n = score_matrix.shape[0]
+    home_p = draw_p = away_p = 0.0
+    for h in range(n):
+        for a in range(n):
+            p = float(score_matrix[h, a])
+            if h > a:
+                home_p += p
+            elif h == a:
+                draw_p += p
+            else:
+                away_p += p
+    return home_p, draw_p, away_p

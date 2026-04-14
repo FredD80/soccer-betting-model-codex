@@ -187,6 +187,22 @@ class OUAnalysis(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class MoneylinePrediction(Base):
+    __tablename__ = "moneyline_predictions"
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    outcome = Column(String, nullable=False)   # "home" | "draw" | "away"
+    probability = Column(Float)
+    ev_score = Column(Float)
+    confidence_tier = Column(String)
+    final_probability = Column(Float)
+    edge_pct = Column(Float)
+    kelly_fraction = Column(Float)
+    steam_downgraded = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class LineMovement(Base):
     """Odds snapshots every 30min per tracked fixture — TimescaleDB hypertable."""
     __tablename__ = "line_movement"

@@ -2,10 +2,13 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.models import (
-    Fixture, League, Team, SpreadPrediction, OUAnalysis, OddsSnapshot
+    Fixture, League, Team, SpreadPrediction, OUAnalysis, OddsSnapshot,
+    MoneylinePrediction,
 )
 from api.deps import get_session
-from api.schemas import FixturePickResponse, SpreadPickResponse, OUPickResponse
+from api.schemas import (
+    FixturePickResponse, SpreadPickResponse, OUPickResponse, MoneylinePickResponse,
+)
 
 router = APIRouter()
 
@@ -111,14 +114,53 @@ def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
     )
 
 
+def _ml_odds(session: Session, fixture_id: int, outcome: str) -> float | None:
+    snap = (
+        session.query(OddsSnapshot)
+        .filter_by(fixture_id=fixture_id)
+        .filter(OddsSnapshot.home_odds.isnot(None))
+        .filter(OddsSnapshot.away_odds.isnot(None))
+        .order_by(OddsSnapshot.captured_at.desc())
+        .first()
+    )
+    if not snap:
+        return None
+    return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[outcome]
+
+
+def _best_moneyline(session: Session, fixture_id: int) -> MoneylinePickResponse | None:
+    pick = (
+        session.query(MoneylinePrediction)
+        .filter(MoneylinePrediction.fixture_id == fixture_id)
+        .filter(MoneylinePrediction.confidence_tier.in_(_SHOW_TIERS))
+        .order_by(MoneylinePrediction.ev_score.desc())
+        .first()
+    )
+    if not pick:
+        return None
+    dec = _ml_odds(session, fixture_id, pick.outcome)
+    return MoneylinePickResponse(
+        outcome=pick.outcome,
+        probability=pick.probability,
+        ev_score=pick.ev_score,
+        confidence_tier=pick.confidence_tier,
+        final_probability=pick.final_probability,
+        edge_pct=pick.edge_pct,
+        kelly_fraction=pick.kelly_fraction,
+        steam_downgraded=bool(pick.steam_downgraded),
+        decimal_odds=dec,
+        american_odds=_to_american(dec),
+    )
+
+
 def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickResponse | None:
     spread = _best_spread(session, fixture.id)
     ou = _best_ou(session, fixture.id)
-    if not spread and not ou:
+    ml = _best_moneyline(session, fixture.id)
+    if not spread and not ou and not ml:
         return None
-    spread_ev = spread.ev_score if spread else None
-    ou_ev = ou.ev_score if ou else None
-    top_ev = max(e for e in (spread_ev, ou_ev) if e is not None) if (spread_ev or ou_ev) else None
+    evs = [p.ev_score for p in (spread, ou, ml) if p and p.ev_score is not None]
+    top_ev = max(evs) if evs else None
     return FixturePickResponse(
         fixture_id=fixture.id,
         home_team=_team_name(session, fixture.home_team_id),
@@ -127,6 +169,7 @@ def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickRespon
         kickoff_at=fixture.kickoff_at,
         best_spread=spread,
         best_ou=ou,
+        best_moneyline=ml,
         top_ev=top_ev,
     )
 

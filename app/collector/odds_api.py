@@ -24,7 +24,7 @@ class OddsAPIClient:
         url = f"{BASE_URL}/sports/{sport_key}/odds/"
         params = {
             "apiKey": self.api_key,
-            "regions": "us,uk",
+            "regions": "us,us2",
             "markets": "h2h,totals,spreads",
             "oddsFormat": "decimal",
         }

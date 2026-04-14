@@ -1,6 +1,6 @@
 export interface SpreadPick {
   team_side: 'home' | 'away'
-  goal_line: number          // -1.5 | -1.0 | -0.5 | 0.5 | 1.0 | 1.5
+  goal_line: number
   cover_probability: number
   push_probability: number
   ev_score: number | null
@@ -9,10 +9,12 @@ export interface SpreadPick {
   edge_pct: number | null
   kelly_fraction: number | null
   steam_downgraded: boolean
+  decimal_odds: number | null
+  american_odds: number | null
 }
 
 export interface OUPick {
-  line: number               // 1.5 | 2.5 | 3.5
+  line: number
   direction: 'over' | 'under'
   probability: number
   ev_score: number | null
@@ -21,6 +23,21 @@ export interface OUPick {
   edge_pct: number | null
   kelly_fraction: number | null
   steam_downgraded: boolean
+  decimal_odds: number | null
+  american_odds: number | null
+}
+
+export interface MoneylinePick {
+  outcome: 'home' | 'draw' | 'away'
+  probability: number
+  ev_score: number | null
+  confidence_tier: 'SKIP' | 'MEDIUM' | 'HIGH' | 'ELITE'
+  final_probability: number | null
+  edge_pct: number | null
+  kelly_fraction: number | null
+  steam_downgraded: boolean
+  decimal_odds: number | null
+  american_odds: number | null
 }
 
 export interface FixturePick {
@@ -31,6 +48,7 @@ export interface FixturePick {
   kickoff_at: string         // ISO-8601 string
   best_spread: SpreadPick | null
   best_ou: OUPick | null
+  best_moneyline: MoneylinePick | null
   top_ev: number | null
 }
 

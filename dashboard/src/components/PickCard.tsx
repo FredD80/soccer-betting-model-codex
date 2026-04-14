@@ -1,4 +1,4 @@
-import type { FixturePick, SpreadPick, OUPick } from '../api/types'
+import type { FixturePick, SpreadPick, OUPick, MoneylinePick } from '../api/types'
 import ConfidenceBadge from './ConfidenceBadge'
 
 interface Props {
@@ -45,14 +45,21 @@ function PickDetails({ tier, edge, kelly, steam }: {
   )
 }
 
+function formatAmerican(n: number | null | undefined): string {
+  if (n == null) return ''
+  return n > 0 ? `+${n}` : `${n}`
+}
+
 function SpreadRow({ sp, home, away }: { sp: SpreadPick; home: string; away: string }) {
   const name = sp.team_side === 'home' ? home : away
   const sign = sp.goal_line > 0 ? '+' : ''
   const prob = sp.final_probability ?? sp.cover_probability
+  const price = formatAmerican(sp.american_odds)
   return (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2 text-sm">
         <span className="font-medium">{name} {sign}{sp.goal_line}</span>
+        {price && <span className="font-mono text-gray-200">{price}</span>}
         <span className="text-gray-400">{pct(prob, 0)} cover</span>
       </div>
       <PickDetails
@@ -67,10 +74,12 @@ function SpreadRow({ sp, home, away }: { sp: SpreadPick; home: string; away: str
 
 function OURow({ ou }: { ou: OUPick }) {
   const prob = ou.final_probability ?? ou.probability
+  const price = formatAmerican(ou.american_odds)
   return (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2 text-sm">
         <span className="font-medium capitalize">{ou.direction} {ou.line}</span>
+        {price && <span className="font-mono text-gray-200">{price}</span>}
         <span className="text-gray-400">{pct(prob, 0)}</span>
       </div>
       <PickDetails
@@ -83,8 +92,30 @@ function OURow({ ou }: { ou: OUPick }) {
   )
 }
 
+function MoneylineRow({ ml, home, away }: { ml: MoneylinePick; home: string; away: string }) {
+  const label = ml.outcome === 'home' ? home : ml.outcome === 'away' ? away : 'Draw'
+  const prob = ml.final_probability ?? ml.probability
+  const price = formatAmerican(ml.american_odds)
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline gap-2 text-sm">
+        <span className="font-medium">{label}</span>
+        <span className="text-xs text-gray-500 uppercase">ML</span>
+        {price && <span className="font-mono text-gray-200">{price}</span>}
+        <span className="text-gray-400">{pct(prob, 0)}</span>
+      </div>
+      <PickDetails
+        tier={ml.confidence_tier}
+        edge={ml.edge_pct ?? ml.ev_score}
+        kelly={ml.kelly_fraction}
+        steam={ml.steam_downgraded}
+      />
+    </div>
+  )
+}
+
 export default function PickCard({ pick }: Props) {
-  const { home_team, away_team, league, kickoff_at, best_spread, best_ou, top_ev } = pick
+  const { home_team, away_team, league, kickoff_at, best_spread, best_ou, best_moneyline, top_ev } = pick
 
   return (
     <div className="rounded-xl border border-gray-700 bg-gray-900 p-4 space-y-3">
@@ -100,6 +131,7 @@ export default function PickCard({ pick }: Props) {
         )}
       </div>
 
+      {best_moneyline && <MoneylineRow ml={best_moneyline} home={home_team} away={away_team} />}
       {best_spread && <SpreadRow sp={best_spread} home={home_team} away={away_team} />}
       {best_ou && <OURow ou={best_ou} />}
     </div>
