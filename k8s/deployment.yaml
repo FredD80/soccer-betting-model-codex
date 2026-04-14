@@ -17,6 +17,8 @@ spec:
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: app
           image: ghcr.io/fredd80/soccer-engine:${IMAGE_TAG}
