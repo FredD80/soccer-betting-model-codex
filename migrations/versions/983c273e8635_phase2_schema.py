@@ -90,8 +90,17 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['fixture_id'], ['fixtures.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    # TimescaleDB hypertable for line_movement (PostgreSQL only)
+    # TimescaleDB hypertable for line_movement (optional — skip if
+    # extension is absent; a failed statement here would poison the
+    # alembic transaction and abort every subsequent create_table).
+    conn = op.get_bind()
     try:
+        has_timescale = conn.execute(sa.text(
+            "SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'"
+        )).scalar()
+    except Exception:
+        has_timescale = False  # e.g. SQLite
+    if has_timescale:
         op.execute(
             "SELECT create_hypertable('line_movement', 'recorded_at', if_not_exists => TRUE)"
         )
@@ -102,8 +111,6 @@ def upgrade() -> None:
         op.execute(
             "SELECT add_compression_policy('line_movement', INTERVAL '30 days')"
         )
-    except Exception:
-        pass  # SQLite / TimescaleDB not installed
     op.create_table('player_impact',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('fixture_id', sa.Integer(), nullable=False),
