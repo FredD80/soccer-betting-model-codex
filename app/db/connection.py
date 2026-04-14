@@ -8,3 +8,7 @@ Session = sessionmaker(bind=engine)
 
 def get_session():
     return Session()
+
+
+def get_engine():
+    return engine
