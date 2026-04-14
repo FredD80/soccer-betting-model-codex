@@ -58,12 +58,14 @@ class SpreadPredictor:
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             w1, w2 = get_weights(self.session, league_espn_id, "spread")
 
-            offered_lines = self._offered_lines(fixture.id) or GOAL_LINES
-            for line in offered_lines:
-                win_p, push_p = cover_probability_dc(score_matrix, line)
-                team_side = "home" if line < 0 else "away"
-                snap = self._latest_snapshot(fixture.id, line)
-                implied, odds = self._implied_and_odds(snap, line)
+            offered = self._offered_lines(fixture.id) or [
+                ("home" if L < 0 else "away", L) for L in GOAL_LINES
+            ]
+            for team_side, line in offered:
+                home_line = line if team_side == "home" else -line
+                win_p, push_p = cover_probability_dc(score_matrix, home_line)
+                snap = self._latest_snapshot(fixture.id, team_side, line)
+                implied, odds = self._implied_and_odds(snap, team_side)
                 final_p = blend(win_p, implied, w1, w2)
                 edge = (final_p - implied) if implied is not None else None
                 tier = edge_tier(edge)
@@ -93,8 +95,8 @@ class SpreadPredictor:
             .all()
         )
 
-    def _offered_lines(self, fixture_id: int) -> list[float]:
-        home_lines = (
+    def _offered_lines(self, fixture_id: int) -> list[tuple[str, float]]:
+        home_rows = (
             self.session.query(OddsSnapshot.spread_home_line)
             .filter(OddsSnapshot.fixture_id == fixture_id)
             .filter(OddsSnapshot.spread_home_line.isnot(None))
@@ -102,7 +104,7 @@ class SpreadPredictor:
             .distinct()
             .all()
         )
-        away_lines = (
+        away_rows = (
             self.session.query(OddsSnapshot.spread_away_line)
             .filter(OddsSnapshot.fixture_id == fixture_id)
             .filter(OddsSnapshot.spread_away_line.isnot(None))
@@ -110,16 +112,16 @@ class SpreadPredictor:
             .distinct()
             .all()
         )
-        lines = {float(row[0]) for row in home_lines if row[0] < 0}
-        lines.update(float(row[0]) for row in away_lines if row[0] > 0)
-        return sorted(lines)
+        pairs = {("home", float(r[0])) for r in home_rows}
+        pairs.update(("away", float(r[0])) for r in away_rows)
+        return sorted(pairs, key=lambda p: (p[0], p[1]))
 
     def _get_form(self, team_id: int, is_home: bool) -> FormCache | None:
         return self.session.query(FormCache).filter_by(team_id=team_id, is_home=is_home).first()
 
-    def _latest_snapshot(self, fixture_id: int, line: float) -> OddsSnapshot | None:
+    def _latest_snapshot(self, fixture_id: int, team_side: str, line: float) -> OddsSnapshot | None:
         q = self.session.query(OddsSnapshot).filter_by(fixture_id=fixture_id)
-        if line < 0:
+        if team_side == "home":
             q = q.filter(
                 OddsSnapshot.spread_home_line == line,
                 OddsSnapshot.spread_home_odds.isnot(None),
@@ -131,10 +133,10 @@ class SpreadPredictor:
             )
         return q.order_by(OddsSnapshot.captured_at.desc()).first()
 
-    def _implied_and_odds(self, snap: OddsSnapshot | None, line: float):
+    def _implied_and_odds(self, snap: OddsSnapshot | None, team_side: str):
         if snap is None:
             return None, None
-        odds = snap.spread_home_odds if line < 0 else snap.spread_away_odds
+        odds = snap.spread_home_odds if team_side == "home" else snap.spread_away_odds
         return _implied_prob(odds), odds
 
     def _upsert(self, model_id, fixture_id, team_side, line,
