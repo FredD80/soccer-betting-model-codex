@@ -117,6 +117,37 @@ def cover_probability_dc(
     return win_p, push_p
 
 
+def spread_cover_dc(
+    score_matrix: np.ndarray,
+    team_side: str,
+    line: float,
+) -> tuple[float, float]:
+    """
+    Cover probability for a team-side spread bet.
+
+    `line` is the book line from that team's perspective
+    (e.g. Sassuolo -1 → team_side="away", line=-1.0).
+
+    Home covers iff (h - a) + line > 0.
+    Away covers iff (a - h) + line > 0.
+    Push only on integer lines when the adjusted margin == 0.
+    """
+    n = score_matrix.shape[0]
+    win_p = 0.0
+    push_p = 0.0
+    is_integer_line = abs(round(line) - line) < 1e-6
+    for h in range(n):
+        for a in range(n):
+            margin = (h - a) if team_side == "home" else (a - h)
+            adj = margin + line
+            p = float(score_matrix[h, a])
+            if adj > 0:
+                win_p += p
+            elif is_integer_line and adj == 0:
+                push_p += p
+    return win_p, push_p
+
+
 def ou_probability_dc(
     score_matrix: np.ndarray,
     line: float,

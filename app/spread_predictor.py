@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from app.db.models import Fixture, FormCache, OddsSnapshot, SpreadPrediction, League
-from app.dixon_coles import build_score_matrix, cover_probability_dc
+from app.dixon_coles import build_score_matrix, spread_cover_dc
 from app.league_calibration import get_league_params
 from app.market_blend import blend, get_weights
 from app.edge_tiers import edge_tier, kelly_fraction
@@ -62,8 +62,7 @@ class SpreadPredictor:
                 ("home" if L < 0 else "away", L) for L in GOAL_LINES
             ]
             for team_side, line in offered:
-                home_line = line if team_side == "home" else -line
-                win_p, push_p = cover_probability_dc(score_matrix, home_line)
+                win_p, push_p = spread_cover_dc(score_matrix, team_side, line)
                 snap = self._latest_snapshot(fixture.id, team_side, line)
                 implied, odds = self._implied_and_odds(snap, team_side)
                 final_p = blend(win_p, implied, w1, w2)
