@@ -4,11 +4,12 @@ metadata:
   name: soccer-ingress
   namespace: tenant-b
   annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
-    - host: soccer.yourdomain.com
+    - host: soccer.chelseablue.cloud
       http:
         paths:
           # FastAPI — /api/picks/today → fastapi service :8000 /picks/today
