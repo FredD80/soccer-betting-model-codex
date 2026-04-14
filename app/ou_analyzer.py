@@ -3,6 +3,9 @@ from datetime import datetime, timezone, timedelta
 from app.db.models import Fixture, FormCache, OddsSnapshot, OUAnalysis, League
 from app.dixon_coles import build_score_matrix, ou_probability_dc
 from app.league_calibration import get_league_params
+from app.market_blend import blend, get_weights
+from app.edge_tiers import edge_tier, kelly_fraction
+from app.steam_resistance import steam_move_pct, apply_steam
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +17,6 @@ def _implied_prob(decimal_odds: float | None) -> float | None:
     if decimal_odds is None or decimal_odds <= 1.0:
         return None
     return 1.0 / decimal_odds
-
-
-def _confidence_tier(ev: float | None) -> str:
-    if ev is None:
-        return "SKIP"
-    if ev >= 0.10:
-        return "ELITE"
-    if ev >= 0.05:
-        return "HIGH"
-    if ev >= 0.02:
-        return "MEDIUM"
-    return "SKIP"
 
 
 class OUAnalyzer:
@@ -45,7 +36,6 @@ class OUAnalyzer:
             if not home_form or not away_form:
                 continue
 
-            # Per-league Dixon-Coles calibration
             league = self.session.query(League).filter_by(id=fixture.league_id).first()
             league_espn_id = league.espn_id if league else "unknown"
             params = get_league_params(self.session, league_espn_id)
@@ -66,21 +56,28 @@ class OUAnalyzer:
 
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             snap = self._latest_snapshot(fixture.id)
+            w1, w2 = get_weights(self.session, league_espn_id, "ou")
 
             for line in OU_LINES:
                 over_p = ou_probability_dc(score_matrix, line)
                 under_p = 1.0 - over_p
                 if over_p >= under_p:
-                    direction = "over"
-                    prob = over_p
-                    ev = self._compute_ev(over_p, snap, "over")
+                    direction, prob = "over", over_p
+                    implied, odds = self._implied_and_odds(snap, "over")
                 else:
-                    direction = "under"
-                    prob = under_p
-                    ev = self._compute_ev(under_p, snap, "under")
+                    direction, prob = "under", under_p
+                    implied, odds = self._implied_and_odds(snap, "under")
 
-                tier = _confidence_tier(ev)
-                self._upsert(model_id, fixture.id, line, direction, prob, ev, tier)
+                final_p = blend(prob, implied, w1, w2)
+                edge = (final_p - implied) if implied is not None else None
+                tier = edge_tier(edge)
+                move = steam_move_pct(self.session, fixture.id, "ou", direction, line)
+                tier, steam_down = apply_steam(tier, move)
+                kelly = kelly_fraction(tier, final_p, odds)
+                self._upsert(
+                    model_id, fixture.id, line, direction,
+                    prob, edge, tier, final_p, kelly, steam_down,
+                )
 
         self.session.commit()
 
@@ -111,18 +108,14 @@ class OUAnalyzer:
             .first()
         )
 
-    def _compute_ev(self, prob: float, snap: OddsSnapshot | None, direction: str) -> float | None:
+    def _implied_and_odds(self, snap: OddsSnapshot | None, direction: str):
         if snap is None:
-            return None
-        if direction == "over":
-            implied = _implied_prob(snap.over_odds)
-        else:
-            implied = _implied_prob(snap.under_odds)
-        if implied is None:
-            return None
-        return prob - implied
+            return None, None
+        odds = snap.over_odds if direction == "over" else snap.under_odds
+        return _implied_prob(odds), odds
 
-    def _upsert(self, model_id, fixture_id, line, direction, prob, ev, tier):
+    def _upsert(self, model_id, fixture_id, line, direction,
+                prob, edge, tier, final_p, kelly, steam_down):
         existing = (
             self.session.query(OUAnalysis)
             .filter_by(model_id=model_id, fixture_id=fixture_id, line=line)
@@ -131,8 +124,12 @@ class OUAnalyzer:
         if existing:
             existing.direction = direction
             existing.probability = prob
-            existing.ev_score = ev
+            existing.ev_score = edge
             existing.confidence_tier = tier
+            existing.final_probability = final_p
+            existing.edge_pct = edge
+            existing.kelly_fraction = kelly
+            existing.steam_downgraded = steam_down
         else:
             self.session.add(OUAnalysis(
                 model_id=model_id,
@@ -140,7 +137,11 @@ class OUAnalyzer:
                 line=line,
                 direction=direction,
                 probability=prob,
-                ev_score=ev,
+                ev_score=edge,
                 confidence_tier=tier,
+                final_probability=final_p,
+                edge_pct=edge,
+                kelly_fraction=kelly,
+                steam_downgraded=steam_down,
                 created_at=datetime.now(timezone.utc),
             ))

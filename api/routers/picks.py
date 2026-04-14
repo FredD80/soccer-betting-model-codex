@@ -39,6 +39,10 @@ def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None
         push_probability=picks.push_probability or 0.0,
         ev_score=picks.ev_score,
         confidence_tier=picks.confidence_tier,
+        final_probability=picks.final_probability,
+        edge_pct=picks.edge_pct,
+        kelly_fraction=picks.kelly_fraction,
+        steam_downgraded=bool(picks.steam_downgraded),
     )
 
 
@@ -58,6 +62,10 @@ def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
         probability=pick.probability,
         ev_score=pick.ev_score,
         confidence_tier=pick.confidence_tier,
+        final_probability=pick.final_probability,
+        edge_pct=pick.edge_pct,
+        kelly_fraction=pick.kelly_fraction,
+        steam_downgraded=bool(pick.steam_downgraded),
     )
 
 

@@ -163,6 +163,10 @@ class SpreadPrediction(Base):
     push_probability = Column(Float)             # non-zero only for integer lines (-1.0, +1.0)
     ev_score = Column(Float)                     # model_prob minus implied_prob; None if no odds
     confidence_tier = Column(String)             # SKIP | MEDIUM | HIGH | ELITE
+    final_probability = Column(Float)            # Phase 3: blended (w1*model + w2*market)
+    edge_pct = Column(Float)                     # Phase 3: final_p - implied_p
+    kelly_fraction = Column(Float)               # Phase 3: fractional Kelly stake
+    steam_downgraded = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -176,6 +180,10 @@ class OUAnalysis(Base):
     probability = Column(Float)
     ev_score = Column(Float)                     # None if snapshot line doesn't match
     confidence_tier = Column(String)             # SKIP | MEDIUM | HIGH | ELITE
+    final_probability = Column(Float)            # Phase 3: blended probability
+    edge_pct = Column(Float)                     # Phase 3: final_p - implied_p
+    kelly_fraction = Column(Float)               # Phase 3: fractional Kelly stake
+    steam_downgraded = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -304,6 +312,31 @@ class MonteCarloRun(Base):
     over_35_prob = Column(Float)
     scoreline_json = Column(Text)                 # JSON array of top-20 {h, a, p} dicts
     run_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MarketWeights(Base):
+    """Per-league, per-bet-type blend weights fit offline by fit_market_weights.py."""
+    __tablename__ = "market_weights"
+    id = Column(Integer, primary_key=True)
+    league_espn_id = Column(String, nullable=False)
+    bet_type = Column(String, nullable=False)     # "spread" | "ou"
+    w_model = Column(Float, nullable=False)
+    w_market = Column(Float, nullable=False)
+    n_samples = Column(Integer)
+    fitted_at = Column(DateTime)
+
+
+class CalibrationRun(Base):
+    """Rolling Brier score + reliability curve per (model, bet_type)."""
+    __tablename__ = "calibration_runs"
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    bet_type = Column(String, nullable=False)
+    window_days = Column(Integer, default=30)
+    brier_score = Column(Float)
+    n_samples = Column(Integer)
+    reliability_json = Column(Text)               # JSON-encoded reliability curve
+    computed_at = Column(DateTime, default=datetime.utcnow)
 
 
 class MLArtifact(Base):

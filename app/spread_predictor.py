@@ -3,6 +3,9 @@ from datetime import datetime, timezone, timedelta
 from app.db.models import Fixture, FormCache, OddsSnapshot, SpreadPrediction, League
 from app.dixon_coles import build_score_matrix, cover_probability_dc
 from app.league_calibration import get_league_params
+from app.market_blend import blend, get_weights
+from app.edge_tiers import edge_tier, kelly_fraction
+from app.steam_resistance import steam_move_pct, apply_steam
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +17,6 @@ def _implied_prob(decimal_odds: float | None) -> float | None:
     if decimal_odds is None or decimal_odds <= 1.0:
         return None
     return 1.0 / decimal_odds
-
-
-def _confidence_tier(ev: float | None) -> str:
-    if ev is None:
-        return "SKIP"
-    if ev >= 0.10:
-        return "ELITE"
-    if ev >= 0.05:
-        return "HIGH"
-    if ev >= 0.02:
-        return "MEDIUM"
-    return "SKIP"
 
 
 class SpreadPredictor:
@@ -46,13 +37,11 @@ class SpreadPredictor:
                 logger.debug("No form cache for fixture %d — skipping spread prediction", fixture.id)
                 continue
 
-            # Per-league Dixon-Coles calibration (rho always; home_advantage only heuristic path)
             league = self.session.query(League).filter_by(id=fixture.league_id).first()
             league_espn_id = league.espn_id if league else "unknown"
             params = get_league_params(self.session, league_espn_id)
 
             if self._ml is not None:
-                # ML has learned home effect from training data — don't double-apply
                 lambda_home, lambda_away = self._ml.predict(fixture)
             else:
                 lambda_home = max(
@@ -68,13 +57,22 @@ class SpreadPredictor:
 
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             snap = self._latest_snapshot(fixture.id)
+            w1, w2 = get_weights(self.session, league_espn_id, "spread")
 
             for line in GOAL_LINES:
                 win_p, push_p = cover_probability_dc(score_matrix, line)
                 team_side = "home" if line < 0 else "away"
-                ev = self._compute_ev(win_p, snap, line)
-                tier = _confidence_tier(ev)
-                self._upsert(model_id, fixture.id, team_side, line, win_p, push_p, ev, tier)
+                implied, odds = self._implied_and_odds(snap, line)
+                final_p = blend(win_p, implied, w1, w2)
+                edge = (final_p - implied) if implied is not None else None
+                tier = edge_tier(edge)
+                move = steam_move_pct(self.session, fixture.id, "spread", team_side, line)
+                tier, steam_down = apply_steam(tier, move)
+                kelly = kelly_fraction(tier, final_p, odds)
+                self._upsert(
+                    model_id, fixture.id, team_side, line,
+                    win_p, push_p, edge, tier, final_p, kelly, steam_down,
+                )
 
         self.session.commit()
 
@@ -105,18 +103,14 @@ class SpreadPredictor:
             .first()
         )
 
-    def _compute_ev(self, win_p: float, snap: OddsSnapshot | None, line: float) -> float | None:
+    def _implied_and_odds(self, snap: OddsSnapshot | None, line: float):
         if snap is None:
-            return None
-        if line < 0:
-            implied = _implied_prob(snap.spread_home_odds)
-        else:
-            implied = _implied_prob(snap.spread_away_odds)
-        if implied is None:
-            return None
-        return win_p - implied
+            return None, None
+        odds = snap.spread_home_odds if line < 0 else snap.spread_away_odds
+        return _implied_prob(odds), odds
 
-    def _upsert(self, model_id, fixture_id, team_side, line, cover_p, push_p, ev, tier):
+    def _upsert(self, model_id, fixture_id, team_side, line,
+                cover_p, push_p, edge, tier, final_p, kelly, steam_down):
         existing = (
             self.session.query(SpreadPrediction)
             .filter_by(model_id=model_id, fixture_id=fixture_id, goal_line=line)
@@ -125,8 +119,12 @@ class SpreadPredictor:
         if existing:
             existing.cover_probability = cover_p
             existing.push_probability = push_p
-            existing.ev_score = ev
+            existing.ev_score = edge
             existing.confidence_tier = tier
+            existing.final_probability = final_p
+            existing.edge_pct = edge
+            existing.kelly_fraction = kelly
+            existing.steam_downgraded = steam_down
         else:
             self.session.add(SpreadPrediction(
                 model_id=model_id,
@@ -135,7 +133,11 @@ class SpreadPredictor:
                 goal_line=line,
                 cover_probability=cover_p,
                 push_probability=push_p,
-                ev_score=ev,
+                ev_score=edge,
                 confidence_tier=tier,
+                final_probability=final_p,
+                edge_pct=edge,
+                kelly_fraction=kelly,
+                steam_downgraded=steam_down,
                 created_at=datetime.now(timezone.utc),
             ))

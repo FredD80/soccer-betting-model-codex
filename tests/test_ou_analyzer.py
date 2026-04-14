@@ -1,6 +1,6 @@
 import pytest
 from app.dixon_coles import build_score_matrix, ou_probability_dc
-from app.ou_analyzer import _confidence_tier
+from app.edge_tiers import edge_tier as _confidence_tier
 
 
 def test_ou_over_probability_25():

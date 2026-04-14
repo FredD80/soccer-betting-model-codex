@@ -1,6 +1,6 @@
 import pytest
 from app.dixon_coles import build_score_matrix, cover_probability_dc
-from app.spread_predictor import _confidence_tier
+from app.edge_tiers import edge_tier as _confidence_tier
 
 
 def test_cover_probability_home_minus_half():

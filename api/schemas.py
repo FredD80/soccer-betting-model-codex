@@ -9,6 +9,10 @@ class SpreadPickResponse(BaseModel):
     push_probability: float
     ev_score: float | None
     confidence_tier: str         # SKIP | MEDIUM | HIGH | ELITE
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    kelly_fraction: float | None = None
+    steam_downgraded: bool = False
 
 
 class OUPickResponse(BaseModel):
@@ -17,6 +21,10 @@ class OUPickResponse(BaseModel):
     probability: float
     ev_score: float | None
     confidence_tier: str
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    kelly_fraction: float | None = None
+    steam_downgraded: bool = False
 
 
 class FormSummary(BaseModel):
