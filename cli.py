@@ -86,7 +86,8 @@ def predict_spreads():
                               description="Phase 1 Poisson spread predictor", active=True)
             session.add(mv)
             session.flush()
-        SpreadPredictor(session).run(mv.id)
+        from app.config import settings as _s
+        SpreadPredictor(session, ml_enabled=_s.ml_lambda_enabled).run(mv.id)
         session.commit()
         click.echo("Spread predictions complete.")
     finally:

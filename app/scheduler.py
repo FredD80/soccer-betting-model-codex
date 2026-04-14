@@ -128,7 +128,7 @@ def spread_predict_job():
                               description="Phase 1 Poisson spread predictor", active=True)
             session.add(mv)
             session.flush()
-        SpreadPredictor(session).run(mv.id)
+        SpreadPredictor(session, ml_enabled=settings.ml_lambda_enabled).run(mv.id)
         log.status = "success"
     except Exception as e:
         log.status = "error"

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ou_model_version: str = "1.0"       # version string for ou_v1 model
     api_football_key: str = ""
     openweathermap_key: str = ""
+    ml_lambda_enabled: bool = False     # enable XGBoost λ regressor for spreads
 
     class Config:
         env_file = ".env"

@@ -65,7 +65,7 @@ def spread_predict_task():
             )
             session.add(mv)
             session.flush()
-        SpreadPredictor(session).run(mv.id)
+        SpreadPredictor(session, ml_enabled=settings.ml_lambda_enabled).run(mv.id)
         session.commit()
         logger.info("spread_predict_task: complete")
         return {"status": "ok"}
