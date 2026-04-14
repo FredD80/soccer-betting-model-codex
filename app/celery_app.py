@@ -104,6 +104,98 @@ def collect_line_movement_task():
         return {"recorded": recorded}
 
 
+@celery_app.task(name="app.celery_app.monte_carlo_task")
+def monte_carlo_task():
+    """Run Monte Carlo simulation for fixtures kicking off within 2 hours."""
+    from datetime import datetime, timedelta, timezone
+    from app.db.connection import get_session
+    from app.db.models import Fixture, ModelVersion, MonteCarloRun, League, FormCache
+    from app.dixon_coles import build_score_matrix
+    from app.league_calibration import get_league_params
+    from app.monte_carlo import MonteCarloSimulator
+    from app.config import settings
+
+    LEAGUE_AVG_GOALS = 1.5
+    WINDOW_HOURS = 2
+
+    session = get_session()
+    try:
+        now = datetime.now(timezone.utc)
+        cutoff = now + timedelta(hours=WINDOW_HOURS)
+        upcoming = (
+            session.query(Fixture)
+            .filter(Fixture.status == "scheduled")
+            .filter(Fixture.kickoff_at >= now)
+            .filter(Fixture.kickoff_at <= cutoff)
+            .all()
+        )
+
+        mv = session.query(ModelVersion).filter_by(name="dc_monte_carlo_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(
+                name="dc_monte_carlo_v1",
+                version="1.0",
+                description="Dixon-Coles Monte Carlo simulator",
+                active=True,
+            )
+            session.add(mv)
+            session.flush()
+
+        simulator = MonteCarloSimulator()
+        ran = 0
+        for fixture in upcoming:
+            home_form = session.query(FormCache).filter_by(
+                team_id=fixture.home_team_id, is_home=True
+            ).first()
+            away_form = session.query(FormCache).filter_by(
+                team_id=fixture.away_team_id, is_home=False
+            ).first()
+            if not home_form or not away_form:
+                continue
+
+            league = session.query(League).filter_by(id=fixture.league_id).first()
+            league_espn_id = league.espn_id if league else "unknown"
+            params = get_league_params(session, league_espn_id)
+
+            lambda_home = max(
+                0.1,
+                home_form.goals_scored_avg
+                * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS)
+                * params.home_advantage,
+            )
+            lambda_away = max(
+                0.1,
+                away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS),
+            )
+
+            matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
+            result = simulator.run(matrix)
+
+            mcr = MonteCarloRun(
+                fixture_id=fixture.id,
+                model_id=mv.id,
+                lambda_home=lambda_home,
+                lambda_away=lambda_away,
+                rho=params.rho,
+                home_win_prob=result.home_win_prob,
+                draw_prob=result.draw_prob,
+                away_win_prob=result.away_win_prob,
+                over_15_prob=result.over_15_prob,
+                over_25_prob=result.over_25_prob,
+                over_35_prob=result.over_35_prob,
+                scoreline_json=result.scoreline_json,
+                run_at=datetime.now(timezone.utc),
+            )
+            session.add(mcr)
+            ran += 1
+
+        session.commit()
+        logger.info("monte_carlo_task: simulated %d fixtures", ran)
+        return {"simulated": ran}
+    finally:
+        session.close()
+
+
 @celery_app.task(name="app.celery_app.ou_analyze_task")
 def ou_analyze_task():
     """Run O/U analyzer for upcoming fixtures."""

@@ -1,37 +1,40 @@
-import math
 import pytest
-from app.ou_analyzer import ou_over_probability, _confidence_tier
+from app.dixon_coles import build_score_matrix, ou_probability_dc
+from app.ou_analyzer import _confidence_tier
 
 
-def test_ou_over_probability_25_symmetric():
-    """Equal attack/defense: P(over 2.5) should be reasonable for λ_total=2.5."""
-    lam = 2.5
-    expected = 1.0 - sum((lam ** k) * math.exp(-lam) / math.factorial(k) for k in range(3))
-    assert abs(ou_over_probability(lam, 2.5) - expected) < 1e-6
+def test_ou_over_probability_25():
+    """P(over 2.5) from DC matrix should be in a sane range for λ_total≈2.5."""
+    matrix = build_score_matrix(1.3, 1.2, rho=-0.13)  # total ≈ 2.5
+    over_p = ou_probability_dc(matrix, 2.5)
+    assert 0.3 < over_p < 0.7
 
 
 def test_ou_over_probability_15():
-    lam = 2.5
-    expected = 1.0 - sum((lam ** k) * math.exp(-lam) / math.factorial(k) for k in range(2))
-    assert abs(ou_over_probability(lam, 1.5) - expected) < 1e-6
+    """P(over 1.5) should always be higher than P(over 2.5)."""
+    matrix = build_score_matrix(1.3, 1.2, rho=-0.13)
+    over_15 = ou_probability_dc(matrix, 1.5)
+    over_25 = ou_probability_dc(matrix, 2.5)
+    assert over_15 > over_25
 
 
 def test_ou_over_probability_complement():
-    """over + under should sum to 1 for half-ball lines."""
-    over = ou_over_probability(2.0, 2.5)
-    under = 1.0 - over
-    assert abs(over + under - 1.0) < 1e-10
+    """over + under should sum to 1 for half-ball lines (no push)."""
+    matrix = build_score_matrix(1.5, 1.2, rho=-0.13)
+    over = ou_probability_dc(matrix, 2.5)
+    assert abs(over + (1.0 - over) - 1.0) < 1e-10
 
 
-def test_ou_over_probability_increases_with_lambda():
+def test_ou_over_probability_increases_with_higher_lambda():
     """Higher expected goals → higher P(over 2.5)."""
-    p_low = ou_over_probability(1.0, 2.5)
-    p_high = ou_over_probability(4.0, 2.5)
+    low_matrix = build_score_matrix(0.5, 0.5, rho=-0.13)
+    high_matrix = build_score_matrix(2.5, 2.0, rho=-0.13)
+    p_low = ou_probability_dc(low_matrix, 2.5)
+    p_high = ou_probability_dc(high_matrix, 2.5)
     assert p_high > p_low
 
 
 def test_confidence_tier_boundaries():
-    from app.ou_analyzer import _confidence_tier
     assert _confidence_tier(0.10) == "ELITE"
     assert _confidence_tier(0.05) == "HIGH"
     assert _confidence_tier(0.02) == "MEDIUM"

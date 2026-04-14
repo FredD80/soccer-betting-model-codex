@@ -194,5 +194,10 @@ def start_scheduler(model_classes):
         IntervalTrigger(minutes=30), id="line_movement_poll",
         replace_existing=True
     )
+    scheduler.add_job(
+        lambda: celery_app.send_task("app.celery_app.monte_carlo_task"),
+        IntervalTrigger(minutes=30), id="monte_carlo",
+        replace_existing=True
+    )
     logger.info("Scheduler started")
     scheduler.start()

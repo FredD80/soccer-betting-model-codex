@@ -1,52 +1,49 @@
-import math
 import pytest
-from app.spread_predictor import cover_probability, _confidence_tier, _poisson_pmf
-
-
-def test_poisson_pmf_known_values():
-    # P(X=0 | λ=2) = e^-2 ≈ 0.1353
-    assert abs(_poisson_pmf(0, 2.0) - math.exp(-2.0)) < 1e-6
-    # P(X=2 | λ=2) = (4 * e^-2) / 2 = 2*e^-2 ≈ 0.2707
-    assert abs(_poisson_pmf(2, 2.0) - (4 * math.exp(-2.0) / 2)) < 1e-6
+from app.dixon_coles import build_score_matrix, cover_probability_dc
+from app.spread_predictor import _confidence_tier
 
 
 def test_cover_probability_home_minus_half():
-    """Home -0.5: home must win. With high home lambda, home should have high win prob."""
-    win_p, push_p = cover_probability(2.5, 0.8, -0.5)
-    assert 0.6 < win_p < 0.95  # strong home team should win most of the time
+    """Home -0.5: home must win. Strong home team should have high win prob."""
+    matrix = build_score_matrix(2.5, 0.8, rho=-0.13)
+    win_p, push_p = cover_probability_dc(matrix, -0.5)
+    assert 0.6 < win_p < 0.99
     assert push_p == 0.0  # no push on -0.5
 
 
 def test_cover_probability_away_plus_half():
-    """Away +0.5: away covers on draw or away win."""
-    win_p_home, _ = cover_probability(2.5, 0.8, -0.5)
-    win_p_away, _ = cover_probability(2.5, 0.8, 0.5)
-    # P(home wins) + P(away covers +0.5) should sum to ~1.0 (no push on 0.5 lines)
+    """Away +0.5: away covers on draw or away win. Home -0.5 + Away +0.5 == 1.0."""
+    matrix = build_score_matrix(2.5, 0.8, rho=-0.13)
+    win_p_home, _ = cover_probability_dc(matrix, -0.5)
+    win_p_away, _ = cover_probability_dc(matrix, 0.5)
     assert abs(win_p_home + win_p_away - 1.0) < 0.001
 
 
 def test_cover_probability_integer_line_push():
     """Home -1.0: push occurs when home wins by exactly 1."""
-    win_p, push_p = cover_probability(1.5, 1.5, -1.0)
+    matrix = build_score_matrix(1.5, 1.5, rho=-0.13)
+    win_p, push_p = cover_probability_dc(matrix, -1.0)
     lose_p = 1.0 - win_p - push_p
-    assert push_p > 0.0  # some probability of exactly 1-goal margin
+    assert push_p > 0.0
     assert abs(win_p + push_p + lose_p - 1.0) < 0.001
 
 
 def test_cover_probability_minus_1_and_minus_15_same_win_prob():
-    """For integer goals, -1.0 and -1.5 have same win condition (home wins by 2+).
-    -1.0 has a push on 1-goal margin; -1.5 does not (that margin is a loss)."""
-    win_p_1, push_p_1 = cover_probability(2.0, 1.0, -1.0)
-    win_p_15, push_p_15 = cover_probability(2.0, 1.0, -1.5)
-    assert abs(win_p_1 - win_p_15) < 0.001  # same win probability
-    assert push_p_1 > 0.0   # -1.0 has push
-    assert push_p_15 == 0.0  # -1.5 has no push
+    """-1.0 has a push on 1-goal margin; -1.5 treats that margin as a loss."""
+    matrix = build_score_matrix(2.0, 1.0, rho=-0.13)
+    win_p_1, push_p_1 = cover_probability_dc(matrix, -1.0)
+    win_p_15, push_p_15 = cover_probability_dc(matrix, -1.5)
+    # Win condition (home wins by 2+) is the same; -1.0 just has push on margin=1
+    assert abs(win_p_1 - win_p_15) < 0.001
+    assert push_p_1 > 0.0
+    assert push_p_15 == 0.0
 
 
 def test_cover_probability_symmetric_equal_teams():
     """Equal teams: P(home covers -0.5) + P(away covers +0.5) == 1.0."""
-    win_h, _ = cover_probability(1.5, 1.5, -0.5)
-    win_a, _ = cover_probability(1.5, 1.5, 0.5)
+    matrix = build_score_matrix(1.5, 1.5, rho=-0.13)
+    win_h, _ = cover_probability_dc(matrix, -0.5)
+    win_a, _ = cover_probability_dc(matrix, 0.5)
     assert abs(win_h + win_a - 1.0) < 0.001
 
 

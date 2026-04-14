@@ -273,3 +273,34 @@ class RotationFlag(Base):
     hours_between = Column(Float)                  # hours between fixtures
     overridden_by_lineup = Column(Boolean, default=False)
     updated_at = Column(DateTime)
+
+
+class LeagueCalibration(Base):
+    """Per-league Dixon-Coles parameters fitted by the backtester."""
+    __tablename__ = "league_calibration"
+    id = Column(Integer, primary_key=True)
+    league_espn_id = Column(String, nullable=False, unique=True)
+    rho = Column(Float, nullable=False, default=-0.13)       # DC low-score correlation
+    home_advantage = Column(Float, nullable=False, default=1.10)
+    attack_scale = Column(Float, nullable=False, default=1.0)
+    defense_scale = Column(Float, nullable=False, default=1.0)
+    fitted_at = Column(DateTime)                              # None = manually seeded
+
+
+class MonteCarloRun(Base):
+    """Stores the outcome of a Monte Carlo simulation run for a fixture."""
+    __tablename__ = "monte_carlo_runs"
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    lambda_home = Column(Float, nullable=False)
+    lambda_away = Column(Float, nullable=False)
+    rho = Column(Float, nullable=False)
+    home_win_prob = Column(Float)
+    draw_prob = Column(Float)
+    away_win_prob = Column(Float)
+    over_15_prob = Column(Float)
+    over_25_prob = Column(Float)
+    over_35_prob = Column(Float)
+    scoreline_json = Column(Text)                 # JSON array of top-20 {h, a, p} dicts
+    run_at = Column(DateTime, default=datetime.utcnow)

@@ -1,24 +1,13 @@
-import math
 import logging
 from datetime import datetime, timezone, timedelta
-from app.db.models import Fixture, FormCache, OddsSnapshot, OUAnalysis
+from app.db.models import Fixture, FormCache, OddsSnapshot, OUAnalysis, League
+from app.dixon_coles import build_score_matrix, ou_probability_dc
+from app.league_calibration import get_league_params
 
 logger = logging.getLogger(__name__)
 
 OU_LINES = [1.5, 2.5, 3.5]
-MAX_GOALS = 15
 LEAGUE_AVG_GOALS = 1.5
-
-
-def _poisson_pmf(k: int, lam: float) -> float:
-    return (lam ** k) * math.exp(-lam) / math.factorial(k)
-
-
-def ou_over_probability(lambda_total: float, line: float) -> float:
-    """P(total goals > line) where line is a half-ball value (no push possible)."""
-    n_max = int(line)  # e.g., 2.5 → 2; 1.5 → 1; 3.5 → 3
-    p_at_most = sum(_poisson_pmf(n, lambda_total) for n in range(n_max + 1))
-    return 1.0 - p_at_most
 
 
 def _implied_prob(decimal_odds: float | None) -> float | None:
@@ -52,14 +41,27 @@ class OUAnalyzer:
             if not home_form or not away_form:
                 continue
 
-            lambda_home = max(0.1, home_form.goals_scored_avg * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS))
-            lambda_away = max(0.1, away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS))
-            lambda_total = lambda_home + lambda_away
+            # Per-league Dixon-Coles calibration
+            league = self.session.query(League).filter_by(id=fixture.league_id).first()
+            league_espn_id = league.espn_id if league else "unknown"
+            params = get_league_params(self.session, league_espn_id)
 
+            lambda_home = max(
+                0.1,
+                home_form.goals_scored_avg
+                * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS)
+                * params.home_advantage,
+            )
+            lambda_away = max(
+                0.1,
+                away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS),
+            )
+
+            score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             snap = self._latest_snapshot(fixture.id)
 
             for line in OU_LINES:
-                over_p = ou_over_probability(lambda_total, line)
+                over_p = ou_probability_dc(score_matrix, line)
                 under_p = 1.0 - over_p
                 if over_p >= under_p:
                     direction = "over"

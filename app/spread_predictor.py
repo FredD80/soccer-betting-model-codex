@@ -1,53 +1,13 @@
-import math
 import logging
 from datetime import datetime, timezone, timedelta
-from app.db.models import Fixture, FormCache, OddsSnapshot, SpreadPrediction
+from app.db.models import Fixture, FormCache, OddsSnapshot, SpreadPrediction, League
+from app.dixon_coles import build_score_matrix, cover_probability_dc
+from app.league_calibration import get_league_params
 
 logger = logging.getLogger(__name__)
 
 GOAL_LINES = [-1.5, -1.0, -0.5, 0.5, 1.0, 1.5]
-MAX_GOALS = 10
 LEAGUE_AVG_GOALS = 1.5  # normalisation constant for attack × defense formula
-
-
-def _poisson_pmf(k: int, lam: float) -> float:
-    return (lam ** k) * math.exp(-lam) / math.factorial(k)
-
-
-def cover_probability(lambda_home: float, lambda_away: float, line: float) -> tuple[float, float]:
-    """
-    Returns (win_probability, push_probability) for a goal-line spread bet.
-
-    line < 0  →  home spread  (e.g., -0.5: home must win; -1.0: home wins by 2+)
-    line > 0  →  away spread  (e.g., +0.5: away covers on draw/win; +1.0: away covers unless home wins by 2+)
-
-    Push only occurs on integer lines (-1.0, +1.0) when home wins by exactly 1.
-    All lines 0.5-spaced (e.g., -0.5, -1.5, +0.5, +1.5) have push_probability == 0.
-    """
-    win_p = 0.0
-    push_p = 0.0
-    is_integer_line = abs(round(abs(line)) - abs(line)) < 0.01
-
-    for h in range(MAX_GOALS + 1):
-        ph = _poisson_pmf(h, lambda_home)
-        for a in range(MAX_GOALS + 1):
-            pa = _poisson_pmf(a, lambda_away)
-            margin = h - a  # positive = home leading
-
-            if line < 0:
-                threshold = abs(line)
-                if margin > threshold:
-                    win_p += ph * pa
-                elif is_integer_line and margin == round(threshold):
-                    push_p += ph * pa
-            else:
-                threshold = line
-                if margin < threshold:
-                    win_p += ph * pa
-                elif is_integer_line and margin == round(threshold):
-                    push_p += ph * pa
-
-    return win_p, push_p
 
 
 def _implied_prob(decimal_odds: float | None) -> float | None:
@@ -82,14 +42,28 @@ class SpreadPredictor:
                 logger.debug("No form cache for fixture %d — skipping spread prediction", fixture.id)
                 continue
 
-            # Attack × Defence / league_avg normalisation (standard Dixon-Coles precursor)
-            lambda_home = max(0.1, home_form.goals_scored_avg * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS))
-            lambda_away = max(0.1, away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS))
+            # Per-league Dixon-Coles calibration
+            league = self.session.query(League).filter_by(id=fixture.league_id).first()
+            league_espn_id = league.espn_id if league else "unknown"
+            params = get_league_params(self.session, league_espn_id)
 
+            # Attack × Defence / league_avg normalisation; home_advantage applied to λ_home
+            lambda_home = max(
+                0.1,
+                home_form.goals_scored_avg
+                * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS)
+                * params.home_advantage,
+            )
+            lambda_away = max(
+                0.1,
+                away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS),
+            )
+
+            score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             snap = self._latest_snapshot(fixture.id)
 
             for line in GOAL_LINES:
-                win_p, push_p = cover_probability(lambda_home, lambda_away, line)
+                win_p, push_p = cover_probability_dc(score_matrix, line)
                 team_side = "home" if line < 0 else "away"
                 ev = self._compute_ev(win_p, snap, line)
                 tier = _confidence_tier(ev)
