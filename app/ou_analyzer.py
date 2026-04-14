@@ -9,7 +9,7 @@ from app.steam_resistance import steam_move_pct, apply_steam
 
 logger = logging.getLogger(__name__)
 
-OU_LINES = [1.5, 2.5, 3.5]
+OU_LINES = [1.5, 2.5, 3.5]  # fallback when fixture has no offered totals
 LEAGUE_AVG_GOALS = 1.5
 
 
@@ -57,7 +57,8 @@ class OUAnalyzer:
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             w1, w2 = get_weights(self.session, league_espn_id, "ou")
 
-            for line in OU_LINES:
+            offered_lines = self._offered_lines(fixture.id) or OU_LINES
+            for line in offered_lines:
                 over_p = ou_probability_dc(score_matrix, line)
                 under_p = 1.0 - over_p
                 if over_p >= under_p:
@@ -95,6 +96,18 @@ class OUAnalyzer:
             .filter(Fixture.kickoff_at <= cutoff)
             .all()
         )
+
+    def _offered_lines(self, fixture_id: int) -> list[float]:
+        rows = (
+            self.session.query(OddsSnapshot.total_goals_line)
+            .filter(OddsSnapshot.fixture_id == fixture_id)
+            .filter(OddsSnapshot.total_goals_line.isnot(None))
+            .filter(OddsSnapshot.over_odds.isnot(None))
+            .filter(OddsSnapshot.under_odds.isnot(None))
+            .distinct()
+            .all()
+        )
+        return sorted({float(r[0]) for r in rows})
 
     def _get_form(self, team_id: int, is_home: bool) -> FormCache | None:
         return self.session.query(FormCache).filter_by(team_id=team_id, is_home=is_home).first()

@@ -9,7 +9,7 @@ from app.steam_resistance import steam_move_pct, apply_steam
 
 logger = logging.getLogger(__name__)
 
-GOAL_LINES = [-1.5, -1.0, -0.5, 0.5, 1.0, 1.5]
+GOAL_LINES = [-1.5, -1.0, -0.5, 0.5, 1.0, 1.5]  # fallback when fixture has no offered lines
 LEAGUE_AVG_GOALS = 1.5  # normalisation constant for attack × defense formula
 
 
@@ -58,7 +58,8 @@ class SpreadPredictor:
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             w1, w2 = get_weights(self.session, league_espn_id, "spread")
 
-            for line in GOAL_LINES:
+            offered_lines = self._offered_lines(fixture.id) or GOAL_LINES
+            for line in offered_lines:
                 win_p, push_p = cover_probability_dc(score_matrix, line)
                 team_side = "home" if line < 0 else "away"
                 snap = self._latest_snapshot(fixture.id, line)
@@ -91,6 +92,27 @@ class SpreadPredictor:
             .filter(Fixture.kickoff_at <= cutoff)
             .all()
         )
+
+    def _offered_lines(self, fixture_id: int) -> list[float]:
+        home_lines = (
+            self.session.query(OddsSnapshot.spread_home_line)
+            .filter(OddsSnapshot.fixture_id == fixture_id)
+            .filter(OddsSnapshot.spread_home_line.isnot(None))
+            .filter(OddsSnapshot.spread_home_odds.isnot(None))
+            .distinct()
+            .all()
+        )
+        away_lines = (
+            self.session.query(OddsSnapshot.spread_away_line)
+            .filter(OddsSnapshot.fixture_id == fixture_id)
+            .filter(OddsSnapshot.spread_away_line.isnot(None))
+            .filter(OddsSnapshot.spread_away_odds.isnot(None))
+            .distinct()
+            .all()
+        )
+        lines = {float(row[0]) for row in home_lines if row[0] < 0}
+        lines.update(float(row[0]) for row in away_lines if row[0] > 0)
+        return sorted(lines)
 
     def _get_form(self, team_id: int, is_home: bool) -> FormCache | None:
         return self.session.query(FormCache).filter_by(team_id=team_id, is_home=is_home).first()
