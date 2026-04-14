@@ -116,7 +116,29 @@ class DataCollector:
         self.session.add(snap)
 
     def _find_odds_fixture(self, odds_fixtures: list, home_team: str, away_team: str) -> dict | None:
+        """
+        Match an Odds-API fixture to a pair of ESPN team names via the
+        shared team_matcher. Both sides must resolve to the same Team row
+        before we accept the match.
+        """
+        from app.team_matcher import resolve_team
+        from app.db.models import Team
+        espn_home = (
+            self.session.query(Team).filter_by(name=home_team).first()
+        )
+        espn_away = (
+            self.session.query(Team).filter_by(name=away_team).first()
+        )
+        if not espn_home or not espn_away:
+            return None
         for f in odds_fixtures:
-            if f["home_team"] == home_team and f["away_team"] == away_team:
+            odds_home = resolve_team(
+                self.session, espn_home.league_id, f["home_team"], "odds_api"
+            )
+            odds_away = resolve_team(
+                self.session, espn_away.league_id, f["away_team"], "odds_api"
+            )
+            if odds_home and odds_away and \
+               odds_home.id == espn_home.id and odds_away.id == espn_away.id:
                 return f
         return None

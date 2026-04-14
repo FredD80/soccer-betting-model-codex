@@ -314,6 +314,20 @@ class MonteCarloRun(Base):
     run_at = Column(DateTime, default=datetime.utcnow)
 
 
+class TeamAlias(Base):
+    """Cross-provider team name normalisation.
+
+    Given a raw team name as emitted by an external source (e.g. the Odds API
+    returns "Man Utd" while ESPN returns "Manchester United"), resolve to the
+    canonical Team row.
+    """
+    __tablename__ = "team_aliases"
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    alias = Column(String, nullable=False)      # raw external name (case-insensitive match)
+    source = Column(String, nullable=False)     # "odds_api" | "espn" | "api_football" | ...
+
+
 class MarketWeights(Base):
     """Per-league, per-bet-type blend weights fit offline by fit_market_weights.py."""
     __tablename__ = "market_weights"
