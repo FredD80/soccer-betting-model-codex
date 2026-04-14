@@ -5,6 +5,10 @@ export interface SpreadPick {
   push_probability: number
   ev_score: number | null
   confidence_tier: 'SKIP' | 'MEDIUM' | 'HIGH' | 'ELITE'
+  final_probability: number | null
+  edge_pct: number | null
+  kelly_fraction: number | null
+  steam_downgraded: boolean
 }
 
 export interface OUPick {
@@ -13,6 +17,10 @@ export interface OUPick {
   probability: number
   ev_score: number | null
   confidence_tier: 'SKIP' | 'MEDIUM' | 'HIGH' | 'ELITE'
+  final_probability: number | null
+  edge_pct: number | null
+  kelly_fraction: number | null
+  steam_downgraded: boolean
 }
 
 export interface FixturePick {
