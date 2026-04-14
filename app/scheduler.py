@@ -154,7 +154,7 @@ def ou_analyze_job():
                               description="Phase 1 Poisson O/U analyzer", active=True)
             session.add(mv)
             session.flush()
-        OUAnalyzer(session).run(mv.id)
+        OUAnalyzer(session, ml_enabled=settings.ml_lambda_enabled).run(mv.id)
         log.status = "success"
     except Exception as e:
         log.status = "error"
@@ -180,7 +180,7 @@ def moneyline_predict_job():
                               description="Dixon-Coles 3-way moneyline", active=True)
             session.add(mv)
             session.flush()
-        MoneylinePredictor(session).run(mv.id)
+        MoneylinePredictor(session, ml_enabled=settings.ml_lambda_enabled).run(mv.id)
         log.status = "success"
     except Exception as e:
         log.status = "error"

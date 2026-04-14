@@ -236,7 +236,7 @@ def ou_analyze_task():
             )
             session.add(mv)
             session.flush()
-        OUAnalyzer(session).run(mv.id)
+        OUAnalyzer(session, ml_enabled=settings.ml_lambda_enabled).run(mv.id)
         session.commit()
         logger.info("ou_analyze_task: complete")
         return {"status": "ok"}

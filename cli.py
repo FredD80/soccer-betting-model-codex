@@ -108,7 +108,8 @@ def predict_ou():
                               description="Phase 1 Poisson O/U analyzer", active=True)
             session.add(mv)
             session.flush()
-        OUAnalyzer(session).run(mv.id)
+        from app.config import settings as _s
+        OUAnalyzer(session, ml_enabled=_s.ml_lambda_enabled).run(mv.id)
         session.commit()
         click.echo("O/U analysis complete.")
     finally:
@@ -128,7 +129,8 @@ def predict_moneyline():
                               description="Dixon-Coles 3-way moneyline", active=True)
             session.add(mv)
             session.flush()
-        MoneylinePredictor(session).run(mv.id)
+        from app.config import settings as _s
+        MoneylinePredictor(session, ml_enabled=_s.ml_lambda_enabled).run(mv.id)
         session.commit()
         click.echo("Moneyline predictions complete.")
     finally:
