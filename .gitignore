@@ -6,3 +6,4 @@ k8s/secret.yaml
 *.egg-info/
 dist/
 .venv/
+models/artifacts/*.pkl

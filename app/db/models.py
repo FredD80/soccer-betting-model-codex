@@ -304,3 +304,17 @@ class MonteCarloRun(Base):
     over_35_prob = Column(Float)
     scoreline_json = Column(Text)                 # JSON array of top-20 {h, a, p} dicts
     run_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MLArtifact(Base):
+    """Registry of trained ML model artifacts (e.g. XGBoost λ regressors)."""
+    __tablename__ = "ml_artifacts"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)          # e.g. "ml_lambda"
+    version = Column(String, nullable=False)       # e.g. "20260413_223145"
+    path = Column(String, nullable=False)          # filesystem path to .pkl
+    mae_home = Column(Float)
+    mae_away = Column(Float)
+    n_samples = Column(Integer)
+    active = Column(Boolean, default=False)
+    trained_at = Column(DateTime, default=datetime.utcnow)

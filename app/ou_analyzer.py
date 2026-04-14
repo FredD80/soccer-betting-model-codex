@@ -29,9 +29,13 @@ def _confidence_tier(ev: float | None) -> str:
 
 
 class OUAnalyzer:
-    def __init__(self, session, lead_hours: int | None = None):
+    def __init__(self, session, lead_hours: int | None = None, ml_enabled: bool = False):
         self.session = session
         self._lead_hours = lead_hours
+        self._ml = None
+        if ml_enabled:
+            from app.ml_lambda import MLLambdaPredictor
+            self._ml = MLLambdaPredictor(session)
 
     def run(self, model_id: int):
         upcoming = self._get_upcoming_fixtures()
@@ -46,16 +50,19 @@ class OUAnalyzer:
             league_espn_id = league.espn_id if league else "unknown"
             params = get_league_params(self.session, league_espn_id)
 
-            lambda_home = max(
-                0.1,
-                home_form.goals_scored_avg
-                * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS)
-                * params.home_advantage,
-            )
-            lambda_away = max(
-                0.1,
-                away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS),
-            )
+            if self._ml is not None:
+                lambda_home, lambda_away = self._ml.predict(fixture)
+            else:
+                lambda_home = max(
+                    0.1,
+                    home_form.goals_scored_avg
+                    * (away_form.goals_conceded_avg / LEAGUE_AVG_GOALS)
+                    * params.home_advantage,
+                )
+                lambda_away = max(
+                    0.1,
+                    away_form.goals_scored_avg * (home_form.goals_conceded_avg / LEAGUE_AVG_GOALS),
+                )
 
             score_matrix = build_score_matrix(lambda_home, lambda_away, rho=params.rho)
             snap = self._latest_snapshot(fixture.id)
