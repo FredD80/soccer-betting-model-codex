@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.config import settings
+
 app = FastAPI(title="Soccer Prediction API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tightened in prod via K8s NetworkPolicy
+    allow_origins=settings.cors_origin_list,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
