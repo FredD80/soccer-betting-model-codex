@@ -61,17 +61,24 @@ def _league_name(session: Session, league_id: int) -> str:
     return lg.name if lg else "Unknown"
 
 
+def _is_us_style_line(line: float) -> bool:
+    """Accept half/whole goal lines (±0.5, ±1.0, ±1.5...); reject quarter Asian (±0.25, ±0.75)."""
+    return abs(round(line * 2) - line * 2) < 1e-6
+
+
 def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None:
     picks = (
         session.query(SpreadPrediction)
         .filter(SpreadPrediction.fixture_id == fixture_id)
         .filter(SpreadPrediction.confidence_tier.in_(_SHOW_TIERS))
         .order_by(SpreadPrediction.ev_score.desc())
-        .first()
+        .all()
     )
+    picks = next((p for p in picks if _is_us_style_line(p.goal_line)), None)
     if not picks:
         return None
     dec = _spread_odds(session, fixture_id, picks.team_side, picks.goal_line)
+
     return SpreadPickResponse(
         team_side=picks.team_side,
         goal_line=picks.goal_line,
