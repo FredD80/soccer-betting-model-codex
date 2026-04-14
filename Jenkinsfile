@@ -53,16 +53,8 @@ pipeline {
                         echo "$REG_PASS" | docker login ghcr.io -u "$REG_USER" --password-stdin
 
                         docker push ${ENGINE_IMAGE}:${IMAGE_TAG}
-                        docker tag  ${ENGINE_IMAGE}:${IMAGE_TAG} ${ENGINE_IMAGE}:latest
-                        docker push ${ENGINE_IMAGE}:latest
-
                         docker push ${API_IMAGE}:${IMAGE_TAG}
-                        docker tag  ${API_IMAGE}:${IMAGE_TAG} ${API_IMAGE}:latest
-                        docker push ${API_IMAGE}:latest
-
                         docker push ${DASHBOARD_IMAGE}:${IMAGE_TAG}
-                        docker tag  ${DASHBOARD_IMAGE}:${IMAGE_TAG} ${DASHBOARD_IMAGE}:latest
-                        docker push ${DASHBOARD_IMAGE}:latest
                     '''
                 }
             }
@@ -99,8 +91,11 @@ pipeline {
                     kubectl --kubeconfig=$KUBECONFIG -n tenant-b rollout status \
                         deployment/dashboard
 
-                    # Apply any new K8s manifests (Redis, Celery, FastAPI, Dashboard)
-                    kubectl --kubeconfig=$KUBECONFIG apply -f k8s/ -R
+                    # Apply any new K8s manifests with IMAGE_TAG substituted in.
+                    # Keeps manifests SHA-pinned even after a pod restart.
+                    export IMAGE_TAG=${IMAGE_TAG}
+                    find k8s -name "*.yaml" -print0 \
+                      | xargs -0 -I {} sh -c 'envsubst < "$1" | kubectl --kubeconfig=$KUBECONFIG apply -f -' _ {}
                 '''
             }
         }

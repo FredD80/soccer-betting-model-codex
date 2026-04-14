@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/fredd80/soccer-api:latest
+          image: ghcr.io/fredd80/soccer-api:${IMAGE_TAG}
           ports:
             - containerPort: 8000
           envFrom:
