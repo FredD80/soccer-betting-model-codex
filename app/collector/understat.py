@@ -3,6 +3,8 @@ import re
 import time
 import requests
 
+from app.collector._retry import http_retry
+
 LEAGUE_UNDERSTAT_KEYS: dict[str, str] = {
     "eng.1": "EPL",
     "esp.1": "La_liga",
@@ -25,6 +27,7 @@ class UnderstatClient:
         self._agent_idx = 0
         self._last_request = 0.0
 
+    @http_retry
     def _get(self, url: str) -> str:
         elapsed = time.time() - self._last_request
         if elapsed < _DELAY_SECONDS:

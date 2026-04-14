@@ -1,5 +1,7 @@
 import httpx
 
+from app.collector._retry import http_retry
+
 _BASE = "https://api.openweathermap.org/data/2.5"
 _ENCLOSURE_WEIGHTS = {"Open": 1.0, "Semi-Enclosed": 0.5, "Closed": 0.0}
 _WIND_THRESHOLD_MPS = 7.0   # ~25 km/h — material impact threshold
@@ -9,6 +11,7 @@ class WeatherClient:
     def __init__(self, api_key: str):
         self._key = api_key
 
+    @http_retry
     def fetch_current(self, lat: float, lon: float) -> dict:
         if not self._key:
             raise ValueError("openweathermap_key is not configured")

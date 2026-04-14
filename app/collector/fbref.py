@@ -2,6 +2,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+from app.collector._retry import http_retry
+
 _DELAY_SECONDS = 3.0
 _UCL_SCHEDULE_URL = (
     "https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures"
@@ -13,6 +15,7 @@ class FBrefClient:
     def __init__(self):
         self._last_request = 0.0
 
+    @http_retry
     def _get(self, url: str) -> str:
         elapsed = time.time() - self._last_request
         if elapsed < _DELAY_SECONDS:

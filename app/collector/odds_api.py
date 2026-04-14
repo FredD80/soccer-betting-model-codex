@@ -1,6 +1,8 @@
 import requests
 from datetime import datetime
 
+from app.collector._retry import http_retry
+
 BASE_URL = "https://api.the-odds-api.com/v4"
 
 LEAGUE_SPORT_KEYS = [
@@ -17,6 +19,7 @@ class OddsAPIClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
+    @http_retry
     def fetch_odds(self, sport_key: str) -> list[dict]:
         url = f"{BASE_URL}/sports/{sport_key}/odds/"
         params = {

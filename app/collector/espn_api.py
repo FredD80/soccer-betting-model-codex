@@ -1,11 +1,14 @@
 import requests
 
+from app.collector._retry import http_retry
+
 BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer"
 
 LEAGUE_ESPN_IDS = ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"]
 
 
 class ESPNClient:
+    @http_retry
     def fetch_fixtures(self, league_id: str) -> list[dict]:
         url = f"{BASE_URL}/{league_id}/scoreboard"
         response = requests.get(url, timeout=30)

@@ -1,5 +1,7 @@
 import httpx
 
+from app.collector._retry import http_retry
+
 _BASE = "https://v3.football.api-sports.io"
 
 
@@ -12,6 +14,7 @@ class APIFootballClient:
             raise ValueError("api_football_key is not configured")
         return {"x-apisports-key": self._key}
 
+    @http_retry
     def _get(self, path: str, params: dict) -> list:
         resp = httpx.get(f"{_BASE}/{path}", headers=self._headers(),
                          params=params, timeout=20)
