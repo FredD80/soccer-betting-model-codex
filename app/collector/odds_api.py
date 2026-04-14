@@ -25,7 +25,7 @@ class OddsAPIClient:
         params = {
             "apiKey": self.api_key,
             "regions": "us,uk",
-            "markets": "h2h,totals,h2h_h1,totals_h1,spreads",
+            "markets": "h2h,totals,spreads",
             "oddsFormat": "decimal",
         }
         response = requests.get(url, params=params, timeout=30)
