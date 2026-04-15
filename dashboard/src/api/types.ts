@@ -71,3 +71,23 @@ export interface FixtureDetail {
   spread_picks: SpreadPick[]
   ou_picks: OUPick[]
 }
+
+export interface BacktestRun {
+  market: 'spread' | 'ou' | 'moneyline'
+  model_id: number
+  model_name: string
+  model_version: string
+  total: number
+  correct: number
+  accuracy: number
+  roi: number
+  date_from: string
+  date_to: string
+  run_at: string | null
+}
+
+export interface BacktestRunRequest {
+  from_date: string
+  to_date: string
+  markets: Array<'spread' | 'ou' | 'moneyline'>
+}

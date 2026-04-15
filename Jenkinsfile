@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        ENGINE_IMAGE    = "ghcr.io/fredd80/soccer-engine"
-        API_IMAGE       = "ghcr.io/fredd80/soccer-api"
-        WORKER_IMAGE    = "ghcr.io/fredd80/soccer-engine"   // same image as engine, different CMD
-        DASHBOARD_IMAGE = "ghcr.io/fredd80/soccer-dashboard"
+        ENGINE_IMAGE    = "ghcr.io/fredd80/sbm-engine"
+        API_IMAGE       = "ghcr.io/fredd80/sbm-api"
+        WORKER_IMAGE    = "ghcr.io/fredd80/sbm-engine"   // same image as engine, different CMD
+        DASHBOARD_IMAGE = "ghcr.io/fredd80/sbm-dashboard"
         IMAGE_TAG      = "${env.GIT_COMMIT[0..7]}"
         KUBECONFIG     = credentials('kubeconfig-multiverse')
     }
@@ -64,32 +64,32 @@ pipeline {
             steps {
                 sh '''
                     # Prediction engine
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b set image \
-                        deployment/soccer-betting-model \
-                        app=${ENGINE_IMAGE}:${IMAGE_TAG}
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b rollout status \
-                        deployment/soccer-betting-model
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d set image \
+                        deployment/sbm-engine \
+                        engine=${ENGINE_IMAGE}:${IMAGE_TAG}
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d rollout status \
+                        deployment/sbm-engine
 
                     # Celery worker (same image, different CMD in deployment.yaml)
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b set image \
-                        deployment/celery-worker \
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d set image \
+                        deployment/sbm-worker \
                         worker=${ENGINE_IMAGE}:${IMAGE_TAG}
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b rollout status \
-                        deployment/celery-worker
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d rollout status \
+                        deployment/sbm-worker
 
                     # FastAPI
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b set image \
-                        deployment/fastapi \
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d set image \
+                        deployment/sbm-api \
                         api=${API_IMAGE}:${IMAGE_TAG}
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b rollout status \
-                        deployment/fastapi
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d rollout status \
+                        deployment/sbm-api
 
                     # Dashboard
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b set image \
-                        deployment/dashboard \
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d set image \
+                        deployment/sbm-dashboard \
                         dashboard=${DASHBOARD_IMAGE}:${IMAGE_TAG}
-                    kubectl --kubeconfig=$KUBECONFIG -n tenant-b rollout status \
-                        deployment/dashboard
+                    kubectl --kubeconfig=$KUBECONFIG -n tenant-d rollout status \
+                        deployment/sbm-dashboard
 
                     # Apply any new K8s manifests with IMAGE_TAG substituted in.
                     # Keeps manifests SHA-pinned even after a pod restart.

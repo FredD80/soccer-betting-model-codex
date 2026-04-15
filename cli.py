@@ -169,6 +169,41 @@ def backtest(model, version, from_date, to_date):
 
 
 @cli.command()
+@click.option("--from-date", required=True, help="Start date YYYY-MM-DD")
+@click.option("--to-date", required=True, help="End date YYYY-MM-DD")
+@click.option(
+    "--market",
+    "markets",
+    multiple=True,
+    type=click.Choice(["spread", "ou", "moneyline"]),
+    help="Limit to one or more markets; defaults to all supported markets.",
+)
+def backtest_picks(from_date, to_date, markets):
+    """Backtest stored spread/OU/moneyline picks over completed fixtures."""
+    from app.pick_backtester import PickBacktester
+    from datetime import datetime
+
+    session = get_session()
+    try:
+        date_from = datetime.strptime(from_date, "%Y-%m-%d")
+        date_to = datetime.strptime(to_date, "%Y-%m-%d")
+        selected = tuple(markets) if markets else ("spread", "ou", "moneyline")
+        summaries = PickBacktester(session).run(date_from, date_to, markets=selected)
+        if not summaries:
+            click.echo("No qualifying stored picks found for the requested window.")
+            return
+        click.echo(f"\n{'Market':<12} {'Model ID':<10} {'Total':>6} {'Correct':>8} {'Accuracy':>10} {'ROI':>8}")
+        click.echo("-" * 62)
+        for summary in summaries:
+            click.echo(
+                f"{summary.market:<12} {summary.model_id:<10} {summary.total:>6} "
+                f"{summary.correct:>8} {summary.accuracy:>10.1%} {summary.roi:>8.3f}"
+            )
+    finally:
+        session.close()
+
+
+@cli.command()
 @click.argument("name")
 @click.argument("version")
 @click.option("--description", default="", help="Model description")

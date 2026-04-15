@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: betting-config
-  namespace: tenant-b
+  name: sbm-config
+  namespace: tenant-d
 data:
   COLLECTION_INTERVAL_HOURS: "12"
   PREDICTION_LEAD_HOURS: "2"

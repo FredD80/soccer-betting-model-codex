@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import BaseModel
 
 
@@ -84,3 +84,23 @@ class ModelPerformanceResponse(BaseModel):
     correct: int
     accuracy: float
     roi: float
+
+
+class BacktestRunRequest(BaseModel):
+    from_date: date
+    to_date: date
+    markets: list[str] = ["spread", "ou", "moneyline"]
+
+
+class BacktestRunResponse(BaseModel):
+    market: str
+    model_id: int
+    model_name: str
+    model_version: str
+    total: int
+    correct: int
+    accuracy: float
+    roi: float
+    date_from: datetime
+    date_to: datetime
+    run_at: datetime | None = None

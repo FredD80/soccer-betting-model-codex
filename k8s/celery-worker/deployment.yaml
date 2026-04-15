@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: celery-worker
-  namespace: tenant-b
+  name: sbm-worker
+  namespace: tenant-d
   labels:
-    app: celery-worker
+    app: sbm-worker
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: celery-worker
+      app: sbm-worker
   template:
     metadata:
       labels:
-        app: celery-worker
+        app: sbm-worker
     spec:
       imagePullSecrets:
         - name: ghcr-pull
       containers:
         - name: worker
-          image: ghcr.io/fredd80/soccer-engine:${IMAGE_TAG}
+          image: ghcr.io/fredd80/sbm-engine:${IMAGE_TAG}
           command:
             - celery
             - -A
@@ -30,11 +30,11 @@ spec:
             - --queues=$(CELERY_QUEUES)
           envFrom:
             - secretRef:
-                name: betting-secrets
+                name: sbm-secrets
             - configMapRef:
-                name: betting-config
+                name: sbm-config
             - configMapRef:
-                name: celery-worker-config
+                name: sbm-worker-config
           resources:
             requests:
               memory: "256Mi"

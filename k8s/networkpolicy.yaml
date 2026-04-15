@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-nginx-to-soccer
-  namespace: tenant-b
+  name: allow-ingress-nginx-to-sbm
+  namespace: tenant-d
 spec:
   policyTypes:
     - Ingress
@@ -10,7 +10,7 @@ spec:
     matchExpressions:
       - key: app
         operator: In
-        values: [fastapi, dashboard]
+        values: [sbm-api, sbm-dashboard]
   ingress:
     - from:
         - namespaceSelector:

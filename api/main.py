@@ -11,11 +11,12 @@ app = FastAPI(title="Soccer Prediction API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
-from api.routers import picks, fixtures, performance  # noqa: E402
+from api.routers import backtests, picks, fixtures, performance  # noqa: E402
+app.include_router(backtests.router, prefix="/backtests", tags=["backtests"])
 app.include_router(picks.router, prefix="/picks", tags=["picks"])
 app.include_router(fixtures.router, prefix="/fixture", tags=["fixtures"])
 app.include_router(performance.router, prefix="/performance", tags=["performance"])

@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dashboard
-  namespace: tenant-b
+  name: sbm-dashboard
+  namespace: tenant-d
   labels:
-    app: dashboard
+    app: sbm-dashboard
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dashboard
+      app: sbm-dashboard
   template:
     metadata:
       labels:
-        app: dashboard
+        app: sbm-dashboard
     spec:
       imagePullSecrets:
         - name: ghcr-pull
       containers:
         - name: dashboard
-          image: ghcr.io/fredd80/soccer-dashboard:${IMAGE_TAG}
+          image: ghcr.io/fredd80/sbm-dashboard:${IMAGE_TAG}
           ports:
             - containerPort: 8080
           resources:

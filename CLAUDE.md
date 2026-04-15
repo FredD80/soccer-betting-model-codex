@@ -35,29 +35,29 @@ Tests use SQLite in-memory via `conftest.py`; no Postgres needed. The `db` fixtu
 
 ### Docker images
 ```bash
-docker build -t soccer-engine .                          # scheduler + worker
-docker build -f Dockerfile.api -t soccer-api .           # FastAPI
-docker build -f Dockerfile.dashboard -t soccer-dashboard . # React dashboard
+docker build -t sbm-engine .                             # scheduler + worker
+docker build -f Dockerfile.api -t sbm-api .              # FastAPI
+docker build -f Dockerfile.dashboard -t sbm-dashboard .  # React dashboard
 ```
 
-### Kubernetes (tenant-b namespace)
+### Kubernetes (tenant-d namespace)
 ```bash
-kubectl -n tenant-b rollout restart deployment/<name>
-kubectl -n tenant-b exec -it <pod> -- python cli.py <command>
-kubectl -n tenant-b logs -l app=soccer-engine --tail=100
+kubectl -n tenant-d rollout restart deployment/<name>
+kubectl -n tenant-d exec -it <pod> -- python cli.py <command>
+kubectl -n tenant-d logs -l app=sbm-engine --tail=100
 ```
 
 ## Architecture
 
 ### Service decomposition
-Four Docker images, all deployed to the `tenant-b` Kubernetes namespace:
+Four Docker images, all deployed to the `tenant-d` Kubernetes namespace:
 
 | Image | Entrypoint | Role |
 |---|---|---|
-| `soccer-engine` | `python cli.py scheduler` | APScheduler runs collect → build_form_cache → predict cycle |
-| `soccer-engine` | `celery -A app.celery_app worker` | Async task worker (same image, different CMD) |
-| `soccer-api` | uvicorn | FastAPI read-only REST API for the dashboard |
-| `soccer-dashboard` | nginx | React SPA served at soccer.chelseablue.cloud |
+| `sbm-engine` | `python cli.py scheduler` | APScheduler runs collect → build_form_cache → predict cycle |
+| `sbm-engine` | `celery -A app.celery_app worker` | Async task worker (same image, different CMD) |
+| `sbm-api` | uvicorn | FastAPI read-only REST API for the dashboard |
+| `sbm-dashboard` | nginx | React SPA served at sbm.chelseablue.cloud |
 
 Postgres and Redis run as StatefulSets in the same namespace.
 
@@ -82,13 +82,13 @@ Defined in `app/edge_tiers.py`. Tiers: `SKIP`, `LOW`, `MEDIUM`, `HIGH`, `ELITE`.
 ### Data models (`app/db/models.py`)
 Key tables: `League`, `Team`, `Fixture`, `OddsSnapshot`, `FormCache`, `ModelVersion`, `Prediction`, `Performance`, `LeagueCalibration`, `MLArtifact`.
 
-Migrations live in `migrations/versions/`. The phase2 migration guards TimescaleDB-specific DDL with a `pg_extension` check (TimescaleDB is not installed in tenant-b).
+Migrations live in `migrations/versions/`. The phase2 migration guards TimescaleDB-specific DDL with a `pg_extension` check.
 
 ### Configuration
-Runtime config comes from environment variables (pydantic-settings, `.env` file locally). In Kubernetes, non-secret values come from the `betting-config` ConfigMap (`k8s/configmap.yaml`); secrets (`DATABASE_URL`, `ODDS_API_KEY`) come from the `betting-secrets` Secret.
+Runtime config comes from environment variables (pydantic-settings, `.env` file locally). In Kubernetes, non-secret values come from the `sbm-config` ConfigMap (`k8s/configmap.yaml`); secrets (`DATABASE_URL`, `ODDS_API_KEY`) come from the `sbm-secrets` Secret.
 
 Key settings:
-- `PREDICTION_LEAD_HOURS` — how far ahead to predict (set to `168` in tenant-b to cover a full week)
+- `PREDICTION_LEAD_HOURS` — how far ahead to predict
 - `COLLECTION_INTERVAL_HOURS` — scheduler cadence (default `12`)
 
 ### Scripts (`scripts/`)
@@ -97,7 +97,7 @@ One-off operational scripts:
 - `compute_calibration.py`, `seed_league_calibration.py`, `train_ml_lambda.py`, `fit_market_weights.py`
 
 ### CI/CD
-Jenkins pipeline (Jenkinsfile): test → build 4 images → push to GHCR (`ghcr.io/fredd80/`) → `kubectl set image` for each deployment. Image tag is the short git commit SHA. The engine and worker share the same `soccer-engine` image.
+Jenkins pipeline (Jenkinsfile): test → build 4 images → push to GHCR (`ghcr.io/fredd80/`) → `kubectl set image` for each deployment. Image tag is the short git commit SHA. The engine and worker share the same `sbm-engine` image.
 
 ### Supported leagues
 EPL, La Liga, Bundesliga, Serie A, Ligue 1, Champions League. ESPN IDs and odds-api keys are hardcoded in `cli.py seed`.

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: soccer-betting-model
-  namespace: tenant-b
+  name: sbm-engine
+  namespace: tenant-d
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: soccer-betting-model
+      app: sbm-engine
   template:
     metadata:
       labels:
-        app: soccer-betting-model
+        app: sbm-engine
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
@@ -20,14 +20,14 @@ spec:
       imagePullSecrets:
         - name: ghcr-pull
       containers:
-        - name: app
-          image: ghcr.io/fredd80/soccer-engine:${IMAGE_TAG}
+        - name: engine
+          image: ghcr.io/fredd80/sbm-engine:${IMAGE_TAG}
           command: ["python", "cli.py", "scheduler"]
           envFrom:
             - configMapRef:
-                name: betting-config
+                name: sbm-config
             - secretRef:
-                name: betting-secrets
+                name: sbm-secrets
           ports:
             - containerPort: 9090
               name: metrics

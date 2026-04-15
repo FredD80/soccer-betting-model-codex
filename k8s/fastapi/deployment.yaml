@@ -1,30 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fastapi
-  namespace: tenant-b
+  name: sbm-api
+  namespace: tenant-d
   labels:
-    app: fastapi
+    app: sbm-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fastapi
+      app: sbm-api
   template:
     metadata:
       labels:
-        app: fastapi
+        app: sbm-api
     spec:
       imagePullSecrets:
         - name: ghcr-pull
       containers:
         - name: api
-          image: ghcr.io/fredd80/soccer-api:${IMAGE_TAG}
+          image: ghcr.io/fredd80/sbm-api:${IMAGE_TAG}
           ports:
             - containerPort: 8000
           envFrom:
             - secretRef:
-                name: betting-secrets
+                name: sbm-secrets
           livenessProbe:
             httpGet:
               path: /health
