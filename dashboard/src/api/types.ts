@@ -72,6 +72,30 @@ export interface FixtureDetail {
   ou_picks: OUPick[]
 }
 
+export interface ScheduleLine {
+  home_odds: number | null
+  draw_odds: number | null
+  away_odds: number | null
+  spread_home_line: number | null
+  spread_home_odds: number | null
+  spread_away_line: number | null
+  spread_away_odds: number | null
+  total_goals_line: number | null
+  over_odds: number | null
+  under_odds: number | null
+  bookmaker: string | null
+  captured_at: string | null
+}
+
+export interface ScheduledFixture {
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  kickoff_at: string
+  lines: ScheduleLine | null
+}
+
 export interface BacktestRun {
   market: 'spread' | 'ou' | 'moneyline'
   model_id: number

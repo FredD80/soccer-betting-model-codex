@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import PicksList from './pages/PicksList'
 import BacktestsPage from './pages/BacktestsPage'
+import SchedulePage from './pages/SchedulePage'
 import { api } from './api/client'
 
-type Tab = 'today' | 'week' | 'ucl' | 'backtests'
+type Tab = 'today' | 'week' | 'ucl' | 'primeira' | 'mls' | 'schedule' | 'backtests'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'week', label: 'Week' },
   { key: 'ucl', label: 'UCL' },
+  { key: 'primeira', label: 'Primeira Liga' },
+  { key: 'mls', label: 'MLS' },
+  { key: 'schedule', label: 'Schedule' },
   { key: 'backtests', label: 'Backtests' },
 ]
 
@@ -19,6 +23,9 @@ export default function App() {
     tab === 'today' ? <PicksList label="Today's Picks" fetcher={api.picksToday} emptyText="No HIGH or ELITE picks today." /> :
     tab === 'week'  ? <PicksList label="This Week" fetcher={api.picksWeek} emptyText="No HIGH or ELITE picks this week." /> :
     tab === 'ucl' ? <PicksList label="Champions League" fetcher={api.picksUcl} emptyText="No UCL picks in window." /> :
+    tab === 'primeira' ? <PicksList label="Primeira Liga" fetcher={() => api.picksLeague('por.1')} emptyText="No Primeira Liga picks in window." /> :
+    tab === 'mls' ? <PicksList label="MLS" fetcher={() => api.picksLeague('usa.1')} emptyText="No MLS picks in window." /> :
+    tab === 'schedule' ? <SchedulePage /> :
                     <BacktestsPage />
 
   return (

@@ -23,6 +23,8 @@ LEAGUE_DEFAULTS: dict[str, LeagueParams] = {
     "ger.1":         LeagueParams(rho=-0.10, home_advantage=1.08),  # Bundesliga (higher scoring)
     "ita.1":         LeagueParams(rho=-0.14, home_advantage=1.09),  # Serie A
     "fra.1":         LeagueParams(rho=-0.13, home_advantage=1.11),  # Ligue 1
+    "por.1":         LeagueParams(rho=-0.14, home_advantage=1.11),  # Primeira Liga
+    "usa.1":         LeagueParams(rho=-0.09, home_advantage=1.07),  # MLS
     "uefa.champions": LeagueParams(rho=-0.16, home_advantage=1.06),  # UCL (weaker HFA)
 }
 

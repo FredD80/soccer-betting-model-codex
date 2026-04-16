@@ -12,7 +12,12 @@ from api.schemas import (
 
 router = APIRouter()
 
-_SHOW_TIERS = {"HIGH", "ELITE"}
+_TIER_PRIORITY = {
+    "ELITE": 0,
+    "HIGH": 1,
+    "MEDIUM": 2,
+    "SKIP": 3,
+}
 
 
 def _to_american(decimal_odds: float | None) -> int | None:
@@ -70,7 +75,6 @@ def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None
     picks = (
         session.query(SpreadPrediction)
         .filter(SpreadPrediction.fixture_id == fixture_id)
-        .filter(SpreadPrediction.confidence_tier.in_(_SHOW_TIERS))
         .order_by(SpreadPrediction.ev_score.desc())
         .all()
     )
@@ -99,7 +103,6 @@ def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
     pick = (
         session.query(OUAnalysis)
         .filter(OUAnalysis.fixture_id == fixture_id)
-        .filter(OUAnalysis.confidence_tier.in_(_SHOW_TIERS))
         .order_by(OUAnalysis.ev_score.desc())
         .first()
     )
@@ -139,7 +142,6 @@ def _best_moneyline(session: Session, fixture_id: int) -> MoneylinePickResponse 
     pick = (
         session.query(MoneylinePrediction)
         .filter(MoneylinePrediction.fixture_id == fixture_id)
-        .filter(MoneylinePrediction.confidence_tier.in_(_SHOW_TIERS))
         .order_by(MoneylinePrediction.ev_score.desc())
         .first()
     )
@@ -160,12 +162,21 @@ def _best_moneyline(session: Session, fixture_id: int) -> MoneylinePickResponse 
     )
 
 
-def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickResponse | None:
+def _fixture_tier_rank(fixture_pick: FixturePickResponse) -> int:
+    tiers = [
+        pick.confidence_tier
+        for pick in (fixture_pick.best_spread, fixture_pick.best_ou, fixture_pick.best_moneyline)
+        if pick
+    ]
+    if not tiers:
+        return len(_TIER_PRIORITY)
+    return min(_TIER_PRIORITY.get(tier, len(_TIER_PRIORITY)) for tier in tiers)
+
+
+def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickResponse:
     spread = _best_spread(session, fixture.id)
     ou = _best_ou(session, fixture.id)
     ml = _best_moneyline(session, fixture.id)
-    if not spread and not ou and not ml:
-        return None
     evs = [p.ev_score for p in (spread, ou, ml) if p and p.ev_score is not None]
     top_ev = max(evs) if evs else None
     return FixturePickResponse(
@@ -189,12 +200,43 @@ def _picks_in_window(session: Session, from_dt: datetime, to_dt: datetime) -> li
         .filter(Fixture.kickoff_at <= to_dt)
         .all()
     )
-    picks = []
-    for f in fixtures:
-        p = _build_fixture_pick(session, f)
-        if p:
-            picks.append(p)
-    return sorted(picks, key=lambda p: p.top_ev or 0.0, reverse=True)
+    picks = [_build_fixture_pick(session, fixture) for fixture in fixtures]
+    return sorted(
+        picks,
+        key=lambda pick: (
+            _fixture_tier_rank(pick),
+            -(pick.top_ev or float("-inf")),
+            pick.kickoff_at,
+        ),
+    )
+
+
+def _league_picks_in_window(
+    session: Session,
+    league_espn_id: str,
+    from_dt: datetime,
+    to_dt: datetime,
+) -> list[FixturePickResponse]:
+    league = session.query(League).filter_by(espn_id=league_espn_id).first()
+    if not league:
+        return []
+    fixtures = (
+        session.query(Fixture)
+        .filter(Fixture.status == "scheduled")
+        .filter(Fixture.league_id == league.id)
+        .filter(Fixture.kickoff_at >= from_dt)
+        .filter(Fixture.kickoff_at <= to_dt)
+        .all()
+    )
+    picks = [_build_fixture_pick(session, fixture) for fixture in fixtures]
+    return sorted(
+        picks,
+        key=lambda pick: (
+            _fixture_tier_rank(pick),
+            -(pick.top_ev or float("-inf")),
+            pick.kickoff_at,
+        ),
+    )
 
 
 @router.get("/today", response_model=list[FixturePickResponse])
@@ -215,20 +257,11 @@ def picks_week(session: Session = Depends(get_session)):
 def picks_ucl(session: Session = Depends(get_session)):
     now = datetime.now(timezone.utc)
     end = now + timedelta(days=7)
-    ucl_league = session.query(League).filter_by(espn_id="uefa.champions").first()
-    if not ucl_league:
-        return []
-    fixtures = (
-        session.query(Fixture)
-        .filter(Fixture.status == "scheduled")
-        .filter(Fixture.league_id == ucl_league.id)
-        .filter(Fixture.kickoff_at >= now)
-        .filter(Fixture.kickoff_at <= end)
-        .all()
-    )
-    picks = []
-    for f in fixtures:
-        p = _build_fixture_pick(session, f)
-        if p:
-            picks.append(p)
-    return sorted(picks, key=lambda p: p.top_ev or 0.0, reverse=True)
+    return _league_picks_in_window(session, "uefa.champions", now, end)
+
+
+@router.get("/league/{league_espn_id}", response_model=list[FixturePickResponse])
+def picks_by_league(league_espn_id: str, session: Session = Depends(get_session)):
+    now = datetime.now(timezone.utc)
+    end = now + timedelta(days=7)
+    return _league_picks_in_window(session, league_espn_id, now, end)

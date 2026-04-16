@@ -11,6 +11,8 @@ LEAGUE_SPORT_KEYS = [
     "soccer_germany_bundesliga",
     "soccer_italy_serie_a",
     "soccer_france_ligue_one",
+    "soccer_portugal_primeira_liga",
+    "soccer_usa_mls",
     "soccer_uefa_champs_league",
 ]
 

@@ -25,7 +25,7 @@ export default function PicksList({ label, fetcher, emptyText }: Props) {
   if (loading) return <p className="text-gray-400">Loading picks…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>
   if (picks.length === 0) {
-    return <p className="text-gray-500">{emptyText ?? 'No HIGH or ELITE picks.'}</p>
+    return <p className="text-gray-500">{emptyText ?? 'No fixtures available in this window.'}</p>
   }
 
   return (
@@ -33,6 +33,9 @@ export default function PicksList({ label, fetcher, emptyText }: Props) {
       <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
         {label} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
       </h2>
+      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+        Elite and high-confidence fixtures appear first. All scheduled fixtures are shown.
+      </p>
       {picks.map(p => (
         <PickCard key={p.fixture_id} pick={p} />
       ))}

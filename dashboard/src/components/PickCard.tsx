@@ -1,4 +1,5 @@
 import type { FixturePick, SpreadPick, OUPick, MoneylinePick } from '../api/types'
+import { formatAmerican } from '../lib/odds'
 import ConfidenceBadge from './ConfidenceBadge'
 
 interface Props {
@@ -43,11 +44,6 @@ function PickDetails({ tier, edge, kelly, steam }: {
       )}
     </div>
   )
-}
-
-function formatAmerican(n: number | null | undefined): string {
-  if (n == null) return ''
-  return n > 0 ? `+${n}` : `${n}`
 }
 
 function SpreadRow({ sp, home, away }: { sp: SpreadPick; home: string; away: string }) {
@@ -116,6 +112,7 @@ function MoneylineRow({ ml, home, away }: { ml: MoneylinePick; home: string; awa
 
 export default function PickCard({ pick }: Props) {
   const { home_team, away_team, league, kickoff_at, best_spread, best_ou, best_moneyline, top_ev } = pick
+  const hasAnyPick = Boolean(best_moneyline || best_spread || best_ou)
 
   return (
     <div className="rounded-xl border border-gray-700 bg-gray-900 p-4 space-y-3">
@@ -134,6 +131,9 @@ export default function PickCard({ pick }: Props) {
       {best_moneyline && <MoneylineRow ml={best_moneyline} home={home_team} away={away_team} />}
       {best_spread && <SpreadRow sp={best_spread} home={home_team} away={away_team} />}
       {best_ou && <OURow ou={best_ou} />}
+      {!hasAnyPick && (
+        <p className="text-sm text-gray-500">No model pick is available for this fixture yet.</p>
+      )}
     </div>
   )
 }

@@ -10,7 +10,7 @@ from app.league_calibration import (
 
 class TestLeagueDefaults:
     def test_known_leagues_have_defaults(self):
-        known = ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "uefa.champions"]
+        known = ["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "por.1", "usa.1", "uefa.champions"]
         for league_id in known:
             assert league_id in LEAGUE_DEFAULTS
 

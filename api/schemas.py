@@ -76,6 +76,30 @@ class FixtureDetailResponse(BaseModel):
     ou_picks: list[OUPickResponse]
 
 
+class ScheduleLineResponse(BaseModel):
+    home_odds: float | None = None
+    draw_odds: float | None = None
+    away_odds: float | None = None
+    spread_home_line: float | None = None
+    spread_home_odds: float | None = None
+    spread_away_line: float | None = None
+    spread_away_odds: float | None = None
+    total_goals_line: float | None = None
+    over_odds: float | None = None
+    under_odds: float | None = None
+    bookmaker: str | None = None
+    captured_at: datetime | None = None
+
+
+class ScheduledFixtureResponse(BaseModel):
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    kickoff_at: datetime
+    lines: ScheduleLineResponse | None = None
+
+
 class ModelPerformanceResponse(BaseModel):
     model_name: str
     version: str

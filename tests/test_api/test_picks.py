@@ -5,8 +5,17 @@ from app.db.models import (
 )
 
 
-def _seed_pick(db, espn_id="p1", hours_until_kickoff=2, tier="HIGH"):
-    league = League(name="EPL", country="England", espn_id="eng.1", odds_api_key="soccer_epl")
+def _seed_pick(
+    db,
+    espn_id="p1",
+    hours_until_kickoff=2,
+    tier="HIGH",
+    league_name="EPL",
+    country="England",
+    league_espn_id="eng.1",
+    league_odds_key="soccer_epl",
+):
+    league = League(name=league_name, country=country, espn_id=league_espn_id, odds_api_key=league_odds_key)
     db.add(league)
     db.flush()
     home = Team(name="Arsenal", league_id=league.id)
@@ -51,27 +60,29 @@ def test_picks_today_returns_200(client, api_db):
     assert response.status_code == 200
 
 
-def test_picks_today_returns_high_elite_only(client, api_db):
-    _seed_pick(api_db, espn_id="high1", tier="HIGH")
-    _seed_pick(api_db, espn_id="skip1", tier="SKIP")
-    response = client.get("/picks/today")
+def test_picks_week_returns_all_fixture_tiers(client, api_db):
+    _seed_pick(api_db, espn_id="high1", tier="HIGH", hours_until_kickoff=2)
+    _seed_pick(api_db, espn_id="skip1", tier="SKIP", hours_until_kickoff=2)
+    response = client.get("/picks/week")
     data = response.json()
-    # SKIP fixture should not appear
-    fixture_ids = {p["fixture_id"] for p in data}
-    # Both fixtures seeded but only HIGH one should be in the response
-    for p in data:
-        assert p["best_spread"]["confidence_tier"] in ("HIGH", "ELITE") or \
-               p["best_ou"]["confidence_tier"] in ("HIGH", "ELITE")
+    tiers = {
+        (
+            p["best_spread"]["confidence_tier"] if p["best_spread"] else None,
+            p["best_ou"]["confidence_tier"] if p["best_ou"] else None,
+        )
+        for p in data
+    }
+    assert ("HIGH", "HIGH") in tiers
+    assert ("SKIP", "SKIP") in tiers
 
 
-def test_picks_today_sorted_by_ev(client, api_db):
-    _seed_pick(api_db, espn_id="ev_low", tier="HIGH")
-    # Manually set different EV on second pick after seeding
-    _seed_pick(api_db, espn_id="ev_high", tier="ELITE")
-    response = client.get("/picks/today")
+def test_picks_week_sorts_high_tiers_before_lower_tiers(client, api_db):
+    _seed_pick(api_db, espn_id="skip1", tier="SKIP", hours_until_kickoff=2)
+    _seed_pick(api_db, espn_id="elite1", tier="ELITE", hours_until_kickoff=2)
+    response = client.get("/picks/week")
     data = response.json()
-    evs = [p["top_ev"] for p in data if p["top_ev"] is not None]
-    assert evs == sorted(evs, reverse=True)
+    assert data[0]["best_spread"]["confidence_tier"] == "ELITE"
+    assert data[-1]["best_spread"]["confidence_tier"] == "SKIP"
 
 
 def test_picks_today_excludes_past_fixtures(client, api_db):
@@ -96,3 +107,33 @@ def test_picks_week_returns_7_day_window(client, api_db):
         if kt.tzinfo is None:
             kt = kt.replace(tzinfo=timezone.utc)
         assert kt <= datetime.now(timezone.utc) + timedelta(days=7, minutes=1)
+
+
+def test_picks_by_league_filters_to_requested_league(client, api_db):
+    _seed_pick(
+        api_db,
+        espn_id="primeira1",
+        league_name="Primeira Liga",
+        country="Portugal",
+        league_espn_id="por.1",
+        league_odds_key="soccer_portugal_primeira_liga",
+    )
+    _seed_pick(
+        api_db,
+        espn_id="mls1",
+        league_name="MLS",
+        country="USA",
+        league_espn_id="usa.1",
+        league_odds_key="soccer_usa_mls",
+    )
+    response = client.get("/picks/league/por.1")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["league"] == "Primeira Liga"
+
+
+def test_picks_by_league_returns_empty_for_unseeded_league(client, api_db):
+    response = client.get("/picks/league/por.1")
+    assert response.status_code == 200
+    assert response.json() == []

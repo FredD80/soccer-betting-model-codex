@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from app.db.models import League, Team, Fixture, OddsSnapshot
 from app.collector.odds_api import OddsAPIClient
 from app.collector.espn_api import ESPNClient
 
 logger = logging.getLogger(__name__)
+UPCOMING_FIXTURE_WINDOW_DAYS = 30
 
 ESPN_TO_ODDS_API_LEAGUE = {
     "eng.1": "soccer_epl",
@@ -12,6 +13,8 @@ ESPN_TO_ODDS_API_LEAGUE = {
     "ger.1": "soccer_germany_bundesliga",
     "ita.1": "soccer_italy_serie_a",
     "fra.1": "soccer_france_ligue_one",
+    "por.1": "soccer_portugal_primeira_liga",
+    "usa.1": "soccer_usa_mls",
     "uefa.champions": "soccer_uefa_champs_league",
 }
 
@@ -25,7 +28,11 @@ class DataCollector:
         self.espn_client = espn_client or ESPNClient()
 
     def run(self):
-        espn_data = self.espn_client.fetch_all_leagues()
+        now = datetime.now(timezone.utc)
+        espn_data = self.espn_client.fetch_all_leagues(
+            start_date=now,
+            end_date=now + timedelta(days=UPCOMING_FIXTURE_WINDOW_DAYS),
+        )
         odds_data = self.odds_client.fetch_all_leagues()
 
         for espn_id, fixtures in espn_data.items():

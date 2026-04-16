@@ -24,7 +24,7 @@ def migrate():
 
 @cli.command()
 def seed():
-    """Seed the database with the 6 supported leagues."""
+    """Seed the database with the supported leagues."""
     from app.db.models import League
     session = get_session()
     leagues = [
@@ -33,6 +33,8 @@ def seed():
         {"name": "Bundesliga",       "country": "Germany", "espn_id": "ger.1",          "odds_api_key": "soccer_germany_bundesliga"},
         {"name": "Serie A",          "country": "Italy",   "espn_id": "ita.1",          "odds_api_key": "soccer_italy_serie_a"},
         {"name": "Ligue 1",          "country": "France",  "espn_id": "fra.1",          "odds_api_key": "soccer_france_ligue_one"},
+        {"name": "Primeira Liga",    "country": "Portugal","espn_id": "por.1",          "odds_api_key": "soccer_portugal_primeira_liga"},
+        {"name": "MLS",              "country": "USA",     "espn_id": "usa.1",          "odds_api_key": "soccer_usa_mls"},
         {"name": "Champions League", "country": "Europe",  "espn_id": "uefa.champions", "odds_api_key": "soccer_uefa_champs_league"},
     ]
     try:
@@ -43,7 +45,7 @@ def seed():
                 session.add(League(**data))
                 added += 1
         session.commit()
-        click.echo(f"Seeded {added} league(s). {6 - added} already existed.")
+        click.echo(f"Seeded {added} league(s). {len(leagues) - added} already existed.")
     finally:
         session.close()
 
