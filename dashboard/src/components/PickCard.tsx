@@ -1,16 +1,10 @@
 import type { FixturePick, SpreadPick, OUPick, MoneylinePick } from '../api/types'
 import { formatAmerican } from '../lib/odds'
+import { formatEasternDateTime } from '../lib/time'
 import ConfidenceBadge from './ConfidenceBadge'
 
 interface Props {
   pick: FixturePick
-}
-
-function formatKickoff(iso: string): string {
-  const d = new Date(iso)
-  const date = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return `${date} · ${time}`
 }
 
 function pct(v: number | null | undefined, digits = 1): string {
@@ -121,7 +115,7 @@ export default function PickCard({ pick }: Props) {
           <p className="font-semibold">
             {home_team} <span className="text-gray-400">vs</span> {away_team}
           </p>
-          <p className="text-xs text-gray-500">{league} · {formatKickoff(kickoff_at)}</p>
+          <p className="text-xs text-gray-500">{league} · {formatEasternDateTime(kickoff_at)}</p>
         </div>
         {top_ev !== null && (
           <span className="text-sm font-mono text-green-400">{signedPct(top_ev)} top edge</span>

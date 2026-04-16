@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { ScheduledFixture } from '../api/types'
 import { formatAmericanFromDecimal } from '../lib/odds'
+import { formatEasternDateTime } from '../lib/time'
 
 type LeagueTab = 'all' | string
 
@@ -73,7 +74,7 @@ export default function SchedulePage() {
                 {fixture.home_team} vs {fixture.away_team}
               </h3>
               <p className="text-sm text-gray-400">
-                {new Date(fixture.kickoff_at).toLocaleString()}
+                {formatEasternDateTime(fixture.kickoff_at)}
               </p>
             </div>
             {fixture.lines?.bookmaker ? (
