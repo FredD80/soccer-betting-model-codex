@@ -1,10 +1,12 @@
 import type { FixturePick, SpreadPick, OUPick, MoneylinePick } from '../api/types'
+import ConfidenceBadge from './ConfidenceBadge'
+import ManualPickForm from './ManualPickForm'
 import { formatAmerican } from '../lib/odds'
 import { formatEasternDateTime } from '../lib/time'
-import ConfidenceBadge from './ConfidenceBadge'
 
 interface Props {
   pick: FixturePick
+  onManualSaved?: () => void
 }
 
 function pct(v: number | null | undefined, digits = 1): string {
@@ -16,6 +18,11 @@ function signedPct(v: number | null | undefined): string {
   if (v === null || v === undefined) return '—'
   const sign = v >= 0 ? '+' : ''
   return `${sign}${(v * 100).toFixed(1)}%`
+}
+
+function modelLabel(modelName: string | null | undefined, modelVersion: string | null | undefined): string | null {
+  if (!modelName) return null
+  return modelVersion ? `${modelName} · v${modelVersion}` : modelName
 }
 
 function PickDetails({ tier, edge, kelly, steam }: {
@@ -47,6 +54,11 @@ function SpreadRow({ sp, home, away }: { sp: SpreadPick; home: string; away: str
   const price = formatAmerican(sp.american_odds)
   return (
     <div className="space-y-1">
+      {modelLabel(sp.model_name, sp.model_version) && (
+        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+          {modelLabel(sp.model_name, sp.model_version)}
+        </p>
+      )}
       <div className="flex items-baseline gap-2 text-sm">
         <span className="font-medium">{name} {sign}{sp.goal_line}</span>
         {price && <span className="font-mono text-gray-200">{price}</span>}
@@ -67,6 +79,11 @@ function OURow({ ou }: { ou: OUPick }) {
   const price = formatAmerican(ou.american_odds)
   return (
     <div className="space-y-1">
+      {modelLabel(ou.model_name, ou.model_version) && (
+        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+          {modelLabel(ou.model_name, ou.model_version)}
+        </p>
+      )}
       <div className="flex items-baseline gap-2 text-sm">
         <span className="font-medium capitalize">{ou.direction} {ou.line}</span>
         {price && <span className="font-mono text-gray-200">{price}</span>}
@@ -88,6 +105,11 @@ function MoneylineRow({ ml, home, away }: { ml: MoneylinePick; home: string; awa
   const price = formatAmerican(ml.american_odds)
   return (
     <div className="space-y-1">
+      {modelLabel(ml.model_name, ml.model_version) && (
+        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+          {modelLabel(ml.model_name, ml.model_version)}
+        </p>
+      )}
       <div className="flex items-baseline gap-2 text-sm">
         <span className="font-medium">{label}</span>
         <span className="text-xs text-gray-500 uppercase">ML</span>
@@ -104,7 +126,7 @@ function MoneylineRow({ ml, home, away }: { ml: MoneylinePick; home: string; awa
   )
 }
 
-export default function PickCard({ pick }: Props) {
+export default function PickCard({ pick, onManualSaved }: Props) {
   const { home_team, away_team, league, kickoff_at, best_spread, best_ou, best_moneyline, top_ev } = pick
   const hasAnyPick = Boolean(best_moneyline || best_spread || best_ou)
 
@@ -128,6 +150,7 @@ export default function PickCard({ pick }: Props) {
       {!hasAnyPick && (
         <p className="text-sm text-gray-500">No model pick is available for this fixture yet.</p>
       )}
+      <ManualPickForm pick={pick} onSaved={onManualSaved} />
     </div>
   )
 }

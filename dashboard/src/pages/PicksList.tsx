@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react'
-import type { FixturePick } from '../api/types'
+import type { FixturePick, ModelView } from '../api/types'
 import PickCard from '../components/PickCard'
 
 interface Props {
   label: string
-  fetcher: () => Promise<FixturePick[]>
+  fetcher: (modelView: ModelView) => Promise<FixturePick[]>
+  modelView: ModelView
   emptyText?: string
+  onManualSaved?: () => void
 }
 
-export default function PicksList({ label, fetcher, emptyText }: Props) {
+function modelViewLabel(modelView: ModelView): string {
+  if (modelView === 'main') return 'Main'
+  if (modelView === 'parallel') return 'Parallel'
+  return 'Best'
+}
+
+export default function PicksList({ label, fetcher, modelView, emptyText, onManualSaved }: Props) {
   const [picks, setPicks] = useState<FixturePick[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -16,28 +24,32 @@ export default function PicksList({ label, fetcher, emptyText }: Props) {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    fetcher()
+    fetcher(modelView)
       .then(setPicks)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [fetcher])
+  }, [fetcher, modelView])
 
   if (loading) return <p className="text-gray-400">Loading picks…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>
   if (picks.length === 0) {
-    return <p className="text-gray-500">{emptyText ?? 'No fixtures available in this window.'}</p>
+    const modelSpecificEmpty =
+      modelView === 'parallel'
+        ? 'No parallel-model picks are available in this window yet.'
+        : emptyText ?? 'No fixtures available in this window.'
+    return <p className="text-gray-500">{modelSpecificEmpty}</p>
   }
 
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
-        {label} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
+        {label} · {modelViewLabel(modelView)} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
       </h2>
       <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
         Elite and high-confidence fixtures appear first. All scheduled fixtures are shown.
       </p>
       {picks.map(p => (
-        <PickCard key={p.fixture_id} pick={p} />
+        <PickCard key={p.fixture_id} pick={p} onManualSaved={onManualSaved} />
       ))}
     </div>
   )

@@ -1,4 +1,8 @@
+export type ModelView = 'best' | 'main' | 'parallel'
+
 export interface SpreadPick {
+  model_name: string | null
+  model_version: string | null
   team_side: 'home' | 'away'
   goal_line: number
   cover_probability: number
@@ -14,6 +18,8 @@ export interface SpreadPick {
 }
 
 export interface OUPick {
+  model_name: string | null
+  model_version: string | null
   line: number
   direction: 'over' | 'under'
   probability: number
@@ -28,6 +34,8 @@ export interface OUPick {
 }
 
 export interface MoneylinePick {
+  model_name: string | null
+  model_version: string | null
   outcome: 'home' | 'draw' | 'away'
   probability: number
   ev_score: number | null
@@ -46,6 +54,7 @@ export interface FixturePick {
   away_team: string
   league: string
   kickoff_at: string         // ISO-8601 string
+  model_view: ModelView
   best_spread: SpreadPick | null
   best_ou: OUPick | null
   best_moneyline: MoneylinePick | null
@@ -94,6 +103,118 @@ export interface ScheduledFixture {
   league: string
   kickoff_at: string
   lines: ScheduleLine | null
+}
+
+export interface ManualPickCreateRequest {
+  fixture_id: number
+  market_type: 'moneyline' | 'spread' | 'ou'
+  selection: string
+  line?: number | null
+  decimal_odds?: number | null
+  american_odds?: number | null
+  stake_units: number
+  bookmaker?: string | null
+  notes?: string | null
+}
+
+export interface ManualPick {
+  id: number
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  market_type: 'moneyline' | 'spread' | 'ou'
+  selection: string
+  line: number | null
+  decimal_odds: number | null
+  american_odds: number | null
+  stake_units: number
+  bookmaker: string | null
+  notes: string | null
+  result_status: 'open' | 'win' | 'loss' | 'push' | 'void'
+  profit_units: number | null
+  graded_at: string | null
+  created_at: string | null
+}
+
+export interface ManualPickSummary {
+  market_type: string
+  league: string
+  settled_count: number
+  wins: number
+  losses: number
+  pushes: number
+  total_stake_units: number
+  profit_units: number
+  win_rate: number
+  roi: number
+}
+
+export interface ManualVsModelComparison {
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  market_type: string
+  selection: string
+  line: number | null
+  manual_pick_id: number
+  manual_result_status: string
+  manual_profit_units: number | null
+  manual_stake_units: number
+  model_name: string
+  version: string
+  model_result_status: string
+  model_profit_units: number | null
+  model_probability: number | null
+  model_final_probability: number | null
+  model_edge_pct: number | null
+  model_confidence_tier: string | null
+  graded_at: string | null
+}
+
+export interface ManualVsModelSummary {
+  model_name: string
+  version: string
+  market_type: string
+  league: string
+  compared_picks: number
+  manual_wins: number
+  model_wins: number
+  manual_profit_units: number
+  model_profit_units: number
+  manual_roi: number
+  model_roi: number
+}
+
+export interface FixtureModelTopPick {
+  model_name: string
+  version: string
+  market_type: string
+  selection: string
+  line: number | null
+  result_status: string
+  profit_units: number | null
+  model_probability: number | null
+  final_probability: number | null
+  edge_pct: number | null
+  confidence_tier: string | null
+}
+
+export interface FixtureManualComparison {
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  manual_pick_id: number
+  manual_market_type: string
+  manual_selection: string
+  manual_line: number | null
+  manual_result_status: string
+  manual_profit_units: number | null
+  manual_stake_units: number
+  graded_at: string | null
+  compared_models: FixtureModelTopPick[]
 }
 
 export interface BacktestRun {
