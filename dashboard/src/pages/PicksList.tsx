@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FixturePick, ModelView } from '../api/types'
 import PickCard from '../components/PickCard'
+import { modelViewLabel } from '../lib/modelLabels'
 
 interface Props {
   label: string
@@ -8,12 +9,6 @@ interface Props {
   modelView: ModelView
   emptyText?: string
   onManualSaved?: () => void
-}
-
-function modelViewLabel(modelView: ModelView): string {
-  if (modelView === 'main') return 'Main'
-  if (modelView === 'parallel') return 'Parallel'
-  return 'Best'
 }
 
 export default function PicksList({ label, fetcher, modelView, emptyText, onManualSaved }: Props) {
@@ -35,7 +30,7 @@ export default function PicksList({ label, fetcher, modelView, emptyText, onManu
   if (picks.length === 0) {
     const modelSpecificEmpty =
       modelView === 'parallel'
-        ? 'No parallel-model picks are available in this window yet.'
+        ? 'No Market-Edge picks are available in this window yet.'
         : emptyText ?? 'No fixtures available in this window.'
     return <p className="text-gray-500">{modelSpecificEmpty}</p>
   }

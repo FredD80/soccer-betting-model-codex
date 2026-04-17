@@ -2,6 +2,7 @@ import type { FixturePick, SpreadPick, OUPick, MoneylinePick } from '../api/type
 import ConfidenceBadge from './ConfidenceBadge'
 import ManualPickForm from './ManualPickForm'
 import { formatAmerican } from '../lib/odds'
+import { modelLabel } from '../lib/modelLabels'
 import { formatEasternDateTime } from '../lib/time'
 
 interface Props {
@@ -18,11 +19,6 @@ function signedPct(v: number | null | undefined): string {
   if (v === null || v === undefined) return '—'
   const sign = v >= 0 ? '+' : ''
   return `${sign}${(v * 100).toFixed(1)}%`
-}
-
-function modelLabel(modelName: string | null | undefined, modelVersion: string | null | undefined): string | null {
-  if (!modelName) return null
-  return modelVersion ? `${modelName} · v${modelVersion}` : modelName
 }
 
 function PickDetails({ tier, edge, kelly, steam }: {

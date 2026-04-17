@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 
 import { api } from '../api/client'
 import type { BacktestRun } from '../api/types'
+import { modelLabel } from '../lib/modelLabels'
 
 const MARKET_OPTIONS = [
   { key: 'spread', label: 'Spread' },
@@ -162,7 +163,7 @@ export default function BacktestsPage() {
                     <tr key={`${run.market}-${run.model_id}-${run.run_at ?? run.date_from}`}>
                       <td className="px-4 py-3 text-gray-200">{run.market}</td>
                       <td className="px-4 py-3 text-gray-200">
-                        <div>{run.model_name}</div>
+                        <div>{modelLabel(run.model_name, null) ?? run.model_name}</div>
                         <div className="text-xs text-gray-500">{run.model_version}</div>
                       </td>
                       <td className="px-4 py-3 text-gray-300">

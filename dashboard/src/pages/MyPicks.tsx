@@ -6,6 +6,7 @@ import type {
   ManualVsModelSummary,
   FixtureManualComparison,
 } from '../api/types'
+import { modelLabel } from '../lib/modelLabels'
 
 interface Props {
   refreshKey: number
@@ -40,6 +41,10 @@ export default function MyPicks({ refreshKey }: Props) {
   const [fixtureComparisons, setFixtureComparisons] = useState<FixtureManualComparison[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  function shortModelName(modelName: string): string {
+    return modelLabel(modelName, null) ?? modelName
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -120,7 +125,7 @@ export default function MyPicks({ refreshKey }: Props) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Main Vs Parallel Vs Me</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Alpha Vs Market-Edge Vs Me</h2>
         {modelSummary.length === 0 ? (
           <p className="text-sm text-slate-500">No exact pick matches against model outcomes yet.</p>
         ) : (
@@ -128,7 +133,7 @@ export default function MyPicks({ refreshKey }: Props) {
             {modelSummary.map(row => (
               <div key={`${row.model_name}-${row.version}-${row.market_type}-${row.league}`} className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-semibold text-slate-100">{row.model_name} <span className="text-slate-500">v{row.version}</span></p>
+                  <p className="font-semibold text-slate-100">{shortModelName(row.model_name)} <span className="text-slate-500">v{row.version}</span></p>
                   <p className="text-xs uppercase tracking-wide text-slate-500">{row.market_type} · {row.league}</p>
                 </div>
                 <div className="mt-3 grid gap-2 text-sm text-slate-300 md:grid-cols-3">
@@ -185,7 +190,7 @@ export default function MyPicks({ refreshKey }: Props) {
                     <div key={`${row.manual_pick_id}-${model.model_name}-${model.version}`} className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-semibold text-slate-100">{model.model_name}</p>
+                          <p className="text-sm font-semibold text-slate-100">{shortModelName(model.model_name)}</p>
                           <p className="text-xs text-slate-500">v{model.version}</p>
                         </div>
                         <span className="text-xs uppercase tracking-wide text-slate-500">{model.confidence_tier ?? '—'}</span>

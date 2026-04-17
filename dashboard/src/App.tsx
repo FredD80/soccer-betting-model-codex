@@ -5,6 +5,7 @@ import SchedulePage from './pages/SchedulePage'
 import MyPicks from './pages/MyPicks'
 import { api } from './api/client'
 import type { ModelView } from './api/types'
+import { modelViewLabel } from './lib/modelLabels'
 
 type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'my-picks'
 
@@ -67,7 +68,7 @@ export default function App() {
                     : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
                 }
               >
-                {view}
+                {modelViewLabel(view)}
               </button>
             ))}
           </div>
