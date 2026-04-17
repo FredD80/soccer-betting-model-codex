@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.db.connection import get_engine
 from app.db.models import (
-    Fixture, League, Result, SpreadPrediction, OUAnalysis,
+    Fixture, League, Result, SpreadPrediction, OUAnalysis, MoneylinePrediction,
     OddsSnapshot, MarketWeights,
 )
 
@@ -90,6 +90,41 @@ def _ou_triples(session, league_id):
     return triples
 
 
+def _h2h_triples(session, league_id):
+    rows = (
+        session.query(MoneylinePrediction, Fixture, Result)
+        .join(Fixture, MoneylinePrediction.fixture_id == Fixture.id)
+        .join(Result, Result.fixture_id == Fixture.id)
+        .filter(Fixture.league_id == league_id)
+        .filter(Result.outcome.isnot(None))
+        .all()
+    )
+    triples = []
+    for ml, fx, res in rows:
+        snap = (
+            session.query(OddsSnapshot)
+            .filter_by(fixture_id=fx.id)
+            .order_by(OddsSnapshot.captured_at.desc())
+            .first()
+        )
+        if snap is None:
+            continue
+        raw = {
+            "home": 1.0 / snap.home_odds if snap.home_odds and snap.home_odds > 1.0 else None,
+            "draw": 1.0 / snap.draw_odds if snap.draw_odds and snap.draw_odds > 1.0 else None,
+            "away": 1.0 / snap.away_odds if snap.away_odds and snap.away_odds > 1.0 else None,
+        }
+        if any(value is None for value in raw.values()):
+            continue
+        total = sum(value for value in raw.values() if value is not None)
+        if total <= 0:
+            continue
+        implied = raw[ml.outcome] / total
+        hit = 1.0 if ml.outcome == res.outcome else 0.0
+        triples.append((ml.probability, implied, hit))
+    return triples
+
+
 def _grid_search(triples) -> tuple[float, float, float]:
     models = np.array([t[0] for t in triples])
     implieds = np.array([t[1] for t in triples])
@@ -131,6 +166,8 @@ def fit(session: Session, league_espn_id: str, bet_type: str, min_samples: int =
         triples = _spread_triples(session, league.id)
     elif bet_type == "ou":
         triples = _ou_triples(session, league.id)
+    elif bet_type == "h2h":
+        triples = _h2h_triples(session, league.id)
     else:
         raise ValueError(f"unknown bet_type {bet_type}")
 
@@ -149,7 +186,7 @@ def fit(session: Session, league_espn_id: str, bet_type: str, min_samples: int =
 def fit_all(session: Session, min_samples: int = 200):
     leagues = session.query(League).all()
     for lg in leagues:
-        for bt in ("spread", "ou"):
+        for bt in ("spread", "ou", "h2h"):
             try:
                 fit(session, lg.espn_id, bt, min_samples=min_samples)
             except InsufficientDataError as e:

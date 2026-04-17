@@ -28,6 +28,7 @@ def test_blend_pure_market():
 
 def test_get_weights_default_when_missing(db):
     assert get_weights(db, "eng.1", "spread") == (1.0, 0.0)
+    assert get_weights(db, "eng.1", "h2h") == (0.35, 0.65)
 
 
 def test_get_weights_reads_db_row(db):

@@ -2,10 +2,19 @@
 Market blending — combine model probability with Pinnacle implied probability
 using per-(league, bet_type) weights fit offline by scripts/fit_market_weights.py.
 
-Falls back to (w_model=1.0, w_market=0.0) (pure model) when no weights row
-exists, so new leagues don't get silently zero'd out.
+Falls back to conservative market-aware priors when no fitted weights row
+exists yet. Moneyline gets the strongest market weight because it is the most
+efficient market and the path most likely to show overconfident raw model
+percentages.
 """
 from app.db.models import MarketWeights
+
+
+DEFAULT_WEIGHTS = {
+    "h2h": (0.35, 0.65),
+    "spread": (1.0, 0.0),
+    "ou": (1.0, 0.0),
+}
 
 
 def blend(model_p: float, implied_p: float | None, w1: float, w2: float) -> float:
@@ -24,5 +33,5 @@ def get_weights(session, league_espn_id: str, bet_type: str) -> tuple[float, flo
         .first()
     )
     if row is None:
-        return 1.0, 0.0
+        return DEFAULT_WEIGHTS.get(bet_type, (1.0, 0.0))
     return row.w_model, row.w_market
