@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
-    DateTime, ForeignKey, Text
+    DateTime, ForeignKey, Text, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -167,6 +167,7 @@ class SpreadPrediction(Base):
     edge_pct = Column(Float)                     # Phase 3: final_p - implied_p
     kelly_fraction = Column(Float)               # Phase 3: fractional Kelly stake
     steam_downgraded = Column(Boolean, default=False)
+    odds_snapshot_id = Column(Integer, ForeignKey("odds_snapshots.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -184,6 +185,7 @@ class OUAnalysis(Base):
     edge_pct = Column(Float)                     # Phase 3: final_p - implied_p
     kelly_fraction = Column(Float)               # Phase 3: fractional Kelly stake
     steam_downgraded = Column(Boolean, default=False)
+    odds_snapshot_id = Column(Integer, ForeignKey("odds_snapshots.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -200,6 +202,52 @@ class MoneylinePrediction(Base):
     edge_pct = Column(Float)
     kelly_fraction = Column(Float)
     steam_downgraded = Column(Boolean, default=False)
+    odds_snapshot_id = Column(Integer, ForeignKey("odds_snapshots.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PredictionOutcome(Base):
+    __tablename__ = "prediction_outcomes"
+    __table_args__ = (
+        UniqueConstraint("market_type", "prediction_row_id", name="uq_prediction_outcomes_market_row"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    market_type = Column(String, nullable=False)          # "moneyline" | "spread" | "ou"
+    prediction_row_id = Column(Integer, nullable=False)   # row id in source prediction table
+    selection = Column(String, nullable=False)            # "home" | "draw" | "away" | "over" | "under"
+    line = Column(Float)                                  # spread or OU line
+    decimal_odds = Column(Float)
+    american_odds = Column(Integer)
+    model_probability = Column(Float)
+    final_probability = Column(Float)
+    edge_pct = Column(Float)
+    kelly_fraction = Column(Float)
+    confidence_tier = Column(String)
+    result_status = Column(String, nullable=False, default="ungraded")  # win | loss | push | void | ungraded
+    profit_units = Column(Float)                         # net units on 1-unit stake
+    graded_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ManualPick(Base):
+    __tablename__ = "manual_picks"
+
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    market_type = Column(String, nullable=False)          # "moneyline" | "spread" | "ou"
+    selection = Column(String, nullable=False)            # "home" | "draw" | "away" | "over" | "under"
+    line = Column(Float)                                  # spread or OU line
+    decimal_odds = Column(Float)
+    american_odds = Column(Integer)
+    stake_units = Column(Float, nullable=False, default=1.0)
+    bookmaker = Column(String)
+    notes = Column(Text)
+    result_status = Column(String, nullable=False, default="open")  # open | win | loss | push | void
+    profit_units = Column(Float)
+    graded_at = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

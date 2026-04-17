@@ -15,6 +15,12 @@ from app.logging_config import configure_logging
 configure_logging()
 logger = logging.getLogger(__name__)
 
+PARALLEL_SPREAD_WEIGHTS = (0.75, 0.25)
+PARALLEL_OU_WEIGHTS = (0.70, 0.30)
+PARALLEL_MONEYLINE_WEIGHTS = (0.20, 0.80)
+PARALLEL_NO_MARKET_PRIOR_BASE = 0.30
+PARALLEL_NO_MARKET_PRIOR_EXTRA = 0.20
+
 
 def collect_job():
     session = get_session()
@@ -71,18 +77,19 @@ def track_results_job():
                 if not db_fixture:
                     continue
                 existing = session.query(Result).filter_by(fixture_id=db_fixture.id).first()
-                if existing:
-                    continue
-                if espn_fixture["home_score"] is None:
-                    continue
-                tracker.save_result(
-                    db_fixture.id,
-                    home_score=espn_fixture["home_score"],
-                    away_score=espn_fixture["away_score"],
-                    ht_home_score=espn_fixture.get("ht_home_score"),
-                    ht_away_score=espn_fixture.get("ht_away_score"),
-                )
-                tracker.evaluate_predictions(db_fixture.id)
+                if not existing:
+                    if espn_fixture["home_score"] is None:
+                        continue
+                    tracker.save_result(
+                        db_fixture.id,
+                        home_score=espn_fixture["home_score"],
+                        away_score=espn_fixture["away_score"],
+                        ht_home_score=espn_fixture.get("ht_home_score"),
+                        ht_away_score=espn_fixture.get("ht_away_score"),
+                    )
+                    tracker.evaluate_predictions(db_fixture.id)
+                tracker.settle_live_predictions(db_fixture.id)
+                tracker.settle_manual_picks(db_fixture.id)
         log.status = "success"
     except Exception as e:
         log.status = "error"
@@ -192,6 +199,114 @@ def moneyline_predict_job():
         session.close()
 
 
+def parallel_spread_predict_job():
+    session = get_session()
+    log = SchedulerLog(job_name="parallel_spread_predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.spread_predictor import SpreadPredictor
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="parallel_spread_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(
+                name="parallel_spread_v1",
+                version=settings.spread_model_version,
+                description="Parallel spread predictor with stronger market and prior shrink",
+                active=True,
+            )
+            session.add(mv)
+            session.flush()
+        SpreadPredictor(
+            session,
+            ml_enabled=settings.ml_lambda_enabled,
+            market_weights_override=PARALLEL_SPREAD_WEIGHTS,
+            no_market_prior_base=PARALLEL_NO_MARKET_PRIOR_BASE,
+            no_market_prior_extra=PARALLEL_NO_MARKET_PRIOR_EXTRA,
+        ).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("parallel_spread_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def parallel_ou_analyze_job():
+    session = get_session()
+    log = SchedulerLog(job_name="parallel_ou_analyze", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.ou_analyzer import OUAnalyzer
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="parallel_ou_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(
+                name="parallel_ou_v1",
+                version=settings.ou_model_version,
+                description="Parallel O/U analyzer with stronger market and prior shrink",
+                active=True,
+            )
+            session.add(mv)
+            session.flush()
+        OUAnalyzer(
+            session,
+            ml_enabled=settings.ml_lambda_enabled,
+            market_weights_override=PARALLEL_OU_WEIGHTS,
+            no_market_prior_base=PARALLEL_NO_MARKET_PRIOR_BASE,
+            no_market_prior_extra=PARALLEL_NO_MARKET_PRIOR_EXTRA,
+        ).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("parallel_ou_analyze_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def parallel_moneyline_predict_job():
+    session = get_session()
+    log = SchedulerLog(job_name="parallel_moneyline_predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.moneyline_predictor import MoneylinePredictor
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="parallel_moneyline_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(
+                name="parallel_moneyline_v1",
+                version="1.0.0",
+                description="Parallel moneyline predictor with stronger market and prior shrink",
+                active=True,
+            )
+            session.add(mv)
+            session.flush()
+        MoneylinePredictor(
+            session,
+            ml_enabled=settings.ml_lambda_enabled,
+            market_weights_override=PARALLEL_MONEYLINE_WEIGHTS,
+            no_market_prior_base=PARALLEL_NO_MARKET_PRIOR_BASE,
+            no_market_prior_extra=PARALLEL_NO_MARKET_PRIOR_EXTRA,
+        ).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("parallel_moneyline_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
 def start_scheduler(model_classes):
     scheduler = BlockingScheduler()
     scheduler.add_job(
@@ -221,6 +336,18 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         moneyline_predict_job, IntervalTrigger(minutes=30),
         id="moneyline_predict", replace_existing=True
+    )
+    scheduler.add_job(
+        parallel_spread_predict_job, IntervalTrigger(minutes=30),
+        id="parallel_spread_predict", replace_existing=True
+    )
+    scheduler.add_job(
+        parallel_ou_analyze_job, IntervalTrigger(minutes=30),
+        id="parallel_ou_analyze", replace_existing=True
+    )
+    scheduler.add_job(
+        parallel_moneyline_predict_job, IntervalTrigger(minutes=30),
+        id="parallel_moneyline_predict", replace_existing=True
     )
     scheduler.add_job(
         lambda: celery_app.send_task("collect_line_movement"),

@@ -3,6 +3,8 @@ from pydantic import BaseModel
 
 
 class SpreadPickResponse(BaseModel):
+    model_name: str | None = None
+    model_version: str | None = None
     team_side: str               # "home" | "away"
     goal_line: float             # -1.5 | -1.0 | -0.5 | 0.5 | 1.0 | 1.5
     cover_probability: float
@@ -18,6 +20,8 @@ class SpreadPickResponse(BaseModel):
 
 
 class OUPickResponse(BaseModel):
+    model_name: str | None = None
+    model_version: str | None = None
     line: float                  # 1.5 | 2.5 | 3.5
     direction: str               # "over" | "under"
     probability: float
@@ -32,6 +36,8 @@ class OUPickResponse(BaseModel):
 
 
 class MoneylinePickResponse(BaseModel):
+    model_name: str | None = None
+    model_version: str | None = None
     outcome: str                 # "home" | "draw" | "away"
     probability: float
     ev_score: float | None
@@ -58,6 +64,7 @@ class FixturePickResponse(BaseModel):
     away_team: str
     league: str
     kickoff_at: datetime
+    model_view: str = "best"
     best_spread: SpreadPickResponse | None   # highest EV spread pick
     best_ou: OUPickResponse | None           # highest EV O/U pick
     best_moneyline: MoneylinePickResponse | None = None  # highest EV 3-way moneyline pick
@@ -108,6 +115,154 @@ class ModelPerformanceResponse(BaseModel):
     correct: int
     accuracy: float
     roi: float
+
+
+class PredictionOutcomeResponse(BaseModel):
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    model_name: str
+    version: str
+    market_type: str
+    selection: str
+    line: float | None = None
+    result_status: str
+    profit_units: float | None = None
+    model_probability: float | None = None
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    kelly_fraction: float | None = None
+    confidence_tier: str | None = None
+    decimal_odds: float | None = None
+    american_odds: int | None = None
+    graded_at: datetime | None = None
+
+
+class PredictionOutcomeSummaryResponse(BaseModel):
+    model_name: str
+    version: str
+    market_type: str
+    league: str
+    confidence_tier: str | None = None
+    settled_count: int
+    wins: int
+    losses: int
+    pushes: int
+    win_rate: float
+    roi: float
+
+
+class ManualPickCreateRequest(BaseModel):
+    fixture_id: int
+    market_type: str
+    selection: str
+    line: float | None = None
+    decimal_odds: float | None = None
+    american_odds: int | None = None
+    stake_units: float = 1.0
+    bookmaker: str | None = None
+    notes: str | None = None
+
+
+class ManualPickResponse(BaseModel):
+    id: int
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    market_type: str
+    selection: str
+    line: float | None = None
+    decimal_odds: float | None = None
+    american_odds: int | None = None
+    stake_units: float
+    bookmaker: str | None = None
+    notes: str | None = None
+    result_status: str
+    profit_units: float | None = None
+    graded_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class ManualPickSummaryResponse(BaseModel):
+    market_type: str
+    league: str
+    settled_count: int
+    wins: int
+    losses: int
+    pushes: int
+    total_stake_units: float
+    profit_units: float
+    win_rate: float
+    roi: float
+
+
+class ManualVsModelComparisonResponse(BaseModel):
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    market_type: str
+    selection: str
+    line: float | None = None
+    manual_pick_id: int
+    manual_result_status: str
+    manual_profit_units: float | None = None
+    manual_stake_units: float
+    model_name: str
+    version: str
+    model_result_status: str
+    model_profit_units: float | None = None
+    model_probability: float | None = None
+    model_final_probability: float | None = None
+    model_edge_pct: float | None = None
+    model_confidence_tier: str | None = None
+    graded_at: datetime | None = None
+
+
+class ManualVsModelSummaryResponse(BaseModel):
+    model_name: str
+    version: str
+    market_type: str
+    league: str
+    compared_picks: int
+    manual_wins: int
+    model_wins: int
+    manual_profit_units: float
+    model_profit_units: float
+    manual_roi: float
+    model_roi: float
+
+
+class FixtureModelTopPickResponse(BaseModel):
+    model_name: str
+    version: str
+    market_type: str
+    selection: str
+    line: float | None = None
+    result_status: str
+    profit_units: float | None = None
+    model_probability: float | None = None
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    confidence_tier: str | None = None
+
+
+class FixtureManualComparisonResponse(BaseModel):
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    manual_pick_id: int
+    manual_market_type: str
+    manual_selection: str
+    manual_line: float | None = None
+    manual_result_status: str
+    manual_profit_units: float | None = None
+    manual_stake_units: float
+    graded_at: datetime | None = None
+    compared_models: list[FixtureModelTopPickResponse]
 
 
 class BacktestRunRequest(BaseModel):

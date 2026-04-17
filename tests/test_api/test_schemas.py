@@ -44,3 +44,47 @@ def test_fixture_pick_response_schema():
     )
     assert pick.home_team == "Arsenal"
     assert pick.best_spread is not None
+
+
+def test_prediction_outcome_response_schema():
+    from api.schemas import PredictionOutcomeResponse
+    from datetime import datetime, timezone
+
+    outcome = PredictionOutcomeResponse(
+        fixture_id=1,
+        home_team="Arsenal",
+        away_team="Chelsea",
+        league="Premier League",
+        model_name="moneyline_v1",
+        version="1.0",
+        market_type="moneyline",
+        selection="home",
+        result_status="win",
+        profit_units=1.1,
+        graded_at=datetime.now(timezone.utc),
+    )
+    assert outcome.market_type == "moneyline"
+    assert outcome.result_status == "win"
+
+
+def test_manual_pick_response_schema():
+    from api.schemas import ManualPickResponse
+    from datetime import datetime, timezone
+
+    pick = ManualPickResponse(
+        id=1,
+        fixture_id=2,
+        home_team="Arsenal",
+        away_team="Chelsea",
+        league="Premier League",
+        market_type="ou",
+        selection="over",
+        line=2.5,
+        decimal_odds=1.95,
+        american_odds=-105,
+        stake_units=1.0,
+        result_status="open",
+        created_at=datetime.now(timezone.utc),
+    )
+    assert pick.market_type == "ou"
+    assert pick.selection == "over"

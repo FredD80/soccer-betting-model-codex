@@ -1,9 +1,9 @@
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.models import (
     Fixture, League, Team, SpreadPrediction, OUAnalysis, OddsSnapshot,
-    MoneylinePrediction,
+    MoneylinePrediction, ModelVersion,
 )
 from api.deps import get_session
 from api.schemas import (
@@ -11,6 +11,7 @@ from api.schemas import (
 )
 
 router = APIRouter()
+MODEL_VIEWS = {"best", "main", "parallel"}
 
 _TIER_PRIORITY = {
     "ELITE": 0,
@@ -71,45 +72,74 @@ def _is_us_style_line(line: float) -> bool:
     return abs(round(line * 2) - line * 2) < 1e-6
 
 
-def _best_spread(session: Session, fixture_id: int) -> SpreadPickResponse | None:
+def _normalize_model_view(model_view: str) -> str:
+    normalized = (model_view or "best").strip().lower()
+    return normalized if normalized in MODEL_VIEWS else "best"
+
+
+def _model_matches(model_name: str | None, model_view: str) -> bool:
+    if model_view == "best":
+        return True
+    lowered = (model_name or "").lower()
+    is_parallel = "parallel" in lowered
+    return is_parallel if model_view == "parallel" else not is_parallel
+
+
+def _best_spread(session: Session, fixture_id: int, model_view: str = "best") -> SpreadPickResponse | None:
     picks = (
-        session.query(SpreadPrediction)
+        session.query(SpreadPrediction, ModelVersion)
+        .join(ModelVersion, ModelVersion.id == SpreadPrediction.model_id)
         .filter(SpreadPrediction.fixture_id == fixture_id)
         .order_by(SpreadPrediction.ev_score.desc())
         .all()
     )
-    picks = next((p for p in picks if _is_us_style_line(p.goal_line)), None)
-    if not picks:
+    pick_row = next(
+        (
+            (pick, mv)
+            for pick, mv in picks
+            if _is_us_style_line(pick.goal_line) and _model_matches(mv.name, model_view)
+        ),
+        None,
+    )
+    if not pick_row:
         return None
-    dec = _spread_odds(session, fixture_id, picks.team_side, picks.goal_line)
+    pick, mv = pick_row
+    dec = _spread_odds(session, fixture_id, pick.team_side, pick.goal_line)
 
     return SpreadPickResponse(
-        team_side=picks.team_side,
-        goal_line=picks.goal_line,
-        cover_probability=picks.cover_probability,
-        push_probability=picks.push_probability or 0.0,
-        ev_score=picks.ev_score,
-        confidence_tier=picks.confidence_tier,
-        final_probability=picks.final_probability,
-        edge_pct=picks.edge_pct,
-        kelly_fraction=picks.kelly_fraction,
-        steam_downgraded=bool(picks.steam_downgraded),
+        model_name=mv.name,
+        model_version=mv.version,
+        team_side=pick.team_side,
+        goal_line=pick.goal_line,
+        cover_probability=pick.cover_probability,
+        push_probability=pick.push_probability or 0.0,
+        ev_score=pick.ev_score,
+        confidence_tier=pick.confidence_tier,
+        final_probability=pick.final_probability,
+        edge_pct=pick.edge_pct,
+        kelly_fraction=pick.kelly_fraction,
+        steam_downgraded=bool(pick.steam_downgraded),
         decimal_odds=dec,
         american_odds=_to_american(dec),
     )
 
 
-def _best_ou(session: Session, fixture_id: int) -> OUPickResponse | None:
-    pick = (
-        session.query(OUAnalysis)
+def _best_ou(session: Session, fixture_id: int, model_view: str = "best") -> OUPickResponse | None:
+    pick_row = (
+        session.query(OUAnalysis, ModelVersion)
+        .join(ModelVersion, ModelVersion.id == OUAnalysis.model_id)
         .filter(OUAnalysis.fixture_id == fixture_id)
         .order_by(OUAnalysis.ev_score.desc())
-        .first()
+        .all()
     )
-    if not pick:
+    pick_row = next(((pick, mv) for pick, mv in pick_row if _model_matches(mv.name, model_view)), None)
+    if not pick_row:
         return None
+    pick, mv = pick_row
     dec = _ou_odds(session, fixture_id, pick.line, pick.direction)
     return OUPickResponse(
+        model_name=mv.name,
+        model_version=mv.version,
         line=pick.line,
         direction=pick.direction,
         probability=pick.probability,
@@ -138,17 +168,22 @@ def _ml_odds(session: Session, fixture_id: int, outcome: str) -> float | None:
     return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[outcome]
 
 
-def _best_moneyline(session: Session, fixture_id: int) -> MoneylinePickResponse | None:
-    pick = (
-        session.query(MoneylinePrediction)
+def _best_moneyline(session: Session, fixture_id: int, model_view: str = "best") -> MoneylinePickResponse | None:
+    pick_row = (
+        session.query(MoneylinePrediction, ModelVersion)
+        .join(ModelVersion, ModelVersion.id == MoneylinePrediction.model_id)
         .filter(MoneylinePrediction.fixture_id == fixture_id)
         .order_by(MoneylinePrediction.ev_score.desc())
-        .first()
+        .all()
     )
-    if not pick:
+    pick_row = next(((pick, mv) for pick, mv in pick_row if _model_matches(mv.name, model_view)), None)
+    if not pick_row:
         return None
+    pick, mv = pick_row
     dec = _ml_odds(session, fixture_id, pick.outcome)
     return MoneylinePickResponse(
+        model_name=mv.name,
+        model_version=mv.version,
         outcome=pick.outcome,
         probability=pick.probability,
         ev_score=pick.ev_score,
@@ -173,10 +208,10 @@ def _fixture_tier_rank(fixture_pick: FixturePickResponse) -> int:
     return min(_TIER_PRIORITY.get(tier, len(_TIER_PRIORITY)) for tier in tiers)
 
 
-def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickResponse:
-    spread = _best_spread(session, fixture.id)
-    ou = _best_ou(session, fixture.id)
-    ml = _best_moneyline(session, fixture.id)
+def _build_fixture_pick(session: Session, fixture: Fixture, model_view: str = "best") -> FixturePickResponse:
+    spread = _best_spread(session, fixture.id, model_view=model_view)
+    ou = _best_ou(session, fixture.id, model_view=model_view)
+    ml = _best_moneyline(session, fixture.id, model_view=model_view)
     evs = [p.ev_score for p in (spread, ou, ml) if p and p.ev_score is not None]
     top_ev = max(evs) if evs else None
     return FixturePickResponse(
@@ -185,6 +220,7 @@ def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickRespon
         away_team=_team_name(session, fixture.away_team_id),
         league=_league_name(session, fixture.league_id),
         kickoff_at=fixture.kickoff_at,
+        model_view=model_view,
         best_spread=spread,
         best_ou=ou,
         best_moneyline=ml,
@@ -192,7 +228,12 @@ def _build_fixture_pick(session: Session, fixture: Fixture) -> FixturePickRespon
     )
 
 
-def _picks_in_window(session: Session, from_dt: datetime, to_dt: datetime) -> list[FixturePickResponse]:
+def _picks_in_window(
+    session: Session,
+    from_dt: datetime,
+    to_dt: datetime,
+    model_view: str = "best",
+) -> list[FixturePickResponse]:
     fixtures = (
         session.query(Fixture)
         .filter(Fixture.status == "scheduled")
@@ -200,7 +241,12 @@ def _picks_in_window(session: Session, from_dt: datetime, to_dt: datetime) -> li
         .filter(Fixture.kickoff_at <= to_dt)
         .all()
     )
-    picks = [_build_fixture_pick(session, fixture) for fixture in fixtures]
+    picks = [_build_fixture_pick(session, fixture, model_view=model_view) for fixture in fixtures]
+    if model_view != "best":
+        picks = [
+            pick for pick in picks
+            if pick.best_spread or pick.best_ou or pick.best_moneyline
+        ]
     return sorted(
         picks,
         key=lambda pick: (
@@ -216,6 +262,7 @@ def _league_picks_in_window(
     league_espn_id: str,
     from_dt: datetime,
     to_dt: datetime,
+    model_view: str = "best",
 ) -> list[FixturePickResponse]:
     league = session.query(League).filter_by(espn_id=league_espn_id).first()
     if not league:
@@ -228,7 +275,12 @@ def _league_picks_in_window(
         .filter(Fixture.kickoff_at <= to_dt)
         .all()
     )
-    picks = [_build_fixture_pick(session, fixture) for fixture in fixtures]
+    picks = [_build_fixture_pick(session, fixture, model_view=model_view) for fixture in fixtures]
+    if model_view != "best":
+        picks = [
+            pick for pick in picks
+            if pick.best_spread or pick.best_ou or pick.best_moneyline
+        ]
     return sorted(
         picks,
         key=lambda pick: (
@@ -240,28 +292,41 @@ def _league_picks_in_window(
 
 
 @router.get("/today", response_model=list[FixturePickResponse])
-def picks_today(session: Session = Depends(get_session)):
+def picks_today(
+    model_view: str = Query(default="best"),
+    session: Session = Depends(get_session),
+):
     now = datetime.now(timezone.utc)
     end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-    return _picks_in_window(session, now, end)
+    return _picks_in_window(session, now, end, model_view=_normalize_model_view(model_view))
 
 
 @router.get("/week", response_model=list[FixturePickResponse])
-def picks_week(session: Session = Depends(get_session)):
+def picks_week(
+    model_view: str = Query(default="best"),
+    session: Session = Depends(get_session),
+):
     now = datetime.now(timezone.utc)
     end = now + timedelta(days=7)
-    return _picks_in_window(session, now, end)
+    return _picks_in_window(session, now, end, model_view=_normalize_model_view(model_view))
 
 
 @router.get("/ucl", response_model=list[FixturePickResponse])
-def picks_ucl(session: Session = Depends(get_session)):
+def picks_ucl(
+    model_view: str = Query(default="best"),
+    session: Session = Depends(get_session),
+):
     now = datetime.now(timezone.utc)
     end = now + timedelta(days=7)
-    return _league_picks_in_window(session, "uefa.champions", now, end)
+    return _league_picks_in_window(session, "uefa.champions", now, end, model_view=_normalize_model_view(model_view))
 
 
 @router.get("/league/{league_espn_id}", response_model=list[FixturePickResponse])
-def picks_by_league(league_espn_id: str, session: Session = Depends(get_session)):
+def picks_by_league(
+    league_espn_id: str,
+    model_view: str = Query(default="best"),
+    session: Session = Depends(get_session),
+):
     now = datetime.now(timezone.utc)
     end = now + timedelta(days=7)
-    return _league_picks_in_window(session, league_espn_id, now, end)
+    return _league_picks_in_window(session, league_espn_id, now, end, model_view=_normalize_model_view(model_view))

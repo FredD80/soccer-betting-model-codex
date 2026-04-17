@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from app.db.models import (
     League, Team, Fixture, FormCache, ModelVersion,
-    SpreadPrediction, OUAnalysis
+    SpreadPrediction, OUAnalysis, MoneylinePrediction
 )
 
 
@@ -137,3 +137,54 @@ def test_picks_by_league_returns_empty_for_unseeded_league(client, api_db):
     response = client.get("/picks/league/por.1")
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_picks_today_can_filter_main_vs_parallel(client, api_db):
+    fixture = _seed_pick(api_db, espn_id="parallel1", tier="HIGH", hours_until_kickoff=2)
+
+    main_mv = ModelVersion(name="main_moneyline", version="1.0", active=True)
+    parallel_mv = ModelVersion(name="parallel_moneyline", version="1.0", active=True)
+    api_db.add_all([main_mv, parallel_mv])
+    api_db.flush()
+
+    api_db.add_all([
+        MoneylinePrediction(
+            model_id=main_mv.id,
+            fixture_id=fixture.id,
+            outcome="home",
+            probability=0.61,
+            ev_score=0.03,
+            confidence_tier="HIGH",
+            final_probability=0.60,
+            edge_pct=0.03,
+            created_at=datetime.now(timezone.utc),
+        ),
+        MoneylinePrediction(
+            model_id=parallel_mv.id,
+            fixture_id=fixture.id,
+            outcome="away",
+            probability=0.58,
+            ev_score=0.09,
+            confidence_tier="ELITE",
+            final_probability=0.57,
+            edge_pct=0.09,
+            created_at=datetime.now(timezone.utc),
+        ),
+    ])
+    api_db.flush()
+
+    best = client.get("/picks/today?model_view=best")
+    main = client.get("/picks/today?model_view=main")
+    parallel = client.get("/picks/today?model_view=parallel")
+
+    assert best.status_code == 200
+    assert main.status_code == 200
+    assert parallel.status_code == 200
+
+    best_pick = next(p for p in best.json() if p["fixture_id"] == fixture.id)["best_moneyline"]
+    main_pick = next(p for p in main.json() if p["fixture_id"] == fixture.id)["best_moneyline"]
+    parallel_pick = next(p for p in parallel.json() if p["fixture_id"] == fixture.id)["best_moneyline"]
+
+    assert best_pick["model_name"] == "parallel_moneyline"
+    assert main_pick["model_name"] == "main_moneyline"
+    assert parallel_pick["model_name"] == "parallel_moneyline"

@@ -1,4 +1,7 @@
-from app.db.models import League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result, Performance, BacktestRun, SchedulerLog
+from app.db.models import (
+    League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result,
+    Performance, BacktestRun, SchedulerLog, PredictionOutcome, ManualPick,
+)
 from datetime import datetime, timezone
 
 
@@ -189,3 +192,53 @@ def test_ou_analysis_model(db):
     fetched = db.query(OUAnalysis).filter_by(id=ou.id).first()
     assert fetched.line == 2.5
     assert fetched.direction == "over"
+
+
+def test_prediction_outcome_model(db):
+    fixture, _, _ = _make_fixture(db, espn_id="po1")
+    mv = ModelVersion(name="moneyline_v1", version="1.0", active=True)
+    db.add(mv)
+    db.flush()
+    outcome = PredictionOutcome(
+        fixture_id=fixture.id,
+        model_id=mv.id,
+        market_type="moneyline",
+        prediction_row_id=123,
+        selection="home",
+        decimal_odds=2.1,
+        american_odds=110,
+        model_probability=0.51,
+        final_probability=0.49,
+        edge_pct=0.03,
+        kelly_fraction=0.01,
+        confidence_tier="HIGH",
+        result_status="win",
+        profit_units=1.1,
+        graded_at=datetime.now(timezone.utc),
+    )
+    db.add(outcome)
+    db.flush()
+    fetched = db.query(PredictionOutcome).filter_by(id=outcome.id).first()
+    assert fetched.market_type == "moneyline"
+    assert fetched.result_status == "win"
+
+
+def test_manual_pick_model(db):
+    fixture, _, _ = _make_fixture(db, espn_id="mp1")
+    pick = ManualPick(
+        fixture_id=fixture.id,
+        market_type="ou",
+        selection="over",
+        line=2.5,
+        decimal_odds=1.95,
+        american_odds=-105,
+        stake_units=2.0,
+        bookmaker="draftkings",
+        notes="late add",
+        result_status="open",
+    )
+    db.add(pick)
+    db.flush()
+    fetched = db.query(ManualPick).filter_by(id=pick.id).first()
+    assert fetched.market_type == "ou"
+    assert fetched.stake_units == 2.0
