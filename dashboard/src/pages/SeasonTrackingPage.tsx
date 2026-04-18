@@ -139,7 +139,7 @@ export default function SeasonTrackingPage({ refreshKey }: Props) {
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
         <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Season Tracker</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Locked top-5 weekly model picks are tracked across the full season. Your normal manual picks are grouped into the same season view by fixture week.
+          Locked top-5 weekly model picks are tracked across the full season. Model snapshots now allow only one fixture per club in a given week so double-match weeks do not duplicate teams. Your normal manual picks are grouped into the same season view by fixture week.
         </p>
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
           <span>Season {data.season_key}</span>

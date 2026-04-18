@@ -28,6 +28,10 @@ MODEL_VIEW_LABELS = {
 @dataclass(frozen=True)
 class SnapshotCandidate:
     fixture_id: int
+    league_id: int
+    home_team_id: int
+    away_team_id: int
+    kickoff_at: datetime
     model_id: int | None
     market_type: str
     selection: str
@@ -81,7 +85,8 @@ def snapshot_model_week(session, *, season_key: str, week_start: date) -> int:
         if existing:
             continue
         candidates = build_weekly_candidates(session, model_view=model_view, week_start=week_start)
-        for rank, candidate in enumerate(candidates[:5], start=1):
+        selected_candidates = _select_unique_team_candidates(candidates, limit=5)
+        for rank, candidate in enumerate(selected_candidates, start=1):
             session.add(
                 WeeklyModelPick(
                     season_key=season_key,
@@ -120,15 +125,23 @@ def build_weekly_candidates(session, *, model_view: str, week_start: date) -> li
 def _build_standard_candidates(session, *, model_view: str, week_start: date) -> list[SnapshotCandidate]:
     start_dt, end_dt = week_bounds(week_start)
     fixture_picks = _picks_in_window(session, start_dt, end_dt, model_view=model_view)
+    fixture_ids = [fixture_pick.fixture_id for fixture_pick in fixture_picks]
+    fixtures = {
+        fixture.id: fixture
+        for fixture in session.query(Fixture).filter(Fixture.id.in_(fixture_ids)).all()
+    }
     candidates: list[SnapshotCandidate] = []
     for fixture_pick in fixture_picks:
-        best_pick = _best_fixture_candidate(session, fixture_pick)
+        fixture = fixtures.get(fixture_pick.fixture_id)
+        if fixture is None:
+            continue
+        best_pick = _best_fixture_candidate(session, fixture_pick, fixture)
         if best_pick is not None:
             candidates.append(best_pick)
     return candidates
 
 
-def _best_fixture_candidate(session, fixture_pick) -> SnapshotCandidate | None:
+def _best_fixture_candidate(session, fixture_pick, fixture: Fixture) -> SnapshotCandidate | None:
     options = []
     if fixture_pick.best_spread is not None:
         options.append(
@@ -137,6 +150,10 @@ def _best_fixture_candidate(session, fixture_pick) -> SnapshotCandidate | None:
                 fixture_pick.best_spread.final_probability if fixture_pick.best_spread.final_probability is not None else float("-inf"),
                 SnapshotCandidate(
                     fixture_id=fixture_pick.fixture_id,
+                    league_id=fixture.league_id,
+                    home_team_id=fixture.home_team_id,
+                    away_team_id=fixture.away_team_id,
+                    kickoff_at=fixture.kickoff_at,
                     model_id=_model_id(session, fixture_pick.best_spread.model_name, fixture_pick.best_spread.model_version),
                     market_type="spread",
                     selection=fixture_pick.best_spread.team_side,
@@ -157,6 +174,10 @@ def _best_fixture_candidate(session, fixture_pick) -> SnapshotCandidate | None:
                 fixture_pick.best_ou.final_probability if fixture_pick.best_ou.final_probability is not None else float("-inf"),
                 SnapshotCandidate(
                     fixture_id=fixture_pick.fixture_id,
+                    league_id=fixture.league_id,
+                    home_team_id=fixture.home_team_id,
+                    away_team_id=fixture.away_team_id,
+                    kickoff_at=fixture.kickoff_at,
                     model_id=_model_id(session, fixture_pick.best_ou.model_name, fixture_pick.best_ou.model_version),
                     market_type="ou",
                     selection=fixture_pick.best_ou.direction,
@@ -177,6 +198,10 @@ def _best_fixture_candidate(session, fixture_pick) -> SnapshotCandidate | None:
                 fixture_pick.best_moneyline.final_probability if fixture_pick.best_moneyline.final_probability is not None else float("-inf"),
                 SnapshotCandidate(
                     fixture_id=fixture_pick.fixture_id,
+                    league_id=fixture.league_id,
+                    home_team_id=fixture.home_team_id,
+                    away_team_id=fixture.away_team_id,
+                    kickoff_at=fixture.kickoff_at,
                     model_id=_model_id(
                         session,
                         fixture_pick.best_moneyline.model_name,
@@ -231,6 +256,10 @@ def _build_bully_candidates(session, week_start: date) -> list[SnapshotCandidate
         edge_pct = None if decimal_odds is None else model_probability - (1.0 / decimal_odds)
         candidate = SnapshotCandidate(
             fixture_id=fixture.id,
+            league_id=fixture.league_id,
+            home_team_id=fixture.home_team_id,
+            away_team_id=fixture.away_team_id,
+            kickoff_at=fixture.kickoff_at,
             model_id=model.id,
             market_type="moneyline",
             selection=pred.favorite_side,
@@ -246,6 +275,20 @@ def _build_bully_candidates(session, week_start: date) -> list[SnapshotCandidate
 
     candidates.sort(key=lambda item: item[0])
     return [candidate for _, candidate in candidates]
+
+
+def _select_unique_team_candidates(candidates: list[SnapshotCandidate], *, limit: int) -> list[SnapshotCandidate]:
+    selected: list[SnapshotCandidate] = []
+    seen_team_ids: set[int] = set()
+    for candidate in candidates:
+        if candidate.home_team_id in seen_team_ids or candidate.away_team_id in seen_team_ids:
+            continue
+        selected.append(candidate)
+        seen_team_ids.add(candidate.home_team_id)
+        seen_team_ids.add(candidate.away_team_id)
+        if len(selected) >= limit:
+            break
+    return selected
 
 
 def grouped_manual_picks_for_season(session, *, season_key: str) -> dict[date, list[ManualPick]]:
