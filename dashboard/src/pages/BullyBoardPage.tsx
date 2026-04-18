@@ -146,9 +146,9 @@ function FormHist({ results }: { results: Array<'W' | 'L' | 'D'> }) {
 
 function HeroStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="text-right">
-      <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-ink-3">{label}</div>
-      <div className={`font-mono text-[17px] font-medium mt-0.5 tabular-nums ${accent ?? 'text-ink-0'}`}>{value}</div>
+    <div className="min-w-0">
+      <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-ink-3 truncate">{label}</div>
+      <div className={`font-mono text-[17px] font-medium mt-1 tabular-nums ${accent ?? 'text-ink-0'}`}>{value}</div>
     </div>
   )
 }
@@ -242,6 +242,15 @@ function TrackerRow({ label, roi }: { label: string; roi: number }) {
   )
 }
 
+function FreshTile({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="rounded-[10px] border border-line-1 bg-bg-1 px-2.5 py-2">
+      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3">{label}</div>
+      <div className={`font-mono text-[13px] tabular-nums mt-0.5 ${tone}`}>{value}</div>
+    </div>
+  )
+}
+
 function SummaryStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="rounded-[14px] border border-line-1 bg-bg-1/80 px-3 py-3">
@@ -320,7 +329,7 @@ function LeftRail({
   return (
     <aside className="hidden xl:block">
       <div className="sticky top-[118px] space-y-4">
-        <div className="card bg-[linear-gradient(180deg,rgba(24,34,53,0.94),rgba(10,16,28,0.98))]">
+        <div className="card">
           <LeftRailSection title="Views">
             <LeftRailLink to={`${pickPath}?view=bully`} label="Bully Board" count={String(fixtureCount)} active tone="bully" />
             <LeftRailLink to={`${pickPath}?view=best`} label="Best" tone="best" />
@@ -444,28 +453,27 @@ function HeroStrip({
 }) {
   const tier = fixtureTier(fixture)
   return (
-    <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully overflow-hidden bg-bg-2"
-      style={{ background: 'linear-gradient(90deg, oklch(0.76 0.14 78 / 0.12), transparent 60%), rgb(var(--bg-2) / 0.96)' }}>
-      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1fr_auto_auto] xl:items-center">
-        <div className="flex items-center gap-3 min-w-0">
+    <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-bully/[0.06]">
+      <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:gap-6">
+        <div className="flex items-center gap-3 min-w-0 xl:flex-1">
           <span className={`inline-flex shrink-0 rounded border px-2 py-1 font-mono text-[9.5px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>{tier}</span>
           <div className="min-w-0">
             <div className="text-[17px] font-semibold tracking-[-0.01em] truncate">
               {fixture.favorite_team} <span className="text-ink-3 font-normal">vs</span> {fixture.underdog_team}
             </div>
-            <div className="mt-0.5 font-mono text-[10.5px] text-ink-3 tracking-[0.08em]">
+            <div className="mt-0.5 font-mono text-[10.5px] text-ink-3 tracking-[0.08em] truncate">
               {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-5">
+        <div className="grid grid-cols-5 gap-4 xl:gap-6">
           <HeroStat label="Elo"    value={`+${fixture.elo_gap.toFixed(0)}`}              accent="text-bully" />
           <HeroStat label="Win"    value={fmtPct(fixture.favorite_probability)}          accent="text-win" />
           <HeroStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
           <HeroStat label="SGP"    value={fmtPct(bullyComboScore(fixture))}              accent="text-edge" />
           <HeroStat label="Odds"   value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
         </div>
-        <button type="button" onClick={onToggle} className="pill pill-bully whitespace-nowrap px-4 py-2.5">
+        <button type="button" onClick={onToggle} className="pill pill-bully whitespace-nowrap px-4 py-2.5 self-start xl:self-center">
           {isOpen ? 'Close' : 'Track Pick'}
         </button>
       </div>
@@ -514,9 +522,7 @@ function BoardRow({
         </div>
         <FormHist results={[]} />
         <div className="font-mono text-sm text-ink-0">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
-        <div className="text-right">
-          <span className={`inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.2em] ${tierClass(tier)}`}>{tier}</span>
-        </div>
+        <span className={`justify-self-end inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.2em] ${tierClass(tier)}`}>{tier}</span>
       </button>
       {isOpen && (
         <div className="hidden lg:block">
@@ -582,25 +588,23 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
 <HeroStrip fixture={hero} isOpen={openId === hero.fixture_id} onToggle={() => setOpenId(openId === hero.fixture_id ? null : hero.fixture_id)} />
         {openId === hero.fixture_id && <FixtureDetailPanel fixture={hero} onManualSaved={onManualSaved} />}
 
-        <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="filter-label">Sort</span>
-            {SORT_OPTIONS.filter(o => ['composite','combo','elo_gap','two_plus'].includes(o.key)).map(option => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setSortKey(option.key)}
-                className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="filter-label">Window</span>
-            <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
-            <Link to="/week?view=bully"  className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
-            <Link to="/schedule"          className="pill">Season</Link>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="filter-label">Sort</span>
+              {SORT_OPTIONS.filter(o => ['composite','combo','elo_gap','two_plus'].includes(o.key)).map(option => (
+                <button key={option.key} type="button" onClick={() => setSortKey(option.key)}
+                  className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="filter-label">Window</span>
+              <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
+              <Link to="/week?view=bully"  className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
+              <Link to="/schedule"          className="pill">Season</Link>
+            </div>
           </div>
           {leagueNames.length > 1 && (
             <div className="flex flex-wrap items-center gap-2">
@@ -680,24 +684,14 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
       </div>
 
       <aside className="card space-y-5">
-        {/* Freshness pill */}
-        <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-line-1 bg-bg-1 font-mono text-[10.5px] text-ink-3">
-          <span className={`w-1.5 h-1.5 rounded-full ${status?.latest_prediction_at ? 'bg-win shadow-[0_0_8px_theme(colors.win)]' : 'bg-ink-3'}`} />
-          <span className="uppercase tracking-[0.14em] text-[9.5px] text-ink-2">Data</span>
-          <span className="text-ink-1">
-            P{' '}
-            <span className={status ? freshnessToneClass(status.latest_prediction_at) : 'text-ink-3'}>
-              {formatFreshAge(status?.latest_prediction_at)}
-            </span>
-            {' · '}O{' '}
-            <span className={status ? freshnessToneClass(status.latest_odds_at) : 'text-ink-3'}>
-              {formatFreshAge(status?.latest_odds_at)}
-            </span>
-            {' · '}R{' '}
-            <span className={status ? freshnessToneClass(status.latest_result_at) : 'text-ink-3'}>
-              {formatFreshAge(status?.latest_result_at)}
-            </span>
-          </span>
+        {/* Freshness */}
+        <div>
+          <p className="eyebrow mb-2.5">Data Freshness</p>
+          <div className="grid grid-cols-3 gap-2">
+            <FreshTile label="Picks"   value={formatFreshAge(status?.latest_prediction_at)} tone={freshnessToneClass(status?.latest_prediction_at)} />
+            <FreshTile label="Odds"    value={formatFreshAge(status?.latest_odds_at)}       tone={freshnessToneClass(status?.latest_odds_at)} />
+            <FreshTile label="Results" value={formatFreshAge(status?.latest_result_at)}     tone={freshnessToneClass(status?.latest_result_at)} />
+          </div>
         </div>
 
         {/* Season Tracker */}
@@ -716,20 +710,6 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
           ) : (
             <p className="text-[12px] text-ink-2">Loading…</p>
           )}
-        </div>
-
-        {/* Bully Last 10 sparkline */}
-        <div>
-          <p className="eyebrow mb-2.5">Bully Last 10</p>
-          <div className="flex gap-1.5 items-end h-10">
-            {[80, 55, 30, 95, 60, 70, 20, 88, 50, 65].map((h, i) => (
-              <span key={i} className={`flex-1 rounded ${h > 50 ? 'bg-bully' : 'bg-ink-3/50'}`} style={{ height: `${h}%` }} />
-            ))}
-          </div>
-          <div className="flex justify-between mt-1.5 text-[11px] text-ink-3 font-mono">
-            <span>8-2</span>
-            <span className="text-win">+6.8u</span>
-          </div>
         </div>
 
         {/* League Mix */}
