@@ -1,3 +1,78 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-0: 5 7 12;
+    --bg-1: 10 14 24;
+    --bg-2: 14 21 36;
+    --bg-3: 19 28 48;
+    --line-1: 26 35 56;
+    --line-2: 37 50 77;
+
+    --ink-0: 243 245 250;
+    --ink-1: 199 207 220;
+    --ink-2: 140 150 170;
+    --ink-3: 92 101 119;
+
+    --bully: 0.76 0.14 78;
+    --alpha: 0.76 0.14 160;
+    --edge: 0.76 0.14 235;
+    --combo: 0.76 0.14 300;
+    --win: 0.78 0.16 150;
+    --lose: 0.68 0.2 22;
+    --warn: 0.8 0.15 70;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-bg-0 text-ink-0 antialiased;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background-image:
+      radial-gradient(circle at top left, rgb(189 146 47 / 0.16), transparent 24rem),
+      radial-gradient(circle at top right, rgb(31 81 146 / 0.14), transparent 26rem),
+      linear-gradient(180deg, rgb(var(--bg-0)) 0%, rgb(8 12 21) 100%);
+  }
+
+  ::selection {
+    background: rgb(230 180 72 / 0.28);
+    color: rgb(var(--ink-0));
+  }
+}
+
+@layer components {
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-bg-2 px-3 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink-0;
+  }
+
+  .pill-active {
+    @apply bg-bg-3 text-ink-0;
+  }
+
+  .pill-bully {
+    color: oklch(var(--bully));
+    border-color: oklch(var(--bully) / 0.35);
+    background-color: oklch(var(--bully) / 0.16);
+  }
+
+  .card {
+    @apply rounded-[18px] border border-line-1 p-5 shadow-panel;
+    background-color: rgb(var(--bg-2) / 0.92);
+  }
+
+  .eyebrow {
+    @apply font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink-3;
+  }
+
+  .stat-label {
+    @apply font-mono text-[10px] uppercase tracking-[0.2em] text-ink-3;
+  }
+
+  .filter-label {
+    @apply mr-1.5 text-[10.5px] uppercase tracking-[0.22em] text-ink-3;
+  }
+}

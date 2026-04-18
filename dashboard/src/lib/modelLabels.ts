@@ -22,32 +22,32 @@ export function modelPresentationForView(modelView: ModelView): ModelPresentatio
   if (modelView === 'bully') {
     return {
       badge: 'Bully',
-      accentBorder: 'border-amber-500/40',
-      accentBg: 'bg-amber-500/10',
-      accentText: 'text-amber-200',
+      accentBorder: 'border-bully/35',
+      accentBg: 'bg-bully/16',
+      accentText: 'text-bully',
     }
   }
   if (modelView === 'main') {
     return {
       badge: 'Alpha',
-      accentBorder: 'border-emerald-500/35',
-      accentBg: 'bg-emerald-500/10',
-      accentText: 'text-emerald-200',
+      accentBorder: 'border-alpha/35',
+      accentBg: 'bg-alpha/16',
+      accentText: 'text-alpha',
     }
   }
   if (modelView === 'parallel') {
     return {
       badge: 'Market-Edge',
-      accentBorder: 'border-sky-500/35',
-      accentBg: 'bg-sky-500/10',
-      accentText: 'text-sky-200',
+      accentBorder: 'border-edge/35',
+      accentBg: 'bg-edge/16',
+      accentText: 'text-edge',
     }
   }
   return {
     badge: 'Combined',
-    accentBorder: 'border-violet-500/30',
-    accentBg: 'bg-violet-500/10',
-    accentText: 'text-violet-200',
+    accentBorder: 'border-combo/35',
+    accentBg: 'bg-combo/16',
+    accentText: 'text-combo',
   }
 }
 

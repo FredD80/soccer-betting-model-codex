@@ -126,16 +126,16 @@ export default function ManualPickForm({ pick, onSaved }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-700/80 bg-slate-950/70 p-3 space-y-3">
+    <div className="rounded-[16px] border border-line-1 bg-bg-2/90 p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-100">Track My Pick</p>
-          <p className="text-xs text-slate-400">Save your bet on this fixture and settle it automatically.</p>
+          <p className="text-sm font-semibold text-ink-0">Track My Pick</p>
+          <p className="text-xs text-ink-2">Save your bet on this fixture and settle it automatically.</p>
         </div>
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
-          className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:text-white"
+          className="pill"
         >
           {expanded ? 'Hide Form' : 'Add Pick'}
         </button>
@@ -150,10 +150,10 @@ export default function ManualPickForm({ pick, onSaved }: Props) {
                 type="button"
                 onClick={() => setMarketType(option)}
                 className={
-                  'rounded-full px-3 py-1 text-xs font-medium transition ' +
+                  'pill ' +
                   (marketType === option
-                    ? 'bg-emerald-500 text-slate-950'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                    ? 'pill-bully pill-active'
+                    : '')
                 }
               >
                 {option === 'moneyline' ? 'Moneyline' : option === 'spread' ? 'Spread' : 'Total'}
@@ -163,11 +163,11 @@ export default function ManualPickForm({ pick, onSaved }: Props) {
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-slate-400">Selection</span>
+              <span className="text-xs uppercase tracking-wide text-ink-2">Selection</span>
               <select
                 value={selection}
                 onChange={e => setSelection(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
               >
                 {choices.map(choice => (
                   <option key={choice.value} value={choice.value}>
@@ -179,22 +179,22 @@ export default function ManualPickForm({ pick, onSaved }: Props) {
 
             {marketType !== 'moneyline' && (
               <label className="space-y-1">
-                <span className="text-xs uppercase tracking-wide text-slate-400">Line</span>
+                <span className="text-xs uppercase tracking-wide text-ink-2">Line</span>
                 <input
                   value={line}
                   onChange={e => setLine(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
                   placeholder="2.5"
                 />
               </label>
             )}
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-slate-400">American Odds</span>
+              <span className="text-xs uppercase tracking-wide text-ink-2">American Odds</span>
               <input
                 value={americanOdds}
                 onChange={e => setAmericanOdds(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
                 placeholder={formatAmerican(
                   marketType === 'moneyline'
                     ? pick.best_moneyline?.american_odds
@@ -206,53 +206,53 @@ export default function ManualPickForm({ pick, onSaved }: Props) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-slate-400">Stake Units</span>
+              <span className="text-xs uppercase tracking-wide text-ink-2">Stake Units</span>
               <input
                 value={stakeUnits}
                 onChange={e => setStakeUnits(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
                 placeholder="1.0"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-slate-400">Bookmaker</span>
+              <span className="text-xs uppercase tracking-wide text-ink-2">Bookmaker</span>
               <input
                 value={bookmaker}
                 onChange={e => setBookmaker(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
                 placeholder="draftkings"
               />
             </label>
 
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs uppercase tracking-wide text-slate-400">Notes</span>
+              <span className="text-xs uppercase tracking-wide text-ink-2">Notes</span>
               <input
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-line-2 bg-bg-1 px-3 py-2 text-sm text-ink-0 outline-none transition focus:border-bully"
                 placeholder="Why you liked it"
               />
             </label>
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-slate-400">
-              Saving: <span className="font-medium text-slate-200">{selectionLabel(pick, marketType, selection)}</span>
+            <div className="text-xs text-ink-2">
+              Saving: <span className="font-medium text-ink-1">{selectionLabel(pick, marketType, selection)}</span>
               {marketType !== 'moneyline' && line !== '' ? ` ${line}` : ''}
             </div>
             <button
               type="button"
               onClick={submit}
               disabled={saving || selection === '' || stakeUnits === '' || (marketType !== 'moneyline' && line === '') || americanOdds === ''}
-              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              className="rounded-xl bg-bully px-4 py-2 text-sm font-semibold text-bg-0 transition hover:bg-bully/85 disabled:cursor-not-allowed disabled:bg-bg-3 disabled:text-ink-3"
             >
               {saving ? 'Saving…' : 'Save Pick'}
             </button>
           </div>
 
-          {error && <p className="text-sm text-rose-400">{error}</p>}
-          {success && <p className="text-sm text-emerald-300">{success}</p>}
+          {error && <p className="text-sm text-lose">{error}</p>}
+          {success && <p className="text-sm text-win">{success}</p>}
         </div>
       )}
     </div>

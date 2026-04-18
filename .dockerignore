@@ -8,3 +8,5 @@ dist
 .venv
 tests/
 docs/
+dashboard/node_modules
+SBM Design.zip
