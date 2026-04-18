@@ -20,7 +20,7 @@ const SORT_OPTIONS: { key: BullySortKey; label: string }[] = [
   { key: 'kickoff', label: 'Kickoff' },
 ]
 
-const DESKTOP_GRID = 'lg:grid-cols-[28px_minmax(0,1.8fr)_68px_56px_56px_54px_58px_68px_72px_60px_66px]'
+const DESKTOP_GRID = 'lg:grid-cols-[28px_minmax(180px,1.6fr)_62px_52px_52px_50px_54px_62px_56px_60px]'
 
 interface Props {
   label?: string
@@ -146,9 +146,9 @@ function FormHist({ results }: { results: Array<'W' | 'L' | 'D'> }) {
 
 function HeroStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 text-right">
       <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-ink-3 truncate">{label}</div>
-      <div className={`font-mono text-[17px] font-medium mt-1 tabular-nums ${accent ?? 'text-ink-0'}`}>{value}</div>
+      <div className={`font-mono text-[17px] font-medium mt-1 tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>{value}</div>
     </div>
   )
 }
@@ -501,28 +501,30 @@ function BoardRow({
       <button
         type="button"
         onClick={onToggle}
-        className={`hidden w-full lg:grid ${DESKTOP_GRID} items-center gap-2.5 border-b border-line-1 px-4 py-[7px] text-left transition-colors hover:bg-bg-3/60 ${
+        className={`hidden w-full lg:grid ${DESKTOP_GRID} items-center gap-2 border-b border-line-1 px-4 py-2 text-left transition-colors hover:bg-bg-3/60 ${
           isOpen ? 'bg-bg-3/75' : ''
-        } ${fixture.is_bully_spot ? 'border-l-[3px] border-l-bully pl-[11px]' : ''}`}
+        } ${fixture.is_bully_spot ? 'border-l-[3px] border-l-bully pl-[13px]' : ''}`}
       >
-        <div className="font-mono text-xs text-ink-3">{String(index).padStart(2, '0')}</div>
+        <div className="font-mono text-[11.5px] text-ink-3 tabular-nums">{String(index).padStart(2, '0')}</div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-ink-0">
-            {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate text-[13px] font-semibold text-ink-0">
+              {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
+            </span>
+            <span className={`shrink-0 inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] ${tierClass(tier)}`}>{tier}</span>
           </div>
-          <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3">{fixture.league}</div>
+          <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3 truncate">{fixture.league}</div>
         </div>
-        <div className="font-mono text-[11.5px] text-ink-2">{formatEasternDateTime(fixture.kickoff_at)}</div>
-        <div className="font-mono text-sm text-bully">+{fixture.elo_gap.toFixed(0)}</div>
-        <div className="font-mono text-sm text-win">{fmtPct(fixture.favorite_probability)}</div>
-        <div className={`font-mono text-sm ${signalTone(fixture.favorite_two_plus_probability)}`}>{fmtPct(fixture.favorite_two_plus_probability)}</div>
-        <div className="font-mono text-sm text-edge">{fmtPct(bullyComboScore(fixture))}</div>
-        <div className="font-mono text-[11.5px] text-ink-2">
+        <div className="font-mono text-[11px] text-ink-2 tabular-nums truncate">{formatEasternDateTime(fixture.kickoff_at)}</div>
+        <div className="font-mono text-[13px] text-bully tabular-nums">+{fixture.elo_gap.toFixed(0)}</div>
+        <div className="font-mono text-[13px] text-win tabular-nums">{fmtPct(fixture.favorite_probability)}</div>
+        <div className={`font-mono text-[13px] tabular-nums ${signalTone(fixture.favorite_two_plus_probability)}`}>{fmtPct(fixture.favorite_two_plus_probability)}</div>
+        <div className="font-mono text-[13px] text-edge tabular-nums">{fmtPct(bullyComboScore(fixture))}</div>
+        <div className="font-mono text-[11px] text-ink-2 tabular-nums">
           {fmtGoals(fixture.favorite_expected_goals)}/{fmtGoals(fixture.underdog_expected_goals)}
         </div>
         <FormHist results={[]} />
-        <div className="font-mono text-sm text-ink-0">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
-        <span className={`justify-self-end inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.2em] ${tierClass(tier)}`}>{tier}</span>
+        <div className="font-mono text-[13px] text-ink-0 tabular-nums text-right">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
       </button>
       {isOpen && (
         <div className="hidden lg:block">
@@ -578,7 +580,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
   if (!hero) return <div className="card text-ink-2">No Elo bully model games are available yet.</div>
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+    <section className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_280px]">
       <LeftRail
         days={days}
         fixtureCount={visibleFixtures.length}
@@ -621,7 +623,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
         </div>
 
         <div className="card hidden overflow-hidden p-0 lg:block">
-          <div className={`grid ${DESKTOP_GRID} gap-2.5 border-b border-line-1 px-4 py-2.5 font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-3`}>
+          <div className={`grid ${DESKTOP_GRID} gap-2 border-b border-line-1 px-4 py-2.5 font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-3`}>
             <span>#</span>
             <span>Fixture</span>
             <span>KO</span>
@@ -631,8 +633,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
             <span>SGP</span>
             <span>xG F/D</span>
             <span>L10</span>
-            <span>Odds</span>
-            <span className="text-right">Tier</span>
+            <span className="text-right">Odds</span>
           </div>
           {boardFixtures.map((fixture, index) => (
             <BoardRow
