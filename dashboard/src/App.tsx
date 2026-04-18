@@ -127,8 +127,15 @@ export default function App() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_36%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] text-slate-100">
       <header className="border-b border-slate-800/80 bg-slate-950/70 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
         <div className="mx-auto max-w-5xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">Soccer Betting Model</p>
-          <h1 className="mt-1 text-lg font-semibold tracking-wide sm:text-xl">Picks, Tracking, and Head-to-Head Review</h1>
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/35 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.28),_rgba(15,23,42,0.92)_72%)] shadow-[0_0_0_1px_rgba(16,185,129,0.08)] sm:h-12 sm:w-12">
+              <span className="text-sm font-black uppercase tracking-[0.24em] text-emerald-200 sm:text-base">SBM</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-semibold tracking-[0.03em] text-slate-100 sm:text-3xl">Soccer Betting Model</p>
+              <h1 className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400 sm:text-xs">Picks, Tracking, and Head-to-Head Review</h1>
+            </div>
+          </div>
           <p className={`mt-2 text-[11px] sm:text-xs ${freshnessClass}`}>
             Updated picks {formatStatusTime(status?.latest_prediction_at)} · odds {formatStatusTime(status?.latest_odds_at)} · results {formatStatusTime(status?.latest_result_at)}
           </p>
