@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from app.db.models import (
     League, Team, Fixture, FormCache, ModelVersion,
-    SpreadPrediction, OUAnalysis, MoneylinePrediction
+    SpreadPrediction, OUAnalysis, MoneylinePrediction, OddsSnapshot, EloFormPrediction,
 )
 
 
@@ -51,6 +51,76 @@ def _seed_pick(
         created_at=datetime.now(timezone.utc),
     )
     db.add(ou)
+    db.flush()
+    return fixture
+
+
+def _seed_bully_only_fixture(
+    db,
+    espn_id="bully-only",
+    hours_until_kickoff=2,
+    favorite_side="home",
+    favorite_probability=0.69,
+):
+    league = League(name="Serie A", country="Italy", espn_id="ita.1", odds_api_key="soccer_italy_serie_a")
+    db.add(league)
+    db.flush()
+
+    home = Team(name="Inter", league_id=league.id)
+    away = Team(name="Empoli", league_id=league.id)
+    db.add_all([home, away])
+    db.flush()
+
+    fixture = Fixture(
+        espn_id=espn_id,
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=datetime.now(timezone.utc) + timedelta(hours=hours_until_kickoff),
+        status="scheduled",
+    )
+    db.add(fixture)
+
+    mv = ModelVersion(name="elo_bully_v1", version="1.0", active=True, created_at=datetime.now(timezone.utc))
+    db.add(mv)
+    db.flush()
+
+    db.add(
+        OddsSnapshot(
+            fixture_id=fixture.id,
+            bookmaker="pinnacle",
+            home_odds=1.62,
+            draw_odds=4.00,
+            away_odds=6.20,
+            captured_at=datetime.now(timezone.utc),
+        )
+    )
+    db.add(
+        EloFormPrediction(
+            model_id=mv.id,
+            fixture_id=fixture.id,
+            favorite_side=favorite_side,
+            elo_gap=155.0,
+            is_bully_spot=True,
+            home_elo=1690.0,
+            away_elo=1450.0,
+            home_probability=favorite_probability if favorite_side == "home" else 0.17,
+            draw_probability=0.14,
+            away_probability=favorite_probability if favorite_side == "away" else 0.17,
+            home_form_for_avg=2.1,
+            home_form_against_avg=0.7,
+            away_form_for_avg=0.8,
+            away_form_against_avg=1.9,
+            home_xg_diff_avg=0.8,
+            away_xg_diff_avg=-0.4,
+            home_xg_trend=0.06,
+            away_xg_trend=-0.04,
+            home_xg_matches_used=5,
+            away_xg_matches_used=5,
+            trend_adjustment=0.03,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
     db.flush()
     return fixture
 
@@ -188,3 +258,24 @@ def test_picks_today_can_filter_main_vs_parallel(client, api_db):
     assert best_pick["model_name"] == "parallel_moneyline"
     assert main_pick["model_name"] == "main_moneyline"
     assert parallel_pick["model_name"] == "parallel_moneyline"
+
+
+def test_picks_today_best_includes_bully_moneyline_for_bully_only_fixture(client, api_db):
+    fixture = _seed_bully_only_fixture(api_db)
+
+    best = client.get("/picks/today?model_view=best")
+    main = client.get("/picks/today?model_view=main")
+    parallel = client.get("/picks/today?model_view=parallel")
+
+    assert best.status_code == 200
+    assert main.status_code == 200
+    assert parallel.status_code == 200
+
+    best_row = next(p for p in best.json() if p["fixture_id"] == fixture.id)
+    main_fixture_ids = {p["fixture_id"] for p in main.json()}
+    parallel_fixture_ids = {p["fixture_id"] for p in parallel.json()}
+
+    assert best_row["best_moneyline"]["model_name"] == "elo_bully_v1"
+    assert best_row["best_moneyline"]["confidence_tier"] in {"HIGH", "ELITE"}
+    assert fixture.id not in main_fixture_ids
+    assert fixture.id not in parallel_fixture_ids

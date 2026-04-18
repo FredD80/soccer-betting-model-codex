@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.models import (
     Fixture, League, Team, SpreadPrediction, OUAnalysis, OddsSnapshot,
-    MoneylinePrediction, ModelVersion,
+    MoneylinePrediction, EloFormPrediction, ModelVersion,
 )
 from api.deps import get_session
 from api.schemas import (
@@ -197,6 +197,75 @@ def _best_moneyline(session: Session, fixture_id: int, model_view: str = "best")
     )
 
 
+def _bully_confidence_tier(is_bully_spot: bool, model_probability: float) -> str:
+    if is_bully_spot and model_probability >= 0.68:
+        return "ELITE"
+    if is_bully_spot or model_probability >= 0.60:
+        return "HIGH"
+    return "MEDIUM"
+
+
+def _best_bully_moneyline(session: Session, fixture_id: int) -> MoneylinePickResponse | None:
+    pick_row = (
+        session.query(EloFormPrediction, ModelVersion)
+        .join(ModelVersion, ModelVersion.id == EloFormPrediction.model_id)
+        .filter(EloFormPrediction.fixture_id == fixture_id)
+        .filter(ModelVersion.active.is_(True))
+        .order_by(ModelVersion.created_at.desc(), EloFormPrediction.created_at.desc())
+        .first()
+    )
+    if not pick_row:
+        return None
+
+    pick, mv = pick_row
+    if not pick.is_bully_spot:
+        return None
+
+    dec = _ml_odds(session, fixture_id, pick.favorite_side)
+    model_probability = pick.home_probability if pick.favorite_side == "home" else pick.away_probability
+    implied_probability = (1.0 / dec) if dec is not None and dec > 1.0 else None
+    edge = (model_probability - implied_probability) if implied_probability is not None else None
+
+    return MoneylinePickResponse(
+        model_name=mv.name,
+        model_version=mv.version,
+        outcome=pick.favorite_side,
+        probability=model_probability,
+        ev_score=edge,
+        confidence_tier=_bully_confidence_tier(pick.is_bully_spot, model_probability),
+        final_probability=model_probability,
+        edge_pct=edge,
+        kelly_fraction=None,
+        steam_downgraded=False,
+        decimal_odds=dec,
+        american_odds=_to_american(dec),
+    )
+
+
+def _pick_score(pick: MoneylinePickResponse | None) -> tuple[float, float]:
+    if pick is None:
+        return (float("-inf"), float("-inf"))
+    edge = pick.edge_pct if pick.edge_pct is not None else pick.ev_score
+    probability = pick.final_probability if pick.final_probability is not None else pick.probability
+    return (
+        edge if edge is not None else float("-inf"),
+        probability if probability is not None else float("-inf"),
+    )
+
+
+def _best_combined_moneyline(session: Session, fixture_id: int, model_view: str = "best") -> MoneylinePickResponse | None:
+    standard_pick = _best_moneyline(session, fixture_id, model_view=model_view)
+    if model_view != "best":
+        return standard_pick
+
+    bully_pick = _best_bully_moneyline(session, fixture_id)
+    if standard_pick is None:
+        return bully_pick
+    if bully_pick is None:
+        return standard_pick
+    return bully_pick if _pick_score(bully_pick) > _pick_score(standard_pick) else standard_pick
+
+
 def _fixture_tier_rank(fixture_pick: FixturePickResponse) -> int:
     tiers = [
         pick.confidence_tier
@@ -211,7 +280,7 @@ def _fixture_tier_rank(fixture_pick: FixturePickResponse) -> int:
 def _build_fixture_pick(session: Session, fixture: Fixture, model_view: str = "best") -> FixturePickResponse:
     spread = _best_spread(session, fixture.id, model_view=model_view)
     ou = _best_ou(session, fixture.id, model_view=model_view)
-    ml = _best_moneyline(session, fixture.id, model_view=model_view)
+    ml = _best_combined_moneyline(session, fixture.id, model_view=model_view)
     evs = [p.ev_score for p in (spread, ou, ml) if p and p.ev_score is not None]
     top_ev = max(evs) if evs else None
     return FixturePickResponse(
