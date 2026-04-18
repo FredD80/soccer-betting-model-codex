@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { api } from '../api/client'
 import type { BullyScheduleFixture, FixturePick, MoneylinePick } from '../api/types'
@@ -170,12 +171,34 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
   return (
     <section className="space-y-4">
       <div className="space-y-2">
-        <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">
-          {label}
-        </h2>
-        <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
-          Strength-gap spots first. Elo sets the baseline, then last-five xG trend adjusts the favorite/underdog split. Use the SGP Lens to rank for your favorite-plus-2-goals style without hard-filtering games out.
-        </p>
+        <div className="rounded-2xl border border-amber-500/30 bg-slate-950/55 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-200">
+                  Bully
+                </span>
+                <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-300">
+                  {label}
+                </h2>
+              </div>
+              <p className="mt-2 text-sm text-slate-400">
+                Strength-gap spots first. Elo sets the baseline, then recent xG form adjusts the split. Use the SGP Lens to rank for your favorite-plus-2-goals style without hard-filtering games out.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+              <Link to="/my-picks" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+                My Picks
+              </Link>
+              <Link to="/tracking" className="rounded-full border border-amber-500/40 px-3 py-1 text-amber-200 transition hover:bg-amber-500/10">
+                Season Tracker
+              </Link>
+              <Link to="/backtests" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+                Backtests
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

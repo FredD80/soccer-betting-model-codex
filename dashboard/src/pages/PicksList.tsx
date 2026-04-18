@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+
 import type { FixturePick, ModelView } from '../api/types'
 import PickCard from '../components/PickCard'
-import { modelViewLabel } from '../lib/modelLabels'
+import { modelPresentationForView, modelViewDescription, modelViewLabel } from '../lib/modelLabels'
 
 interface Props {
   label: string
@@ -16,6 +18,7 @@ export default function PicksList({ label, fetcher, modelView, refreshKey = 0, e
   const [picks, setPicks] = useState<FixturePick[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const presentation = modelPresentationForView(modelView)
 
   useEffect(() => {
     setLoading(true)
@@ -38,14 +41,36 @@ export default function PicksList({ label, fetcher, modelView, refreshKey = 0, e
 
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
-        {label} · {modelViewLabel(modelView)} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
-      </h2>
-      <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-        Elite and high-confidence fixtures appear first. All scheduled fixtures are shown.
-      </p>
+      <div className={`rounded-2xl border bg-slate-950/55 p-4 ${presentation.accentBorder}`}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${presentation.accentBorder} ${presentation.accentBg} ${presentation.accentText}`}>
+                {presentation.badge}
+              </span>
+              <h2 className="text-sm font-medium text-gray-300 uppercase tracking-wider">
+                {label} · {modelViewLabel(modelView)} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
+              </h2>
+            </div>
+            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+              {modelViewDescription(modelView)} Elite and high-confidence fixtures are surfaced first so the board stays actionable.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+            <Link to="/my-picks" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+              Open My Picks
+            </Link>
+            <Link to="/tracking" className={`rounded-full border px-3 py-1 transition ${presentation.accentBorder} ${presentation.accentText}`}>
+              Season Tracker
+            </Link>
+            <Link to="/backtests" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+              Backtests
+            </Link>
+          </div>
+        </div>
+      </div>
       {picks.map(p => (
-        <PickCard key={p.fixture_id} pick={p} onManualSaved={onManualSaved} />
+        <PickCard key={p.fixture_id} pick={p} modelView={modelView} onManualSaved={onManualSaved} />
       ))}
     </div>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { api } from '../api/client'
 import type { ScheduledFixture } from '../api/types'
@@ -39,9 +40,29 @@ export default function SchedulePage({ refreshKey = 0 }: Props) {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">
-        Upcoming Schedule
-      </h2>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/55 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">
+              Upcoming Schedule
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+              Use the raw slate to spot upcoming matchups, then jump into the pick boards or track your own angles from the strongest cards.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+            <Link to="/today" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+              Today Board
+            </Link>
+            <Link to="/week" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+              Week Board
+            </Link>
+            <Link to="/tracking" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
+              Tracking
+            </Link>
+          </div>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setLeagueTab('all')}
