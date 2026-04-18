@@ -13,14 +13,6 @@ import { modelPresentationForView, modelViewDescription, modelViewLabel } from '
 
 type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'tracking'
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'week', label: 'Week' },
-  { key: 'schedule', label: 'Schedule' },
-  { key: 'backtests', label: 'Backtests' },
-  { key: 'tracking', label: 'Tracking' },
-]
-
 const TAB_PATH: Record<Tab, string> = {
   today: '/today',
   week: '/week',
@@ -28,6 +20,12 @@ const TAB_PATH: Record<Tab, string> = {
   backtests: '/backtests',
   tracking: '/tracking',
 }
+
+const SCHEDULE_TABS: { key: Extract<Tab, 'today' | 'week' | 'schedule'>; label: string }[] = [
+  { key: 'today', label: 'Today' },
+  { key: 'week', label: 'Week' },
+  { key: 'schedule', label: 'Season' },
+]
 
 function parseTab(pathname: string): Tab {
   const match = (Object.entries(TAB_PATH) as Array<[Tab, string]>).find(([, path]) => pathname === path)
@@ -66,6 +64,7 @@ export default function App() {
 
   const modelPresentation = modelPresentationForView(modelView)
   const handleManualSaved = () => setManualRefreshKey(v => v + 1)
+  const showingScheduleSection = tab === 'today' || tab === 'week' || tab === 'schedule'
   const showingPickTabs = tab === 'today' || tab === 'week'
   const showingBullyModel = showingPickTabs && modelView === 'bully'
   const tabHref = (nextTab: Tab) => {
@@ -108,21 +107,68 @@ export default function App() {
             Updated picks {formatStatusTime(status?.latest_prediction_at)} · odds {formatStatusTime(status?.latest_odds_at)} · results {formatStatusTime(status?.latest_result_at)}
           </p>
           <nav className="mt-3 flex flex-wrap gap-2 text-sm">
-            {TABS.map(t => (
-              <NavLink
-                key={t.key}
-                to={tabHref(t.key)}
-                className={({ isActive }) =>
-                  'rounded-full border px-3 py-1.5 transition ' +
-                  (isActive
-                    ? 'border-emerald-400 bg-emerald-400 text-slate-950'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
-                }
-              >
-                {t.label}
-              </NavLink>
-            ))}
+            <Link
+              to={tabHref('today')}
+              className={
+                'rounded-full border px-3 py-1.5 transition ' +
+                (showingScheduleSection
+                  ? 'border-emerald-400 bg-emerald-400 text-slate-950'
+                  : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
+              }
+            >
+              Schedule
+            </Link>
+            <NavLink
+              to={tabHref('backtests')}
+              className={({ isActive }) =>
+                'rounded-full border px-3 py-1.5 transition ' +
+                (isActive
+                  ? 'border-emerald-400 bg-emerald-400 text-slate-950'
+                  : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
+              }
+            >
+              Backtests
+            </NavLink>
+            <NavLink
+              to={tabHref('tracking')}
+              className={({ isActive }) =>
+                'rounded-full border px-3 py-1.5 transition ' +
+                (isActive
+                  ? 'border-emerald-400 bg-emerald-400 text-slate-950'
+                  : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
+              }
+            >
+              Tracking
+            </NavLink>
           </nav>
+          {showingScheduleSection && (
+            <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-300/80">Schedule</p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Switch between the daily board, the weekly board, and the full season slate.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+                  {SCHEDULE_TABS.map(scheduleTab => (
+                    <Link
+                      key={scheduleTab.key}
+                      to={tabHref(scheduleTab.key)}
+                      className={
+                        'rounded-full border px-3 py-1 transition ' +
+                        (tab === scheduleTab.key
+                          ? 'border-emerald-400 bg-emerald-400 text-slate-950'
+                          : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
+                      }
+                    >
+                      {scheduleTab.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         {showingPickTabs && (
           <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

@@ -29,9 +29,9 @@ export default function SchedulePage({ refreshKey = 0 }: Props) {
       .finally(() => setLoading(false))
   }, [refreshKey])
 
-  if (loading) return <p className="text-gray-400">Loading schedule…</p>
+  if (loading) return <p className="text-gray-400">Loading season schedule…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>
-  if (fixtures.length === 0) return <p className="text-gray-500">No upcoming fixtures with schedule data.</p>
+  if (fixtures.length === 0) return <p className="text-gray-500">No upcoming fixtures in the season slate yet.</p>
 
   const leagueNames = Array.from(new Set(fixtures.map(fixture => fixture.league))).sort((a, b) => a.localeCompare(b))
   const visibleFixtures = leagueTab === 'all'
@@ -44,10 +44,10 @@ export default function SchedulePage({ refreshKey = 0 }: Props) {
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">
-              Upcoming Schedule
+              Season Schedule
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Use the raw slate to spot upcoming matchups, then jump into the pick boards or track your own angles from the strongest cards.
+              Use the full season slate to spot upcoming matchups, then jump into the daily or weekly boards or track your own angles from the strongest cards.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
