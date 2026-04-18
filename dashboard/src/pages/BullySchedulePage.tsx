@@ -247,14 +247,14 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-3 py-3 sm:px-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-3 py-2.5 sm:px-4">
         <div className="space-y-1">
           <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">xG Overlay</div>
-          <p className="text-xs text-slate-300 sm:hidden">
+          <p className="text-[11px] text-slate-400 sm:hidden">
             League-scaled view-only filter.
           </p>
-          <p className="hidden text-sm text-slate-300 sm:block">
-            View-only filter using league-scaled projected xG-delta thresholds. Turn it off to see pure Elo-gap bully spots.
+          <p className="hidden text-xs text-slate-400 sm:block">
+            View-only filter using league-scaled projected xG-delta thresholds.
           </p>
         </div>
         <button
@@ -263,7 +263,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
           aria-checked={useXgOverlay}
           onClick={() => setUseXgOverlay(current => !current)}
           className={
-            'inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs uppercase tracking-[0.2em] transition ' +
+            'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] transition ' +
             (useXgOverlay
               ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-300'
               : 'border-slate-700 bg-slate-900 text-slate-300')
@@ -271,18 +271,18 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
         >
           <span
             className={
-              'relative h-6 w-11 rounded-full transition ' +
+              'relative h-4 w-8 rounded-full transition ' +
               (useXgOverlay ? 'bg-emerald-500/70' : 'bg-slate-700')
             }
           >
             <span
               className={
-                'absolute top-0.5 h-5 w-5 rounded-full bg-white transition ' +
-                (useXgOverlay ? 'left-[22px]' : 'left-0.5')
+                'absolute top-0.5 h-3 w-3 rounded-full bg-white transition ' +
+                (useXgOverlay ? 'left-[17px]' : 'left-0.5')
               }
             />
           </span>
-          <span>{useXgOverlay ? 'Overlay On' : 'Overlay Off'}</span>
+          <span>{useXgOverlay ? 'On' : 'Off'}</span>
         </button>
       </div>
 
