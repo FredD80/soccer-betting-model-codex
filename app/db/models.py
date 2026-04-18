@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean,
+    Column, Integer, String, Float, Boolean, Date,
     DateTime, ForeignKey, Text, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship
@@ -295,6 +295,35 @@ class ManualPick(Base):
     stake_units = Column(Float, nullable=False, default=1.0)
     bookmaker = Column(String)
     notes = Column(Text)
+    result_status = Column(String, nullable=False, default="open")  # open | win | loss | push | void
+    profit_units = Column(Float)
+    graded_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WeeklyModelPick(Base):
+    __tablename__ = "weekly_model_picks"
+    __table_args__ = (
+        UniqueConstraint("season_key", "week_start", "model_view", "rank", name="uq_weekly_model_picks_slot"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    season_key = Column(String, nullable=False)
+    week_start = Column(Date, nullable=False)
+    model_view = Column(String, nullable=False)           # main | parallel | bully
+    model_label = Column(String, nullable=False)          # Alpha | Market-Edge | Bully-Model
+    rank = Column(Integer, nullable=False)                # 1..5
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    model_id = Column(Integer, ForeignKey("models.id"))
+    market_type = Column(String, nullable=False)          # moneyline | spread | ou
+    selection = Column(String, nullable=False)
+    line = Column(Float)
+    decimal_odds = Column(Float)
+    american_odds = Column(Integer)
+    model_probability = Column(Float)
+    final_probability = Column(Float)
+    edge_pct = Column(Float)
+    confidence_tier = Column(String)
     result_status = Column(String, nullable=False, default="open")  # open | win | loss | push | void
     profit_units = Column(Float)
     graded_at = Column(DateTime)

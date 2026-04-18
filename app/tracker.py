@@ -4,6 +4,7 @@ from app.db.models import (
     Result, Prediction, OddsSnapshot, Performance,
     MoneylinePrediction, SpreadPrediction, OUAnalysis, PredictionOutcome, ManualPick,
     EloFormPrediction,
+    WeeklyModelPick,
 )
 
 logger = logging.getLogger(__name__)
@@ -286,6 +287,27 @@ class ResultsTracker:
         self.session.commit()
         return len(picks)
 
+    def settle_weekly_model_picks(self, fixture_id: int) -> int:
+        result = self.session.query(Result).filter_by(fixture_id=fixture_id).first()
+        if not result:
+            logger.warning("No result found for fixture %s — skipping weekly model settlement", fixture_id)
+            return 0
+
+        picks = (
+            self.session.query(WeeklyModelPick)
+            .filter_by(fixture_id=fixture_id)
+            .filter(WeeklyModelPick.result_status.in_(("open", "ungraded")))
+            .all()
+        )
+        for pick in picks:
+            status = self._weekly_model_pick_result_status(pick, result)
+            pick.result_status = status
+            pick.profit_units = _profit_units(status, pick.decimal_odds, 1.0)
+            pick.graded_at = datetime.now(timezone.utc)
+
+        self.session.commit()
+        return len(picks)
+
     def _update_performance(self, model_id: int, bet_type: str, correct: bool, roi_delta: float):
         perf = self.session.query(Performance).filter_by(model_id=model_id, bet_type=bet_type).first()
         if not perf:
@@ -446,6 +468,19 @@ class ResultsTracker:
         perf.updated_at = datetime.now(timezone.utc)
 
     def _manual_pick_result_status(self, pick: ManualPick, result: Result) -> str:
+        if pick.market_type == "moneyline":
+            return "win" if pick.selection == result.outcome else "loss"
+        if pick.market_type == "spread":
+            if pick.line is None:
+                return "ungraded"
+            return _spread_result_status(pick.selection, pick.line, result)
+        if pick.market_type == "ou":
+            if pick.line is None:
+                return "ungraded"
+            return _ou_result_status(pick.selection, pick.line, result)
+        return "ungraded"
+
+    def _weekly_model_pick_result_status(self, pick: WeeklyModelPick, result: Result) -> str:
         if pick.market_type == "moneyline":
             return "win" if pick.selection == result.outcome else "loss"
         if pick.market_type == "spread":

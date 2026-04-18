@@ -13,6 +13,7 @@ import type {
   ManualVsModelComparison,
   ManualVsModelSummary,
   FixtureManualComparison,
+  SeasonTrackerResponse,
 } from './types'
 
 const BASE = '/api'
@@ -69,4 +70,6 @@ export const api = {
   compareManualVsModels: () => get<ManualVsModelComparison[]>('/performance/compare/manual-vs-models'),
   compareManualVsModelsSummary: () => get<ManualVsModelSummary[]>('/performance/compare/manual-vs-models/summary'),
   compareFixtures: () => get<FixtureManualComparison[]>('/performance/compare/fixtures'),
+  seasonTracker: (season?: string) =>
+    get<SeasonTrackerResponse>(season ? `/performance/season-tracker?season=${encodeURIComponent(season)}` : '/performance/season-tracker'),
 }

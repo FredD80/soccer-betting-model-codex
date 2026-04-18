@@ -4,17 +4,19 @@ import BacktestsPage from './pages/BacktestsPage'
 import SchedulePage from './pages/SchedulePage'
 import BullySchedulePage from './pages/BullySchedulePage'
 import MyPicks from './pages/MyPicks'
+import SeasonTrackingPage from './pages/SeasonTrackingPage'
 import { api } from './api/client'
 import type { ModelView } from './api/types'
 import { modelViewLabel } from './lib/modelLabels'
 
-type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'my-picks'
+type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'tracking' | 'my-picks'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'week', label: 'Week' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'backtests', label: 'Backtests' },
+  { key: 'tracking', label: 'Tracking' },
   { key: 'my-picks', label: 'My Picks' },
 ]
 
@@ -40,6 +42,7 @@ export default function App() {
     ) :
     tab === 'schedule' ? <SchedulePage /> :
     tab === 'backtests' ? <BacktestsPage /> :
+    tab === 'tracking' ? <SeasonTrackingPage refreshKey={refreshKey} /> :
                       <MyPicks refreshKey={refreshKey} />
 
   return (

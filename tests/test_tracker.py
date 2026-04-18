@@ -4,6 +4,7 @@ from app.db.models import (
     League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result, Performance,
     MoneylinePrediction, SpreadPrediction, OUAnalysis, PredictionOutcome, ManualPick,
     EloFormPrediction,
+    WeeklyModelPick,
 )
 
 
@@ -305,3 +306,39 @@ def test_settle_manual_picks_updates_status_and_profit(db):
     assert by_market["spread"].profit_units == 0.0
     assert by_market["ou"].result_status == "loss"
     assert by_market["ou"].profit_units == -1.0
+
+
+def test_settle_weekly_model_picks_updates_status_and_profit(db):
+    fixture, snap, ml_model, _, _, _ = make_live_fixture(db, espn_id="weekly-model-1")
+    db.add(WeeklyModelPick(
+        season_key="2025-26",
+        week_start=fixture.kickoff_at.date() - timedelta(days=fixture.kickoff_at.date().weekday()),
+        model_view="main",
+        model_label="Alpha",
+        rank=1,
+        fixture_id=fixture.id,
+        model_id=ml_model.id,
+        market_type="moneyline",
+        selection="home",
+        decimal_odds=snap.home_odds,
+        american_odds=-125,
+        result_status="open",
+        created_at=fixture.kickoff_at - timedelta(hours=1),
+    ))
+    db.add(Result(
+        fixture_id=fixture.id,
+        home_score=2,
+        away_score=0,
+        outcome="home",
+        total_goals=2,
+        verified_at=datetime.now(timezone.utc),
+    ))
+    db.flush()
+
+    tracker = ResultsTracker(db)
+    settled = tracker.settle_weekly_model_picks(fixture.id)
+
+    assert settled == 1
+    row = db.query(WeeklyModelPick).filter_by(fixture_id=fixture.id).first()
+    assert row.result_status == "win"
+    assert round(row.profit_units, 4) == round(snap.home_odds - 1.0, 4)

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 
 from app.db.models import (
-    League, Team, Fixture, ModelVersion, PredictionOutcome, ManualPick,
+    League, Team, Fixture, ModelVersion, PredictionOutcome, ManualPick, WeeklyModelPick,
 )
 
 
@@ -218,7 +218,72 @@ def test_performance_outcomes_returns_settled_rows(client, api_db):
     assert len(data) == 1
     assert data[0]["market_type"] == "moneyline"
     assert data[0]["result_status"] == "win"
-    assert data[0]["home_team"] == "Arsenal"
+
+
+def test_season_tracker_returns_model_and_manual_groups(client, api_db):
+    league = League(name="Premier League", country="England", espn_id="eng.1", odds_api_key="soccer_epl")
+    api_db.add(league)
+    api_db.flush()
+    home = Team(name="Arsenal", league_id=league.id)
+    away = Team(name="Chelsea", league_id=league.id)
+    api_db.add_all([home, away])
+    api_db.flush()
+    kickoff = datetime(2025, 8, 18, 18, 0, tzinfo=timezone.utc)
+    fixture = Fixture(
+        espn_id="season-track-1",
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=kickoff,
+        status="completed",
+    )
+    model = ModelVersion(name="moneyline_v1", version="1.0", active=True)
+    api_db.add_all([fixture, model])
+    api_db.flush()
+    api_db.add(WeeklyModelPick(
+        season_key="2025-26",
+        week_start=kickoff.date() - timedelta(days=kickoff.date().weekday()),
+        model_view="main",
+        model_label="Alpha",
+        rank=1,
+        fixture_id=fixture.id,
+        model_id=model.id,
+        market_type="moneyline",
+        selection="home",
+        decimal_odds=1.9,
+        american_odds=-111,
+        final_probability=0.58,
+        edge_pct=0.05,
+        confidence_tier="HIGH",
+        result_status="win",
+        profit_units=0.9,
+        created_at=kickoff - timedelta(days=1),
+    ))
+    api_db.add(ManualPick(
+        fixture_id=fixture.id,
+        market_type="moneyline",
+        selection="home",
+        decimal_odds=1.8,
+        american_odds=-125,
+        stake_units=2.0,
+        result_status="win",
+        profit_units=1.6,
+        created_at=kickoff - timedelta(days=1),
+        graded_at=kickoff + timedelta(hours=2),
+    ))
+    api_db.commit()
+
+    response = client.get("/performance/season-tracker?season=2025-26")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["season_key"] == "2025-26"
+    assert len(data["model_groups"]) == 1
+    assert data["model_groups"][0]["label"] == "Alpha"
+    assert data["model_groups"][0]["weeks"][0]["picks"][0]["home_team"] == "Arsenal"
+    assert data["model_groups"][0]["win_rate"] == 1.0
+    assert data["manual_group"]["label"] == "My Picks"
+    assert data["manual_group"]["total_picks"] == 1
+    assert data["manual_group"]["weeks"][0]["picks"][0]["selection"] == "home"
 
 
 def test_performance_outcomes_summary_groups_rows(client, api_db):

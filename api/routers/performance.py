@@ -1,8 +1,15 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from app.db.models import Performance, ModelVersion, PredictionOutcome, Fixture, League, Team, ManualPick
+from app.db.models import Performance, ModelVersion, PredictionOutcome, Fixture, League, Team, ManualPick, WeeklyModelPick
+from app.season_tracker import (
+    ensure_current_week_model_snapshots,
+    fixture_context_map,
+    grouped_manual_picks_for_season,
+    season_key_for_date,
+    weekly_model_picks_for_season,
+)
 from api.deps import get_session
 from api.schemas import (
     ModelPerformanceResponse,
@@ -15,10 +22,15 @@ from api.schemas import (
     ManualVsModelSummaryResponse,
     FixtureModelTopPickResponse,
     FixtureManualComparisonResponse,
+    SeasonTrackerResponse,
+    SeasonTrackerGroupResponse,
+    SeasonTrackerWeekResponse,
+    SeasonTrackerPickResponse,
 )
 from app.tracker import decimal_to_american
 
 router = APIRouter()
+_MODEL_GROUP_ORDER = {"main": 0, "parallel": 1, "bully": 2}
 
 
 @router.get("", response_model=list[ModelPerformanceResponse])
@@ -500,3 +512,184 @@ def manual_vs_models_by_fixture(
             compared_models=_best_model_picks_for_fixture(session, manual.fixture_id),
         ))
     return response
+
+
+def _season_pick_stats(rows, *, stake_getter) -> dict[str, float | int]:
+    total = len(rows)
+    settled_rows = [row for row in rows if row.result_status in {"win", "loss", "push"}]
+    wins = sum(1 for row in settled_rows if row.result_status == "win")
+    losses = sum(1 for row in settled_rows if row.result_status == "loss")
+    pushes = sum(1 for row in settled_rows if row.result_status == "push")
+    settled = wins + losses + pushes
+    profit_sum = sum((row.profit_units or 0.0) for row in settled_rows)
+    stake_sum = sum(stake_getter(row) for row in settled_rows)
+    return {
+        "total": total,
+        "settled": settled,
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "win_rate": (wins / (wins + losses)) if (wins + losses) else 0.0,
+        "roi": (profit_sum / stake_sum) if stake_sum else 0.0,
+    }
+
+
+def _weekly_model_pick_response(row: WeeklyModelPick, context: dict[str, object]) -> SeasonTrackerPickResponse:
+    return SeasonTrackerPickResponse(
+        id=row.id,
+        fixture_id=row.fixture_id,
+        home_team=str(context.get("home_team", "Unknown")),
+        away_team=str(context.get("away_team", "Unknown")),
+        league=str(context.get("league", "Unknown")),
+        kickoff_at=context.get("kickoff_at", datetime.now(timezone.utc)),
+        rank=row.rank,
+        market_type=row.market_type,
+        selection=row.selection,
+        line=row.line,
+        decimal_odds=row.decimal_odds,
+        american_odds=row.american_odds,
+        model_probability=row.model_probability,
+        final_probability=row.final_probability,
+        edge_pct=row.edge_pct,
+        confidence_tier=row.confidence_tier,
+        result_status=row.result_status,
+        profit_units=row.profit_units,
+        created_at=row.created_at,
+    )
+
+
+def _manual_season_pick_response(row: ManualPick, context: dict[str, object]) -> SeasonTrackerPickResponse:
+    return SeasonTrackerPickResponse(
+        id=row.id,
+        fixture_id=row.fixture_id,
+        home_team=str(context.get("home_team", "Unknown")),
+        away_team=str(context.get("away_team", "Unknown")),
+        league=str(context.get("league", "Unknown")),
+        kickoff_at=context.get("kickoff_at", datetime.now(timezone.utc)),
+        rank=None,
+        market_type=row.market_type,
+        selection=row.selection,
+        line=row.line,
+        decimal_odds=row.decimal_odds,
+        american_odds=row.american_odds,
+        model_probability=None,
+        final_probability=None,
+        edge_pct=None,
+        confidence_tier=None,
+        result_status=row.result_status,
+        profit_units=row.profit_units,
+        created_at=row.created_at,
+    )
+
+
+@router.get("/season-tracker", response_model=SeasonTrackerResponse)
+def season_tracker(
+    season: str | None = None,
+    session: Session = Depends(get_session),
+):
+    current_season = season_key_for_date(datetime.now(timezone.utc).date())
+    season_key = season or current_season
+    if season_key == current_season:
+        ensure_current_week_model_snapshots(session)
+
+    model_rows = weekly_model_picks_for_season(session, season_key=season_key)
+    manual_grouped = grouped_manual_picks_for_season(session, season_key=season_key)
+    fixture_ids = {row.fixture_id for row in model_rows}
+    for picks in manual_grouped.values():
+        fixture_ids.update(pick.fixture_id for pick in picks)
+    contexts = fixture_context_map(session, fixture_ids)
+
+    groups: list[SeasonTrackerGroupResponse] = []
+    grouped_models: dict[str, list[WeeklyModelPick]] = {}
+    for row in model_rows:
+        grouped_models.setdefault(row.model_view, []).append(row)
+
+    available_weeks = sorted(
+        {row.week_start for row in model_rows} | set(manual_grouped.keys()),
+        reverse=True,
+    )
+
+    for model_view, rows in sorted(grouped_models.items(), key=lambda item: _MODEL_GROUP_ORDER.get(item[0], 99)):
+        rows_by_week: dict[date, list[WeeklyModelPick]] = {}
+        for row in rows:
+            rows_by_week.setdefault(row.week_start, []).append(row)
+
+        week_blocks: list[SeasonTrackerWeekResponse] = []
+        for week_start, week_rows in sorted(rows_by_week.items(), key=lambda item: item[0], reverse=True):
+            stats = _season_pick_stats(week_rows, stake_getter=lambda _: 1.0)
+            week_blocks.append(
+                SeasonTrackerWeekResponse(
+                    week_start=week_start,
+                    total_picks=stats["total"],
+                    settled_count=stats["settled"],
+                    wins=stats["wins"],
+                    losses=stats["losses"],
+                    pushes=stats["pushes"],
+                    win_rate=stats["win_rate"],
+                    roi=stats["roi"],
+                    picks=[
+                        _weekly_model_pick_response(row, contexts.get(row.fixture_id, {}))
+                        for row in sorted(week_rows, key=lambda item: item.rank)
+                    ],
+                )
+            )
+
+        stats = _season_pick_stats(rows, stake_getter=lambda _: 1.0)
+        groups.append(
+            SeasonTrackerGroupResponse(
+                key=model_view,
+                label=rows[0].model_label if rows else model_view,
+                group_type="model",
+                total_picks=stats["total"],
+                settled_count=stats["settled"],
+                wins=stats["wins"],
+                losses=stats["losses"],
+                pushes=stats["pushes"],
+                win_rate=stats["win_rate"],
+                roi=stats["roi"],
+                weeks=week_blocks,
+            )
+        )
+
+    manual_rows = [pick for week_rows in manual_grouped.values() for pick in week_rows]
+    manual_weeks: list[SeasonTrackerWeekResponse] = []
+    for week_start, week_rows in sorted(manual_grouped.items(), key=lambda item: item[0], reverse=True):
+        stats = _season_pick_stats(week_rows, stake_getter=lambda row: row.stake_units or 0.0)
+        manual_weeks.append(
+            SeasonTrackerWeekResponse(
+                week_start=week_start,
+                total_picks=stats["total"],
+                settled_count=stats["settled"],
+                wins=stats["wins"],
+                losses=stats["losses"],
+                pushes=stats["pushes"],
+                win_rate=stats["win_rate"],
+                roi=stats["roi"],
+                picks=[
+                    _manual_season_pick_response(row, contexts.get(row.fixture_id, {}))
+                    for row in week_rows
+                ],
+            )
+        )
+
+    manual_stats = _season_pick_stats(manual_rows, stake_getter=lambda row: row.stake_units or 0.0)
+    manual_group = SeasonTrackerGroupResponse(
+        key="manual",
+        label="My Picks",
+        group_type="manual",
+        total_picks=manual_stats["total"],
+        settled_count=manual_stats["settled"],
+        wins=manual_stats["wins"],
+        losses=manual_stats["losses"],
+        pushes=manual_stats["pushes"],
+        win_rate=manual_stats["win_rate"],
+        roi=manual_stats["roi"],
+        weeks=manual_weeks,
+    )
+
+    return SeasonTrackerResponse(
+        season_key=season_key,
+        available_weeks=available_weeks,
+        model_groups=groups,
+        manual_group=manual_group,
+    )

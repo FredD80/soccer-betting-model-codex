@@ -240,6 +240,61 @@ class ManualPickSummaryResponse(BaseModel):
     roi: float
 
 
+class SeasonTrackerPickResponse(BaseModel):
+    id: int
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    kickoff_at: datetime
+    rank: int | None = None
+    market_type: str
+    selection: str
+    line: float | None = None
+    decimal_odds: float | None = None
+    american_odds: int | None = None
+    model_probability: float | None = None
+    final_probability: float | None = None
+    edge_pct: float | None = None
+    confidence_tier: str | None = None
+    result_status: str
+    profit_units: float | None = None
+    created_at: datetime | None = None
+
+
+class SeasonTrackerWeekResponse(BaseModel):
+    week_start: date
+    total_picks: int
+    settled_count: int
+    wins: int
+    losses: int
+    pushes: int
+    win_rate: float
+    roi: float
+    picks: list[SeasonTrackerPickResponse]
+
+
+class SeasonTrackerGroupResponse(BaseModel):
+    key: str
+    label: str
+    group_type: str
+    total_picks: int
+    settled_count: int
+    wins: int
+    losses: int
+    pushes: int
+    win_rate: float
+    roi: float
+    weeks: list[SeasonTrackerWeekResponse]
+
+
+class SeasonTrackerResponse(BaseModel):
+    season_key: str
+    available_weeks: list[date]
+    model_groups: list[SeasonTrackerGroupResponse]
+    manual_group: SeasonTrackerGroupResponse
+
+
 class ManualVsModelComparisonResponse(BaseModel):
     fixture_id: int
     home_team: str

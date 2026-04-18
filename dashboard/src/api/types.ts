@@ -259,6 +259,61 @@ export interface FixtureManualComparison {
   compared_models: FixtureModelTopPick[]
 }
 
+export interface SeasonTrackerPick {
+  id: number
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  kickoff_at: string
+  rank: number | null
+  market_type: string
+  selection: string
+  line: number | null
+  decimal_odds: number | null
+  american_odds: number | null
+  model_probability: number | null
+  final_probability: number | null
+  edge_pct: number | null
+  confidence_tier: string | null
+  result_status: string
+  profit_units: number | null
+  created_at: string | null
+}
+
+export interface SeasonTrackerWeek {
+  week_start: string
+  total_picks: number
+  settled_count: number
+  wins: number
+  losses: number
+  pushes: number
+  win_rate: number
+  roi: number
+  picks: SeasonTrackerPick[]
+}
+
+export interface SeasonTrackerGroup {
+  key: string
+  label: string
+  group_type: string
+  total_picks: number
+  settled_count: number
+  wins: number
+  losses: number
+  pushes: number
+  win_rate: number
+  roi: number
+  weeks: SeasonTrackerWeek[]
+}
+
+export interface SeasonTrackerResponse {
+  season_key: string
+  available_weeks: string[]
+  model_groups: SeasonTrackerGroup[]
+  manual_group: SeasonTrackerGroup
+}
+
 export interface BacktestRun {
   market: 'spread' | 'ou' | 'moneyline' | 'bully'
   model_id: number

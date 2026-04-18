@@ -89,6 +89,7 @@ def track_results_job():
                     )
                     tracker.evaluate_predictions(db_fixture.id)
                 tracker.settle_live_predictions(db_fixture.id)
+                tracker.settle_weekly_model_picks(db_fixture.id)
                 tracker.settle_manual_picks(db_fixture.id)
         log.status = "success"
     except Exception as e:
@@ -223,6 +224,26 @@ def elo_bully_predict_job():
         log.status = "error"
         log.error = str(e)
         logger.exception("elo_bully_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
+def weekly_model_snapshot_job():
+    session = get_session()
+    log = SchedulerLog(job_name="weekly_model_snapshot", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.season_tracker import ensure_current_week_model_snapshots
+
+        ensure_current_week_model_snapshots(session)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("weekly_model_snapshot_job failed")
     finally:
         log.completed_at = datetime.now(timezone.utc)
         session.commit()
@@ -370,6 +391,10 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         elo_bully_predict_job, IntervalTrigger(minutes=30),
         id="elo_bully_predict", replace_existing=True
+    )
+    scheduler.add_job(
+        weekly_model_snapshot_job, IntervalTrigger(hours=6),
+        id="weekly_model_snapshot", replace_existing=True
     )
     scheduler.add_job(
         parallel_spread_predict_job, IntervalTrigger(minutes=30),
