@@ -125,18 +125,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_36%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] text-slate-100">
-      <header className="border-b border-slate-800/80 bg-slate-950/70 px-4 py-4 backdrop-blur">
+      <header className="border-b border-slate-800/80 bg-slate-950/70 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
         <div className="mx-auto max-w-5xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">Soccer Betting Model</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-wide">Picks, Tracking, and Head-to-Head Review</h1>
-          <p className={`mt-2 text-xs ${freshnessClass}`}>
+          <h1 className="mt-1 text-lg font-semibold tracking-wide sm:text-xl">Picks, Tracking, and Head-to-Head Review</h1>
+          <p className={`mt-2 text-[11px] sm:text-xs ${freshnessClass}`}>
             Updated picks {formatStatusTime(status?.latest_prediction_at)} · odds {formatStatusTime(status?.latest_odds_at)} · results {formatStatusTime(status?.latest_result_at)}
           </p>
-          <nav className="mt-3 flex flex-wrap gap-2 text-sm">
+          <nav className="mt-3 flex flex-wrap gap-2 text-xs sm:text-sm">
             <Link
               to={tabHref('today')}
               className={
-                'rounded-full border px-3 py-1.5 transition ' +
+                'rounded-full border px-2.5 py-1 transition sm:px-3 sm:py-1.5 ' +
                 (showingScheduleSection
                   ? 'border-emerald-400 bg-emerald-400 text-slate-950'
                   : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
@@ -147,7 +147,7 @@ export default function App() {
             <NavLink
               to={tabHref('backtests')}
               className={({ isActive }) =>
-                'rounded-full border px-3 py-1.5 transition ' +
+                'rounded-full border px-2.5 py-1 transition sm:px-3 sm:py-1.5 ' +
                 (isActive
                   ? 'border-emerald-400 bg-emerald-400 text-slate-950'
                   : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
@@ -158,7 +158,7 @@ export default function App() {
             <NavLink
               to={tabHref('tracking')}
               className={({ isActive }) =>
-                'rounded-full border px-3 py-1.5 transition ' +
+                'rounded-full border px-2.5 py-1 transition sm:px-3 sm:py-1.5 ' +
                 (isActive
                   ? 'border-emerald-400 bg-emerald-400 text-slate-950'
                   : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200')
@@ -168,11 +168,14 @@ export default function App() {
             </NavLink>
           </nav>
           {showingScheduleSection && (
-            <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-4">
+            <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3 sm:p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-300/80">Schedule</p>
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 text-xs text-slate-400 sm:hidden">
+                    Daily, weekly, and full season slate.
+                  </p>
+                  <p className="mt-2 hidden text-sm text-slate-400 sm:block">
                     Switch between the daily board, the weekly board, and the full season slate.
                   </p>
                 </div>
@@ -196,7 +199,7 @@ export default function App() {
             </div>
           )}
         {showingPickTabs && (
-          <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-4">
+          <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3 sm:p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400">
@@ -205,7 +208,10 @@ export default function App() {
                     {modelViewLabel(modelView)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-xs text-slate-400 sm:hidden">
+                  {modelViewLabel(modelView)} board
+                </p>
+                <p className="mt-2 hidden text-sm text-slate-400 sm:block">
                   {modelViewDescription(modelView)}
                 </p>
               </div>

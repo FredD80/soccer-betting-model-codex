@@ -171,7 +171,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
   return (
     <section className="space-y-4">
       <div className="space-y-2">
-        <div className="rounded-2xl border border-amber-500/30 bg-slate-950/55 p-4">
+        <div className="rounded-2xl border border-amber-500/30 bg-slate-950/55 p-3 sm:p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -182,7 +182,10 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
                   {label}
                 </h2>
               </div>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-xs text-slate-400 sm:hidden">
+                Elo mismatch board ranked by SGP Lens.
+              </p>
+              <p className="mt-2 hidden text-sm text-slate-400 sm:block">
                 Strength-gap spots first. Elo sets the baseline, then recent xG form adjusts the split. Use the SGP Lens to rank for your favorite-plus-2-goals style without hard-filtering games out.
               </p>
             </div>
@@ -244,10 +247,13 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-3 py-3 sm:px-4">
         <div className="space-y-1">
           <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">xG Overlay</div>
-          <p className="text-sm text-slate-300">
+          <p className="text-xs text-slate-300 sm:hidden">
+            League-scaled view-only filter.
+          </p>
+          <p className="hidden text-sm text-slate-300 sm:block">
             View-only filter using league-scaled projected xG-delta thresholds. Turn it off to see pure Elo-gap bully spots.
           </p>
         </div>

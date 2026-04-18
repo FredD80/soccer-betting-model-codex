@@ -41,7 +41,7 @@ export default function PicksList({ label, fetcher, modelView, refreshKey = 0, e
 
   return (
     <div className="space-y-3">
-      <div className={`rounded-2xl border bg-slate-950/55 p-4 ${presentation.accentBorder}`}>
+      <div className={`rounded-2xl border bg-slate-950/55 p-3 sm:p-4 ${presentation.accentBorder}`}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +52,10 @@ export default function PicksList({ label, fetcher, modelView, refreshKey = 0, e
                 {label} · {modelViewLabel(modelView)} — {picks.length} fixture{picks.length !== 1 ? 's' : ''}
               </h2>
             </div>
-            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+            <p className="mt-2 text-xs text-slate-400 sm:hidden">
+              {picks.length} fixtures sorted by confidence.
+            </p>
+            <p className="mt-2 hidden max-w-2xl text-sm text-slate-400 sm:block">
               {modelViewDescription(modelView)} Elite and high-confidence fixtures are surfaced first so the board stays actionable.
             </p>
           </div>
