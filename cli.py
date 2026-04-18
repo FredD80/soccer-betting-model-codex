@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import click
 from app.db.connection import get_session
 from app.db.models import Base
@@ -19,6 +21,14 @@ MODEL_CLASSES = []  # e.g. [MyModelV1, MyModelV2]
 @click.group()
 def cli():
     """Soccer Betting Model CLI"""
+
+
+def _parse_utc_date_start(value: str) -> datetime:
+    return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+
+
+def _parse_utc_date_end(value: str) -> datetime:
+    return _parse_utc_date_start(value) + timedelta(days=1) - timedelta(microseconds=1)
 
 
 @cli.command()
@@ -502,6 +512,66 @@ def compare_manual_picks():
             my_roi = (bucket["manual_profit"] / bucket["manual_stake"]) if bucket["manual_stake"] else 0.0
             model_roi = (bucket["model_profit"] / compared) if compared else 0.0
             click.echo(f"{name:<20} {version:<10} {market:<12} {league:<20} {compared:>5} {my_roi:>8.3f} {model_roi:>10.3f}")
+    finally:
+        session.close()
+
+
+@cli.command()
+@click.option("--from-date", required=True, help="Start date YYYY-MM-DD")
+@click.option("--to-date", default=None, help="End date YYYY-MM-DD")
+@click.option("--limit", type=int, default=None, help="Stop after collecting this many bully spots")
+@click.option("--max-checked", type=int, default=None, help="Stop after checking this many completed fixtures")
+def analyze_bully_sgp(from_date: str, to_date: str | None, limit: int | None, max_checked: int | None):
+    """Replay completed Bully spots and print SGP Lens band/threshold hit rates."""
+    from app.sgp_analysis import (
+        replay_bully_sgp_rows,
+        summarize_sgp_bands,
+        summarize_sgp_thresholds,
+    )
+
+    date_from = _parse_utc_date_start(from_date)
+    date_to = (
+        _parse_utc_date_end(to_date)
+        if to_date
+        else datetime.now(timezone.utc)
+    )
+
+    session = get_session()
+    try:
+        rows = replay_bully_sgp_rows(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            max_checked=max_checked,
+            enable_understat_fetch=False,
+        )
+        if not rows:
+            click.echo("No completed bully spots found in the requested window.")
+            return
+
+        overall_win_rate = sum(1.0 if row.favorite_win else 0.0 for row in rows) / len(rows)
+        overall_sgp_rate = sum(1.0 if row.sgp_hit else 0.0 for row in rows) / len(rows)
+        click.echo(
+            f"Replayed {len(rows)} bully spots from {date_from.date()} to {date_to.date()} "
+            f"(win {overall_win_rate:.1%}, SGP {overall_sgp_rate:.1%})."
+        )
+
+        click.echo("\nBands")
+        click.echo(f"{'Range':<14} {'Total':>6} {'Win':>8} {'SGP':>8}")
+        click.echo("-" * 40)
+        for summary in summarize_sgp_bands(rows):
+            win_text = "—" if summary.win_rate is None else f"{summary.win_rate:.1%}"
+            sgp_text = "—" if summary.sgp_hit_rate is None else f"{summary.sgp_hit_rate:.1%}"
+            click.echo(f"{summary.low:>4.2f}-{summary.high:<7.2f} {summary.total:>6} {win_text:>8} {sgp_text:>8}")
+
+        click.echo("\nThresholds")
+        click.echo(f"{'SGP >=':<14} {'Total':>6} {'Win':>8} {'SGP':>8}")
+        click.echo("-" * 40)
+        for summary in summarize_sgp_thresholds(rows):
+            win_text = "—" if summary.win_rate is None else f"{summary.win_rate:.1%}"
+            sgp_text = "—" if summary.sgp_hit_rate is None else f"{summary.sgp_hit_rate:.1%}"
+            click.echo(f"{summary.threshold:>4.2f}{'':<8} {summary.total:>6} {win_text:>8} {sgp_text:>8}")
     finally:
         session.close()
 
