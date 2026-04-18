@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { api } from '../api/client'
 import type { BullyScheduleFixture, FixturePick, MoneylinePick, SeasonTrackerResponse } from '../api/types'
@@ -190,6 +190,116 @@ function SummaryStat({ label, value, accent }: { label: string; value: string; a
       <p className="stat-label">{label}</p>
       <p className={`mt-1 font-mono text-lg ${accent ?? 'text-ink-0'}`}>{value}</p>
     </div>
+  )
+}
+
+function railDotClass(tone: 'bully' | 'best' | 'main' | 'parallel'): string {
+  if (tone === 'bully') return 'bg-bully shadow-[0_0_12px_rgba(224,181,78,0.4)]'
+  if (tone === 'best') return 'bg-win shadow-[0_0_12px_rgba(94,193,117,0.25)]'
+  if (tone === 'main') return 'bg-edge shadow-[0_0_12px_rgba(97,181,255,0.25)]'
+  return 'bg-ink-3'
+}
+
+function railLinkClass(active: boolean): string {
+  return (
+    'flex items-center justify-between gap-3 rounded-[12px] border px-3 py-2.5 text-sm transition-colors ' +
+    (active
+      ? 'border-bully/35 bg-bully/12 text-bully'
+      : 'border-transparent text-ink-1 hover:border-line-1 hover:bg-bg-3/70 hover:text-ink-0')
+  )
+}
+
+function LeftRailSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <p className="eyebrow">{title}</p>
+      <div className="mt-3 space-y-1.5">{children}</div>
+    </div>
+  )
+}
+
+function LeftRailLink({
+  to,
+  label,
+  count,
+  active,
+  tone,
+}: {
+  to: string
+  label: string
+  count?: string
+  active?: boolean
+  tone?: 'bully' | 'best' | 'main' | 'parallel'
+}) {
+  return (
+    <Link to={to} className={railLinkClass(Boolean(active))}>
+      <span className="flex min-w-0 items-center gap-2.5">
+        {tone && <span className={`h-2 w-2 shrink-0 rounded-full ${railDotClass(tone)}`} />}
+        <span className="truncate">{label}</span>
+      </span>
+      {count && <span className="font-mono text-xs text-ink-3">{count}</span>}
+    </Link>
+  )
+}
+
+function LeftRail({
+  days,
+  fixtureCount,
+  bullyCount,
+  leagueCount,
+}: {
+  days?: number
+  fixtureCount: number
+  bullyCount: number
+  leagueCount: number
+}) {
+  const location = useLocation()
+  const pickPath = days === 7 ? '/week' : '/today'
+  const currentPath = location.pathname
+
+  return (
+    <aside className="hidden xl:block">
+      <div className="sticky top-[118px] space-y-4">
+        <div className="card bg-[linear-gradient(180deg,rgba(24,34,53,0.94),rgba(10,16,28,0.98))]">
+          <LeftRailSection title="Views">
+            <LeftRailLink to={`${pickPath}?view=bully`} label="Bully Board" count={String(fixtureCount)} active tone="bully" />
+            <LeftRailLink to={`${pickPath}?view=best`} label="Best" tone="best" />
+            <LeftRailLink to={`${pickPath}?view=main`} label="Main" tone="main" />
+            <LeftRailLink to={`${pickPath}?view=parallel`} label="Parallel" tone="parallel" />
+          </LeftRailSection>
+
+          <div className="my-4 border-t border-line-1/80" />
+
+          <LeftRailSection title="Window">
+            <LeftRailLink to="/today?view=bully" label="Today" count={days === 1 ? String(fixtureCount) : undefined} active={days === 1} />
+            <LeftRailLink to="/week?view=bully" label="This Week" count={days === 7 ? String(fixtureCount) : undefined} active={days === 7} />
+            <LeftRailLink to="/schedule" label="Season" active={currentPath === '/schedule'} />
+          </LeftRailSection>
+
+          <div className="my-4 border-t border-line-1/80" />
+
+          <LeftRailSection title="Tools">
+            <LeftRailLink to="/backtests" label="Backtests" active={currentPath === '/backtests'} />
+            <LeftRailLink to="/tracking" label="Season Tracker" active={currentPath === '/tracking'} />
+          </LeftRailSection>
+        </div>
+
+        <div className="card">
+          <p className="eyebrow text-bully">Board Snapshot</p>
+          <div className="mt-3 grid gap-3">
+            <SummaryStat label="Live Fixtures" value={String(fixtureCount)} />
+            <SummaryStat label="Bully Spots" value={String(bullyCount)} accent="text-bully" />
+            <SummaryStat label="Leagues" value={String(leagueCount)} />
+          </div>
+        </div>
+      </div>
+    </aside>
   )
 }
 
@@ -428,7 +538,14 @@ export default function BullyBoardPage({ label = 'Bully Board', days, refreshKey
   if (!hero) return <div className="card text-ink-2">No Elo bully model games are available yet.</div>
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+      <LeftRail
+        days={days}
+        fixtureCount={visibleFixtures.length}
+        bullyCount={bullyCount}
+        leagueCount={leagueCounts.length}
+      />
+
       <div className="min-w-0 space-y-4">
         <div className="card bg-[linear-gradient(180deg,rgba(224,181,78,0.12),rgba(14,21,36,0.96))]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -456,13 +573,6 @@ export default function BullyBoardPage({ label = 'Bully Board', days, refreshKey
 
         <div className="card">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="filter-label">Window</span>
-              <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
-              <Link to="/week?view=bully" className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
-              <Link to="/schedule" className="pill">Season</Link>
-            </div>
-
             <div className="flex flex-wrap items-center gap-2">
               <span className="filter-label">League</span>
               <button type="button" onClick={() => setLeagueTab('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
