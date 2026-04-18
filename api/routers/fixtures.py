@@ -112,8 +112,6 @@ def fixture_schedule(session: Session = Depends(get_session), days: int | None =
     league_ids = {fixture.league_id for fixture in fixtures}
     teams = {team.id: team.name for team in session.query(Team).filter(Team.id.in_(team_ids)).all()} if team_ids else {}
     leagues = {league.id: league.name for league in session.query(League).filter(League.id.in_(league_ids)).all()} if league_ids else {}
-    league_espn_ids = {league.id: league.espn_id for league in session.query(League).filter(League.id.in_(league_ids)).all()} if league_ids else {}
-    league_espn_ids = {league.id: league.espn_id for league in session.query(League).filter(League.id.in_(league_ids)).all()} if league_ids else {}
 
     response: list[ScheduledFixtureResponse] = []
     for fixture in fixtures:

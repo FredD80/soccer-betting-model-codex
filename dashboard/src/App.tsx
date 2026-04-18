@@ -39,7 +39,32 @@ function parseModelView(value: string | null): ModelView {
 
 function formatStatusTime(value: string | null | undefined): string {
   if (!value) return '—'
-  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const timestamp = new Date(value)
+  const ageMs = Date.now() - timestamp.getTime()
+  if (!Number.isFinite(ageMs) || ageMs < 0) {
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const ageMinutes = Math.floor(ageMs / 60000)
+  if (ageMinutes < 1) return 'just now'
+  if (ageMinutes < 60) return `${ageMinutes}m ago`
+
+  const ageHours = Math.floor(ageMinutes / 60)
+  if (ageHours < 24) return `${ageHours}h ago`
+
+  const ageDays = Math.floor(ageHours / 24)
+  return ageDays === 1 ? 'yesterday' : `${ageDays}d ago`
+}
+
+function freshnessTone(value: string | null | undefined): string {
+  if (!value) return 'text-rose-400'
+  const ageMs = Date.now() - new Date(value).getTime()
+  if (!Number.isFinite(ageMs) || ageMs < 0) return 'text-slate-500'
+
+  const ageMinutes = ageMs / 60000
+  if (ageMinutes > 120) return 'text-rose-400'
+  if (ageMinutes > 30) return 'text-amber-300'
+  return 'text-slate-500'
 }
 
 export default function App() {
@@ -67,6 +92,7 @@ export default function App() {
   const showingScheduleSection = tab === 'today' || tab === 'week' || tab === 'schedule'
   const showingPickTabs = tab === 'today' || tab === 'week'
   const showingBullyModel = showingPickTabs && modelView === 'bully'
+  const freshnessClass = freshnessTone(status?.latest_prediction_at)
   const tabHref = (nextTab: Tab) => {
     const params = new URLSearchParams()
     if ((nextTab === 'today' || nextTab === 'week') && modelView !== 'best') {
@@ -103,7 +129,7 @@ export default function App() {
         <div className="mx-auto max-w-5xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">Soccer Betting Model</p>
           <h1 className="mt-1 text-xl font-semibold tracking-wide">Picks, Tracking, and Head-to-Head Review</h1>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className={`mt-2 text-xs ${freshnessClass}`}>
             Updated picks {formatStatusTime(status?.latest_prediction_at)} · odds {formatStatusTime(status?.latest_odds_at)} · results {formatStatusTime(status?.latest_result_at)}
           </p>
           <nav className="mt-3 flex flex-wrap gap-2 text-sm">
