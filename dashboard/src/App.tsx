@@ -118,12 +118,12 @@ export default function App() {
   const body =
     tab === 'today' ? (
       showingBullyModel
-        ? <BullyBoardPage label="Today’s Bully Board" days={1} refreshKey={refreshKey} onManualSaved={handleManualSaved} />
+        ? <BullyBoardPage label="Today’s Bully Board" days={1} refreshKey={refreshKey} onManualSaved={handleManualSaved} status={status} />
         : <PicksList label="Today's Picks" fetcher={api.picksToday} modelView={modelView} refreshKey={refreshKey} emptyText="No HIGH or ELITE picks today." onManualSaved={handleManualSaved} />
     ) :
     tab === 'week' ? (
       showingBullyModel
-        ? <BullyBoardPage label="This Week’s Bully Board" days={7} refreshKey={refreshKey} onManualSaved={handleManualSaved} />
+        ? <BullyBoardPage label="This Week’s Bully Board" days={7} refreshKey={refreshKey} onManualSaved={handleManualSaved} status={status} />
         : <PicksList label="This Week" fetcher={api.picksWeek} modelView={modelView} refreshKey={refreshKey} emptyText="No HIGH or ELITE picks this week." onManualSaved={handleManualSaved} />
     ) :
     tab === 'schedule' ? <SchedulePage refreshKey={refreshKey} /> :
