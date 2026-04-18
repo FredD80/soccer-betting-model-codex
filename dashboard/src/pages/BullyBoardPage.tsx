@@ -327,8 +327,8 @@ function LeftRail({
   const currentPath = location.pathname
 
   return (
-    <aside className="hidden xl:block">
-      <div className="sticky top-[118px] space-y-4">
+    <aside>
+      <div className="space-y-4 xl:sticky xl:top-[118px]">
         <div className="card">
           <LeftRailSection title="Views">
             <LeftRailLink to={`${pickPath}?view=bully`} label="Bully Board" count={String(fixtureCount)} active tone="bully" />
