@@ -15,7 +15,7 @@ export function modelViewLabel(modelView: ModelView): string {
   if (modelView === 'bully') return 'Bully-Model'
   if (modelView === 'main') return 'Alpha'
   if (modelView === 'parallel') return 'Market-Edge'
-  return 'Best'
+  return 'Combined'
 }
 
 export function modelPresentationForView(modelView: ModelView): ModelPresentation {
@@ -44,7 +44,7 @@ export function modelPresentationForView(modelView: ModelView): ModelPresentatio
     }
   }
   return {
-    badge: 'Best Board',
+    badge: 'Combined',
     accentBorder: 'border-violet-500/30',
     accentBg: 'bg-violet-500/10',
     accentText: 'text-violet-200',
@@ -75,5 +75,5 @@ export function modelViewDescription(modelView: ModelView): string {
   if (modelView === 'bully') return 'Elo-first dominance board focused on strong-vs-weak mismatches.'
   if (modelView === 'main') return 'Primary model stack balancing probability, price, and confidence.'
   if (modelView === 'parallel') return 'Market-sensitive alternative view built to disagree when pricing shifts.'
-  return 'Best available board across model views.'
+  return 'Combined board showing the strongest available angles across model views.'
 }

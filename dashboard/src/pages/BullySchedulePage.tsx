@@ -144,18 +144,17 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
   const [fixtures, setFixtures] = useState<BullyScheduleFixture[]>([])
   const [leagueTab, setLeagueTab] = useState<LeagueTab>('all')
   const [sortKey, setSortKey] = useState<BullySortKey>('composite')
-  const [useXgOverlay, setUseXgOverlay] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
     setError(null)
-    api.bullySchedule(days, useXgOverlay)
+    api.bullySchedule(days, true)
       .then(setFixtures)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [days, useXgOverlay, refreshKey])
+  }, [days, refreshKey])
 
   if (loading) return <p className="text-gray-400">Loading bully model schedule…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>
@@ -167,6 +166,10 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
     : fixtures.filter(fixture => fixture.league === leagueTab)
   const visibleFixtures = sortFixtures(filteredFixtures, sortKey)
   const highlighted = visibleFixtures.filter(fixture => fixture.is_bully_spot).slice(0, 3)
+  const highlightIds = new Set(highlighted.map(fixture => fixture.fixture_id))
+  const listedFixtures = highlighted.length > 0
+    ? visibleFixtures.filter(fixture => !highlightIds.has(fixture.fixture_id))
+    : visibleFixtures
 
   return (
     <section className="space-y-4">
@@ -247,45 +250,6 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-3 py-2.5 sm:px-4">
-        <div className="space-y-1">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">xG Overlay</div>
-          <p className="text-[11px] text-slate-400 sm:hidden">
-            League-scaled view-only filter.
-          </p>
-          <p className="hidden text-xs text-slate-400 sm:block">
-            View-only filter using league-scaled projected xG-delta thresholds.
-          </p>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={useXgOverlay}
-          onClick={() => setUseXgOverlay(current => !current)}
-          className={
-            'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] transition ' +
-            (useXgOverlay
-              ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-300'
-              : 'border-slate-700 bg-slate-900 text-slate-300')
-          }
-        >
-          <span
-            className={
-              'relative h-4 w-8 rounded-full transition ' +
-              (useXgOverlay ? 'bg-emerald-500/70' : 'bg-slate-700')
-            }
-          >
-            <span
-              className={
-                'absolute top-0.5 h-3 w-3 rounded-full bg-white transition ' +
-                (useXgOverlay ? 'left-[17px]' : 'left-0.5')
-              }
-            />
-          </span>
-          <span>{useXgOverlay ? 'On' : 'Off'}</span>
-        </button>
-      </div>
-
       {highlighted.length > 0 && (
         <div className="grid gap-3 md:grid-cols-3">
           {highlighted.map(fixture => (
@@ -341,7 +305,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
         </div>
       )}
 
-      {visibleFixtures.map(fixture => (
+      {listedFixtures.map(fixture => (
         <article key={fixture.fixture_id} className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 sm:p-4">
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
             <div>

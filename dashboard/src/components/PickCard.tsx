@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
 import type { FixturePick, SpreadPick, OUPick, MoneylinePick, ModelView } from '../api/types'
 import ConfidenceBadge from './ConfidenceBadge'
@@ -196,7 +195,8 @@ export default function PickCard({ pick, modelView, onManualSaved }: Props) {
 
   rows.sort((a, b) => b.score - a.score)
   const primaryAngle = rows[0]?.summary ?? null
-  const additionalAngles = rows.slice(1).map(row => row.summary)
+  const supportingRows = primaryAngle ? rows.slice(1) : rows
+  const additionalAngles = supportingRows.map(row => row.summary)
 
   return (
     <div className={`rounded-2xl border bg-slate-900/90 p-4 space-y-4 shadow-[0_18px_60px_rgba(2,6,23,0.35)] ${presentation.accentBorder}`}>
@@ -250,11 +250,11 @@ export default function PickCard({ pick, modelView, onManualSaved }: Props) {
         </div>
       )}
 
-      {rows.length > 0 && (
+      {supportingRows.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-              {rows.length > 1 ? 'Additional Angles' : 'Supporting Detail'}
+              Additional Angles
             </p>
             {additionalAngles.length > 0 && (
               <div className="hidden items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-slate-500 sm:flex">
@@ -267,7 +267,7 @@ export default function PickCard({ pick, modelView, onManualSaved }: Props) {
             )}
           </div>
           <div className="space-y-3">
-            {rows.map(row => (
+            {supportingRows.map(row => (
               <div key={row.key} className="rounded-xl border border-slate-800 bg-slate-950/65 p-3">
                 {row.node}
               </div>
@@ -279,21 +279,6 @@ export default function PickCard({ pick, modelView, onManualSaved }: Props) {
       {!hasAnyPick && (
         <p className="text-sm text-slate-500">No model pick is available for this fixture yet.</p>
       )}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
-        <p className="text-xs text-slate-400">
-          Like this spot? Track your ticket now, then review it later in tracking.
-        </p>
-        <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
-          <Link
-            to="/tracking"
-            className={`rounded-full border px-3 py-1 transition ${presentation.accentBorder} ${presentation.accentText}`}
-          >
-            Tracking
-          </Link>
-        </div>
-      </div>
-
       <ManualPickForm pick={pick} onSaved={onManualSaved} />
     </div>
   )
