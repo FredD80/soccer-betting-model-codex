@@ -187,9 +187,6 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
-              <Link to="/my-picks" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-                My Picks
-              </Link>
               <Link to="/tracking" className="rounded-full border border-amber-500/40 px-3 py-1 text-amber-200 transition hover:bg-amber-500/10">
                 Season Tracker
               </Link>

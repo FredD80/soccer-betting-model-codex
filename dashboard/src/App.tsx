@@ -5,14 +5,13 @@ import PicksList from './pages/PicksList'
 import BacktestsPage from './pages/BacktestsPage'
 import SchedulePage from './pages/SchedulePage'
 import BullySchedulePage from './pages/BullySchedulePage'
-import MyPicks from './pages/MyPicks'
 import SeasonTrackingPage from './pages/SeasonTrackingPage'
 import { api } from './api/client'
 import type { ModelView } from './api/types'
 import { useDashboardAutoRefresh } from './hooks/useDashboardAutoRefresh'
 import { modelPresentationForView, modelViewDescription, modelViewLabel } from './lib/modelLabels'
 
-type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'tracking' | 'my-picks'
+type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'tracking'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'today', label: 'Today' },
@@ -20,7 +19,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'schedule', label: 'Schedule' },
   { key: 'backtests', label: 'Backtests' },
   { key: 'tracking', label: 'Tracking' },
-  { key: 'my-picks', label: 'My Picks' },
 ]
 
 const TAB_PATH: Record<Tab, string> = {
@@ -29,7 +27,6 @@ const TAB_PATH: Record<Tab, string> = {
   schedule: '/schedule',
   backtests: '/backtests',
   tracking: '/tracking',
-  'my-picks': '/my-picks',
 }
 
 function parseTab(pathname: string): Tab {
@@ -60,6 +57,10 @@ export default function App() {
   useEffect(() => {
     if (location.pathname === '/') {
       navigate('/today', { replace: true })
+      return
+    }
+    if (location.pathname === '/my-picks') {
+      navigate('/tracking', { replace: true })
     }
   }, [location.pathname, navigate])
 
@@ -95,8 +96,7 @@ export default function App() {
     ) :
     tab === 'schedule' ? <SchedulePage refreshKey={refreshKey} /> :
     tab === 'backtests' ? <BacktestsPage /> :
-    tab === 'tracking' ? <SeasonTrackingPage refreshKey={refreshKey} /> :
-                      <MyPicks refreshKey={refreshKey} />
+    <SeasonTrackingPage refreshKey={refreshKey} />
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_36%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] text-slate-100">

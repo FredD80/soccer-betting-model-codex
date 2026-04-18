@@ -57,9 +57,6 @@ export default function PicksList({ label, fetcher, modelView, refreshKey = 0, e
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
-            <Link to="/my-picks" className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-              Open My Picks
-            </Link>
             <Link to="/tracking" className={`rounded-full border px-3 py-1 transition ${presentation.accentBorder} ${presentation.accentText}`}>
               Season Tracker
             </Link>

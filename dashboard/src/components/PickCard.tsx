@@ -282,15 +282,9 @@ export default function PickCard({ pick, modelView, onManualSaved }: Props) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
         <p className="text-xs text-slate-400">
-          Like this spot? Track your ticket now, then review it later in My Picks or the season tracker.
+          Like this spot? Track your ticket now, then review it later in tracking.
         </p>
         <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
-          <Link
-            to="/my-picks"
-            className="rounded-full border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
-          >
-            My Picks
-          </Link>
           <Link
             to="/tracking"
             className={`rounded-full border px-3 py-1 transition ${presentation.accentBorder} ${presentation.accentText}`}
