@@ -14,6 +14,7 @@ import type {
   ManualVsModelSummary,
   FixtureManualComparison,
   SeasonTrackerResponse,
+  DashboardStatus,
 } from './types'
 
 const BASE = '/api'
@@ -49,6 +50,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const api = {
+  dashboardStatus: () => get<DashboardStatus>('/fixture/status'),
   picksToday: (modelView: ModelView = 'best') => get<FixturePick[]>(picksPath('/picks/today', modelView)),
   picksWeek: (modelView: ModelView = 'best') => get<FixturePick[]>(picksPath('/picks/week', modelView)),
   picksLeague: (leagueId: string, modelView: ModelView = 'best') => get<FixturePick[]>(picksPath(`/picks/league/${leagueId}`, modelView)),

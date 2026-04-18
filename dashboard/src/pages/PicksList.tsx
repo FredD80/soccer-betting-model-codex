@@ -7,11 +7,12 @@ interface Props {
   label: string
   fetcher: (modelView: ModelView) => Promise<FixturePick[]>
   modelView: ModelView
+  refreshKey?: number
   emptyText?: string
   onManualSaved?: () => void
 }
 
-export default function PicksList({ label, fetcher, modelView, emptyText, onManualSaved }: Props) {
+export default function PicksList({ label, fetcher, modelView, refreshKey = 0, emptyText, onManualSaved }: Props) {
   const [picks, setPicks] = useState<FixturePick[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +24,7 @@ export default function PicksList({ label, fetcher, modelView, emptyText, onManu
       .then(setPicks)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [fetcher, modelView])
+  }, [fetcher, modelView, refreshKey])
 
   if (loading) return <p className="text-gray-400">Loading picks…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>

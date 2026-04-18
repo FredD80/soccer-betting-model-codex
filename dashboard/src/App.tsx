@@ -7,6 +7,7 @@ import MyPicks from './pages/MyPicks'
 import SeasonTrackingPage from './pages/SeasonTrackingPage'
 import { api } from './api/client'
 import type { ModelView } from './api/types'
+import { useDashboardAutoRefresh } from './hooks/useDashboardAutoRefresh'
 import { modelViewLabel } from './lib/modelLabels'
 
 type Tab = 'today' | 'week' | 'schedule' | 'backtests' | 'tracking' | 'my-picks'
@@ -23,24 +24,26 @@ const TABS: { key: Tab; label: string }[] = [
 export default function App() {
   const [tab, setTab] = useState<Tab>('today')
   const [modelView, setModelView] = useState<ModelView>('best')
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [manualRefreshKey, setManualRefreshKey] = useState(0)
+  const { refreshKey: autoRefreshKey, status } = useDashboardAutoRefresh()
+  const refreshKey = manualRefreshKey + autoRefreshKey
 
-  const handleManualSaved = () => setRefreshKey(v => v + 1)
+  const handleManualSaved = () => setManualRefreshKey(v => v + 1)
   const showingPickTabs = tab === 'today' || tab === 'week'
   const showingBullyModel = showingPickTabs && modelView === 'bully'
 
   const body =
     tab === 'today' ? (
       showingBullyModel
-        ? <BullySchedulePage label="Today's Bully-Model" days={1} onManualSaved={handleManualSaved} />
-        : <PicksList label="Today's Picks" fetcher={api.picksToday} modelView={modelView} emptyText="No HIGH or ELITE picks today." onManualSaved={handleManualSaved} />
+        ? <BullySchedulePage label="Today's Bully-Model" days={1} refreshKey={refreshKey} onManualSaved={handleManualSaved} />
+        : <PicksList label="Today's Picks" fetcher={api.picksToday} modelView={modelView} refreshKey={refreshKey} emptyText="No HIGH or ELITE picks today." onManualSaved={handleManualSaved} />
     ) :
     tab === 'week'  ? (
       showingBullyModel
-        ? <BullySchedulePage label="This Week's Bully-Model" days={7} onManualSaved={handleManualSaved} />
-        : <PicksList label="This Week" fetcher={api.picksWeek} modelView={modelView} emptyText="No HIGH or ELITE picks this week." onManualSaved={handleManualSaved} />
+        ? <BullySchedulePage label="This Week's Bully-Model" days={7} refreshKey={refreshKey} onManualSaved={handleManualSaved} />
+        : <PicksList label="This Week" fetcher={api.picksWeek} modelView={modelView} refreshKey={refreshKey} emptyText="No HIGH or ELITE picks this week." onManualSaved={handleManualSaved} />
     ) :
-    tab === 'schedule' ? <SchedulePage /> :
+    tab === 'schedule' ? <SchedulePage refreshKey={refreshKey} /> :
     tab === 'backtests' ? <BacktestsPage /> :
     tab === 'tracking' ? <SeasonTrackingPage refreshKey={refreshKey} /> :
                       <MyPicks refreshKey={refreshKey} />
@@ -51,6 +54,11 @@ export default function App() {
         <div className="mx-auto max-w-5xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">Soccer Betting Model</p>
           <h1 className="mt-1 text-xl font-semibold tracking-wide">Picks, Tracking, and Head-to-Head Review</h1>
+          <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+            Auto-refresh every 15s
+            {status?.latest_prediction_at ? ` · Picks ${new Date(status.latest_prediction_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+            {status?.latest_odds_at ? ` · Odds ${new Date(status.latest_odds_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+          </p>
           <nav className="mt-3 flex flex-wrap gap-2 text-sm">
           {TABS.map(t => (
             <button

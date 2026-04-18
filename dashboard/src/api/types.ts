@@ -105,6 +105,14 @@ export interface ScheduledFixture {
   lines: ScheduleLine | null
 }
 
+export interface DashboardStatus {
+  latest_prediction_at: string | null
+  latest_odds_at: string | null
+  latest_result_at: string | null
+  latest_manual_pick_at: string | null
+  refreshed_at: string
+}
+
 export interface BullyScheduleFixture {
   fixture_id: number
   home_team: string

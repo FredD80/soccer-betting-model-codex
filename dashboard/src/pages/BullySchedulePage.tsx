@@ -87,6 +87,7 @@ function sortFixtures(fixtures: BullyScheduleFixture[], sortKey: BullySortKey): 
 interface Props {
   label?: string
   days?: number
+  refreshKey?: number
   onManualSaved?: () => void
 }
 
@@ -138,7 +139,7 @@ function manualPickFixture(fixture: BullyScheduleFixture): FixturePick {
   }
 }
 
-export default function BullySchedulePage({ label = 'Bully-Model', days, onManualSaved }: Props) {
+export default function BullySchedulePage({ label = 'Bully-Model', days, refreshKey = 0, onManualSaved }: Props) {
   const [fixtures, setFixtures] = useState<BullyScheduleFixture[]>([])
   const [leagueTab, setLeagueTab] = useState<LeagueTab>('all')
   const [sortKey, setSortKey] = useState<BullySortKey>('composite')
@@ -153,7 +154,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, onManua
       .then(setFixtures)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [days, useXgOverlay])
+  }, [days, useXgOverlay, refreshKey])
 
   if (loading) return <p className="text-gray-400">Loading bully model schedule…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>

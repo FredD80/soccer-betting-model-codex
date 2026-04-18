@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.db.models import EloFormPrediction, Fixture, League, ModelVersion, OddsSnapshot, Team
+from app.db.models import EloFormPrediction, Fixture, League, ManualPick, ModelVersion, MoneylinePrediction, OddsSnapshot, Result, Team
 
 
 def test_fixture_schedule_returns_upcoming_fixtures_with_lines(client, api_db):
@@ -54,6 +54,85 @@ def test_fixture_schedule_returns_upcoming_fixtures_with_lines(client, api_db):
     assert data[0]["lines"]["bookmaker"] == "pinnacle"
     assert data[0]["lines"]["spread_home_line"] == -0.5
     assert data[0]["lines"]["total_goals_line"] == 2.5
+
+
+def test_fixture_status_returns_latest_timestamps(client, api_db):
+    league = League(name="Premier League", country="England", espn_id="eng.1", odds_api_key="soccer_epl")
+    api_db.add(league)
+    api_db.flush()
+
+    home = Team(name="Arsenal", league_id=league.id)
+    away = Team(name="Chelsea", league_id=league.id)
+    api_db.add_all([home, away])
+    api_db.flush()
+
+    kickoff = datetime.now(timezone.utc) + timedelta(days=1)
+    fixture = Fixture(
+        espn_id="status-1",
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=kickoff,
+        status="scheduled",
+    )
+    model = ModelVersion(name="moneyline_v1", version="1.0", active=True)
+    api_db.add_all([fixture, model])
+    api_db.flush()
+
+    odds_ts = datetime.now(timezone.utc) - timedelta(minutes=9)
+    pred_ts = datetime.now(timezone.utc) - timedelta(minutes=5)
+    result_ts = datetime.now(timezone.utc) - timedelta(minutes=2)
+    manual_ts = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+    api_db.add(
+        OddsSnapshot(
+            fixture_id=fixture.id,
+            bookmaker="pinnacle",
+            home_odds=2.10,
+            draw_odds=3.40,
+            away_odds=3.20,
+            captured_at=odds_ts,
+        )
+    )
+    api_db.add(
+        MoneylinePrediction(
+            model_id=model.id,
+            fixture_id=fixture.id,
+            outcome="home",
+            probability=0.55,
+            final_probability=0.57,
+            created_at=pred_ts,
+        )
+    )
+    api_db.add(
+        Result(
+            fixture_id=fixture.id,
+            home_score=2,
+            away_score=1,
+            outcome="home",
+            total_goals=3,
+            verified_at=result_ts,
+        )
+    )
+    api_db.add(
+        ManualPick(
+            fixture_id=fixture.id,
+            market_type="moneyline",
+            selection="home",
+            created_at=manual_ts,
+        )
+    )
+    api_db.commit()
+
+    response = client.get("/fixture/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["latest_prediction_at"].startswith(pred_ts.isoformat().replace("+00:00", ""))
+    assert data["latest_odds_at"].startswith(odds_ts.isoformat().replace("+00:00", ""))
+    assert data["latest_result_at"].startswith(result_ts.isoformat().replace("+00:00", ""))
+    assert data["latest_manual_pick_at"].startswith(manual_ts.isoformat().replace("+00:00", ""))
+    assert data["refreshed_at"] is not None
 
 
 def test_fixture_schedule_returns_future_fixtures_beyond_seven_days_by_default(client, api_db):

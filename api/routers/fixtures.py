@@ -1,9 +1,10 @@
 import math
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.models import (
-    Fixture, League, Team, FormCache,
-    SpreadPrediction, OUAnalysis, OddsSnapshot, EloFormPrediction, ModelVersion
+    Fixture, League, Team, FormCache, Result, ManualPick,
+    SpreadPrediction, OUAnalysis, OddsSnapshot, MoneylinePrediction, EloFormPrediction, ModelVersion
 )
 from app.bully_engine import (
     DEFAULT_BULLY_GAP_THRESHOLD,
@@ -15,7 +16,7 @@ from api.deps import get_session
 from api.schemas import (
     FixtureDetailResponse, FormSummary,
     SpreadPickResponse, OUPickResponse, ScheduledFixtureResponse, ScheduleLineResponse,
-    EloFormScheduleResponse
+    EloFormScheduleResponse, DashboardStatusResponse
 )
 from datetime import datetime, timedelta, timezone
 
@@ -127,6 +128,28 @@ def fixture_schedule(session: Session = Depends(get_session), days: int | None =
             )
         )
     return response
+
+
+@router.get("/status", response_model=DashboardStatusResponse)
+def fixture_status(session: Session = Depends(get_session)):
+    prediction_timestamps = [
+        session.query(func.max(SpreadPrediction.created_at)).scalar(),
+        session.query(func.max(OUAnalysis.created_at)).scalar(),
+        session.query(func.max(MoneylinePrediction.created_at)).scalar(),
+        session.query(func.max(EloFormPrediction.created_at)).scalar(),
+    ]
+    latest_prediction_at = max((value for value in prediction_timestamps if value is not None), default=None)
+    latest_odds_at = session.query(func.max(OddsSnapshot.captured_at)).scalar()
+    latest_result_at = session.query(func.max(Result.verified_at)).scalar()
+    latest_manual_pick_at = session.query(func.max(ManualPick.created_at)).scalar()
+
+    return DashboardStatusResponse(
+        latest_prediction_at=latest_prediction_at,
+        latest_odds_at=latest_odds_at,
+        latest_result_at=latest_result_at,
+        latest_manual_pick_at=latest_manual_pick_at,
+        refreshed_at=datetime.now(timezone.utc),
+    )
 
 
 @router.get("/schedule/bully", response_model=list[EloFormScheduleResponse])

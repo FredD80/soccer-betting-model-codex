@@ -11,7 +11,11 @@ function fmtLine(value: number | null) {
   return value == null ? '—' : (value > 0 ? `+${value}` : `${value}`)
 }
 
-export default function SchedulePage() {
+interface Props {
+  refreshKey?: number
+}
+
+export default function SchedulePage({ refreshKey = 0 }: Props) {
   const [fixtures, setFixtures] = useState<ScheduledFixture[]>([])
   const [leagueTab, setLeagueTab] = useState<LeagueTab>('all')
   const [loading, setLoading] = useState(true)
@@ -22,7 +26,7 @@ export default function SchedulePage() {
       .then(setFixtures)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
 
   if (loading) return <p className="text-gray-400">Loading schedule…</p>
   if (error) return <p className="text-red-400">Error: {error}</p>

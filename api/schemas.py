@@ -107,6 +107,14 @@ class ScheduledFixtureResponse(BaseModel):
     lines: ScheduleLineResponse | None = None
 
 
+class DashboardStatusResponse(BaseModel):
+    latest_prediction_at: datetime | None = None
+    latest_odds_at: datetime | None = None
+    latest_result_at: datetime | None = None
+    latest_manual_pick_at: datetime | None = None
+    refreshed_at: datetime
+
+
 class EloFormScheduleResponse(BaseModel):
     fixture_id: int
     home_team: str
