@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import PicksList from './pages/PicksList'
@@ -82,13 +82,6 @@ export default function App() {
     return `${TAB_PATH[tab]}${search ? `?${search}` : ''}`
   }
 
-  const freshnessItems = useMemo(() => ([
-    { label: 'Picks', value: formatStatusTime(status?.latest_prediction_at) },
-    { label: 'Odds', value: formatStatusTime(status?.latest_odds_at) },
-    { label: 'Results', value: formatStatusTime(status?.latest_result_at) },
-    { label: 'My Picks', value: formatStatusTime(status?.latest_manual_pick_at) },
-  ]), [status?.latest_manual_pick_at, status?.latest_odds_at, status?.latest_prediction_at, status?.latest_result_at])
-
   const body =
     tab === 'today' ? (
       showingBullyModel
@@ -111,24 +104,9 @@ export default function App() {
         <div className="mx-auto max-w-5xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">Soccer Betting Model</p>
           <h1 className="mt-1 text-xl font-semibold tracking-wide">Picks, Tracking, and Head-to-Head Review</h1>
-          <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-300/80">Live Freshness</p>
-                <p className="mt-1 text-sm text-slate-300">
-                  Auto-refresh every 15 seconds. The board reloads itself only when new picks, odds, results, or manual tickets are detected.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs uppercase tracking-[0.18em] md:grid-cols-4">
-                {freshnessItems.map(item => (
-                  <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-right">
-                    <p className="text-slate-500">{item.label}</p>
-                    <p className="mt-1 font-mono text-slate-100">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Updated picks {formatStatusTime(status?.latest_prediction_at)} · odds {formatStatusTime(status?.latest_odds_at)} · results {formatStatusTime(status?.latest_result_at)}
+          </p>
           <nav className="mt-3 flex flex-wrap gap-2 text-sm">
             {TABS.map(t => (
               <NavLink
