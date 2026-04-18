@@ -342,8 +342,8 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
       )}
 
       {visibleFixtures.map(fixture => (
-        <article key={fixture.fixture_id} className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <article key={fixture.fixture_id} className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 sm:p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-500">{fixture.league}</p>
@@ -356,11 +356,11 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
                   {fixture.is_bully_spot ? 'Bully Spot' : 'Watchlist'}
                 </span>
               </div>
-              <h3 className="mt-1 text-base font-semibold text-gray-100">
+              <h3 className="mt-1 text-[15px] font-semibold text-gray-100 sm:text-base">
                 {fixture.home_team} vs {fixture.away_team}
               </h3>
-              <p className="text-sm text-gray-400">{formatEasternDateTime(fixture.kickoff_at)}</p>
-              <p className="mt-2 text-sm text-amber-200">
+              <p className="text-xs text-gray-400 sm:text-sm">{formatEasternDateTime(fixture.kickoff_at)}</p>
+              <p className="mt-1 text-xs text-amber-200 sm:mt-2 sm:text-sm">
                 {fixture.favorite_team} favored by {fixture.elo_gap.toFixed(0)} Elo points
               </p>
             </div>
@@ -371,34 +371,34 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
             </div>
           </div>
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+          <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-2.5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Elo Gap</p>
-              <p className="mt-1 text-base font-semibold text-amber-200">{fixture.elo_gap.toFixed(0)}</p>
-              <p className="text-xs text-gray-400">{fixture.favorite_team} edge</p>
+              <p className="mt-1 text-sm font-semibold text-amber-200 sm:text-base">{fixture.elo_gap.toFixed(0)}</p>
+              <p className="hidden text-xs text-gray-400 sm:block">{fixture.favorite_team} edge</p>
             </div>
-            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-2.5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Favorite 2+</p>
-              <p className="mt-1 text-base font-semibold text-sky-300">{fmtPct(fixture.favorite_two_plus_probability)}</p>
-              <p className="text-xs text-gray-400">{fixture.favorite_team} scores 2+</p>
+              <p className="mt-1 text-sm font-semibold text-sky-300 sm:text-base">{fmtPct(fixture.favorite_two_plus_probability)}</p>
+              <p className="hidden text-xs text-gray-400 sm:block">{fixture.favorite_team} scores 2+</p>
             </div>
-            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-2.5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Favorite xG</p>
-              <p className="mt-1 text-base font-semibold text-emerald-300">{fmtGoals(fixture.favorite_expected_goals)}</p>
-              <p className="text-xs text-gray-400">xG delta {fmtGoals(fixture.expected_goals_delta)}</p>
+              <p className="mt-1 text-sm font-semibold text-emerald-300 sm:text-base">{fmtGoals(fixture.favorite_expected_goals)}</p>
+              <p className="text-xs text-gray-400">Delta {fmtGoals(fixture.expected_goals_delta)}</p>
             </div>
-            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-2.5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">SGP Lens</p>
-              <p className="mt-1 text-base font-semibold text-fuchsia-300">{fmtPct(bullyComboScore(fixture))}</p>
-              <p className="text-xs text-gray-400">combo ranking</p>
+              <p className="mt-1 text-sm font-semibold text-fuchsia-300 sm:text-base">{fmtPct(bullyComboScore(fixture))}</p>
+              <p className="hidden text-xs text-gray-400 sm:block">combo ranking</p>
             </div>
           </div>
 
-          <details className="group mt-4 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left">
+          <details className="group mt-3 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-left sm:px-4 sm:py-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Extra Info</p>
-                <p className="mt-1 text-sm text-slate-300">xG context, probabilities, odds, and expanded bully read</p>
+                <p className="mt-1 hidden text-sm text-slate-300 sm:block">xG context, probabilities, odds, and expanded bully read</p>
               </div>
               <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition group-open:border-emerald-500/40 group-open:text-emerald-300">
                 <span className="group-open:hidden">Show</span>
@@ -512,7 +512,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
             </div>
           </details>
 
-          <div className="mt-4">
+          <div className="mt-3">
             <ManualPickForm pick={manualPickFixture(fixture)} onSaved={onManualSaved} />
           </div>
         </article>
