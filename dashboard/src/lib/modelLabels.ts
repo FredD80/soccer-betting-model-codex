@@ -5,6 +5,7 @@ function normalizeModelName(modelName: string): string {
 }
 
 export function modelViewLabel(modelView: ModelView): string {
+  if (modelView === 'bully') return 'Bully-Model'
   if (modelView === 'main') return 'Alpha'
   if (modelView === 'parallel') return 'Market-Edge'
   return 'Best'
@@ -14,6 +15,7 @@ export function displayModelName(modelName: string | null | undefined): string |
   if (!modelName) return null
 
   const normalized = normalizeModelName(modelName)
+  if (normalized.includes('elo_bully') || normalized.includes('bully')) return 'Bully-Model'
   if (normalized.includes('parallel')) return 'Market-Edge'
   if (normalized.includes('main')) return 'Alpha'
   if (normalized === 'spread_v1' || normalized === 'ou_v1' || normalized === 'moneyline_v1') {

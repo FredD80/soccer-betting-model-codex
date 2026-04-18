@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.db.models import (
     Result, Prediction, OddsSnapshot, Performance,
     MoneylinePrediction, SpreadPrediction, OUAnalysis, PredictionOutcome, ManualPick,
+    EloFormPrediction,
 )
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,31 @@ class ResultsTracker:
             settled += 1
             impacted.add((pick.model_id, "moneyline"))
 
+        for pick in self.session.query(EloFormPrediction).filter_by(fixture_id=fixture_id).all():
+            selection = pick.favorite_side
+            model_probability = pick.home_probability if selection == "home" else pick.away_probability
+            decimal_odds = self._moneyline_odds_for_selection(pick.fixture_id, selection)
+            edge_pct = None
+            if decimal_odds is not None:
+                edge_pct = model_probability - (1.0 / decimal_odds)
+            self._upsert_live_outcome(
+                fixture_id=fixture_id,
+                model_id=pick.model_id,
+                market_type="moneyline",
+                prediction_row_id=-pick.id,
+                selection=selection,
+                line=None,
+                model_probability=model_probability,
+                final_probability=model_probability,
+                edge_pct=edge_pct,
+                kelly_fraction=None,
+                confidence_tier=self._elo_bully_confidence_tier(pick, model_probability),
+                result_status="win" if selection == result.outcome else "loss",
+                decimal_odds=decimal_odds,
+            )
+            settled += 1
+            impacted.add((pick.model_id, "moneyline"))
+
         for pick in self.session.query(SpreadPrediction).filter_by(fixture_id=fixture_id).all():
             self._upsert_live_outcome(
                 fixture_id=fixture_id,
@@ -322,14 +348,25 @@ class ResultsTracker:
         self.session.add(PredictionOutcome(**payload))
 
     def _moneyline_odds(self, pick: MoneylinePrediction) -> float | None:
-        snap = self._snapshot_by_id_or_latest(
-            pick.odds_snapshot_id,
-            pick.fixture_id,
-            lambda q: q.filter(OddsSnapshot.home_odds.isnot(None)).filter(OddsSnapshot.away_odds.isnot(None)),
-        )
+        return self._moneyline_odds_for_selection(pick.fixture_id, pick.outcome, pick.odds_snapshot_id)
+
+    def _moneyline_odds_for_selection(
+        self,
+        fixture_id: int,
+        selection: str,
+        snapshot_id: int | None = None,
+    ) -> float | None:
+        def decorate(query):
+            if selection == "home":
+                return query.filter(OddsSnapshot.home_odds.isnot(None))
+            if selection == "draw":
+                return query.filter(OddsSnapshot.draw_odds.isnot(None))
+            return query.filter(OddsSnapshot.away_odds.isnot(None))
+
+        snap = self._snapshot_by_id_or_latest(snapshot_id, fixture_id, decorate)
         if snap is None:
             return None
-        return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[pick.outcome]
+        return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[selection]
 
     def _spread_odds(self, pick: SpreadPrediction) -> float | None:
         def decorate(query):
@@ -369,6 +406,13 @@ class ResultsTracker:
         query = self.session.query(OddsSnapshot).filter_by(fixture_id=fixture_id)
         query = decorate_query(query)
         return query.order_by(OddsSnapshot.captured_at.desc()).first()
+
+    def _elo_bully_confidence_tier(self, pick: EloFormPrediction, model_probability: float) -> str:
+        if pick.is_bully_spot and model_probability >= 0.68:
+            return "ELITE"
+        if pick.is_bully_spot or model_probability >= 0.60:
+            return "HIGH"
+        return "MEDIUM"
 
     def _refresh_live_performance(self, model_id: int, market_type: str) -> None:
         rows = (

@@ -1,6 +1,8 @@
 import type {
   BacktestRun,
+  BacktestJob,
   BacktestRunRequest,
+  BullyScheduleFixture,
   FixturePick,
   FixtureDetail,
   ModelView,
@@ -51,8 +53,16 @@ export const api = {
   picksLeague: (leagueId: string, modelView: ModelView = 'best') => get<FixturePick[]>(picksPath(`/picks/league/${leagueId}`, modelView)),
   fixtureDetail: (id: number) => get<FixtureDetail>(`/fixture/${id}`),
   fixtureSchedule: () => get<ScheduledFixture[]>('/fixture/schedule'),
+  bullySchedule: (days?: number, useXgOverlay: boolean = true) => {
+    const params = new URLSearchParams()
+    if (days != null) params.set('days', String(days))
+    params.set('use_xg_overlay', String(useXgOverlay))
+    const suffix = params.toString()
+    return get<BullyScheduleFixture[]>(suffix ? `/fixture/schedule/bully?${suffix}` : '/fixture/schedule/bully')
+  },
   backtestRuns: () => get<BacktestRun[]>('/backtests/runs'),
-  runBacktestPicks: (payload: BacktestRunRequest) => post<BacktestRun[]>('/backtests/picks/run', payload),
+  runBacktestPicks: (payload: BacktestRunRequest) => post<BacktestJob>('/backtests/picks/run', payload),
+  backtestJob: (jobId: number) => get<BacktestJob>(`/backtests/jobs/${jobId}`),
   createManualPick: (payload: ManualPickCreateRequest) => post<ManualPick>('/performance/manual-picks', payload),
   manualPicks: () => get<ManualPick[]>('/performance/manual-picks'),
   manualPickSummary: () => get<ManualPickSummary[]>('/performance/manual-picks/summary'),

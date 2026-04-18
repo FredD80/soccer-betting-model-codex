@@ -115,6 +115,7 @@ class BacktestRun(Base):
     __tablename__ = "backtest_runs"
     id = Column(Integer, primary_key=True)
     model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    backtest_job_id = Column(Integer, ForeignKey("backtest_jobs.id"))
     bet_type = Column(String)
     date_from = Column(DateTime)
     date_to = Column(DateTime)
@@ -122,7 +123,25 @@ class BacktestRun(Base):
     correct = Column(Integer)
     accuracy = Column(Float)
     roi = Column(Float)
+    two_plus_hit_rate = Column(Float)
+    clean_sheet_hit_rate = Column(Float)
+    two_plus_given_win_rate = Column(Float)
+    clean_sheet_given_win_rate = Column(Float)
     run_at = Column(DateTime, default=datetime.utcnow)
+
+
+class BacktestJob(Base):
+    __tablename__ = "backtest_jobs"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String)
+    status = Column(String, nullable=False, default="queued")
+    requested_markets = Column(Text, nullable=False)
+    date_from = Column(DateTime, nullable=False)
+    date_to = Column(DateTime, nullable=False)
+    error = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
 
 
 class SchedulerLog(Base):
@@ -203,6 +222,37 @@ class MoneylinePrediction(Base):
     kelly_fraction = Column(Float)
     steam_downgraded = Column(Boolean, default=False)
     odds_snapshot_id = Column(Integer, ForeignKey("odds_snapshots.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EloFormPrediction(Base):
+    __tablename__ = "elo_form_predictions"
+    __table_args__ = (
+        UniqueConstraint("model_id", "fixture_id", name="uq_elo_form_predictions_model_fixture"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey("models.id"), nullable=False)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    favorite_side = Column(String, nullable=False)  # "home" | "away"
+    elo_gap = Column(Float, nullable=False)
+    is_bully_spot = Column(Boolean, nullable=False, default=False)
+    home_elo = Column(Float, nullable=False)
+    away_elo = Column(Float, nullable=False)
+    home_form_for_avg = Column(Float)
+    home_form_against_avg = Column(Float)
+    away_form_for_avg = Column(Float)
+    away_form_against_avg = Column(Float)
+    home_xg_diff_avg = Column(Float)
+    away_xg_diff_avg = Column(Float)
+    home_xg_trend = Column(Float)
+    away_xg_trend = Column(Float)
+    home_xg_matches_used = Column(Integer, nullable=False, default=0)
+    away_xg_matches_used = Column(Integer, nullable=False, default=0)
+    trend_adjustment = Column(Float, nullable=False, default=0.0)
+    home_probability = Column(Float, nullable=False)
+    draw_probability = Column(Float, nullable=False)
+    away_probability = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

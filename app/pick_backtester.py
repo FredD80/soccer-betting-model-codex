@@ -11,7 +11,9 @@ from app.db.models import (
     Result,
     SpreadPrediction,
     OUAnalysis,
+    ModelVersion,
 )
+from app.bully_engine import EloFormPredictor
 
 _ALLOWED_TIERS = ("HIGH", "ELITE")
 
@@ -24,6 +26,11 @@ class BacktestSummary:
     correct: int
     accuracy: float
     roi: float
+    win_two_plus_hit_rate: float | None = None
+    two_plus_hit_rate: float | None = None
+    clean_sheet_hit_rate: float | None = None
+    two_plus_given_win_rate: float | None = None
+    clean_sheet_given_win_rate: float | None = None
 
 
 class PickBacktester:
@@ -34,14 +41,16 @@ class PickBacktester:
         self,
         date_from: datetime,
         date_to: datetime,
-        markets: tuple[str, ...] = ("spread", "ou", "moneyline"),
+        markets: tuple[str, ...] = ("spread", "ou", "moneyline", "bully"),
         allowed_tiers: tuple[str, ...] = _ALLOWED_TIERS,
+        backtest_job_id: int | None = None,
     ) -> list[BacktestSummary]:
         summaries: list[BacktestSummary] = []
         market_handlers = {
             "spread": self._backtest_spread,
             "ou": self._backtest_ou,
             "moneyline": self._backtest_moneyline,
+            "bully": self._backtest_bully,
         }
         for market in markets:
             handler = market_handlers[market]
@@ -51,6 +60,7 @@ class PickBacktester:
             self.session.add(
                 BacktestRun(
                     model_id=summary.model_id,
+                    backtest_job_id=backtest_job_id,
                     bet_type=summary.market,
                     date_from=date_from,
                     date_to=date_to,
@@ -58,6 +68,10 @@ class PickBacktester:
                     correct=summary.correct,
                     accuracy=summary.accuracy,
                     roi=summary.roi,
+                    two_plus_hit_rate=summary.two_plus_hit_rate,
+                    clean_sheet_hit_rate=summary.clean_sheet_hit_rate,
+                    two_plus_given_win_rate=summary.two_plus_given_win_rate,
+                    clean_sheet_given_win_rate=summary.clean_sheet_given_win_rate,
                     run_at=datetime.now(timezone.utc),
                 )
             )
@@ -151,6 +165,50 @@ class PickBacktester:
 
         return self._summaries("moneyline", stats)
 
+    def _backtest_bully(self, date_from: datetime, date_to: datetime, allowed_tiers: tuple[str, ...]):
+        stats: dict[int, dict[str, float]] = {}
+        model = (
+            self.session.query(ModelVersion)
+            .filter(ModelVersion.name == "elo_bully_v1")
+            .filter(ModelVersion.active.is_(True))
+            .order_by(ModelVersion.created_at.desc())
+            .first()
+        )
+        if model is None:
+            return []
+
+        predictor = EloFormPredictor(self.session, enable_understat_fetch=False)
+        for fixture in self._completed_fixtures(date_from, date_to):
+            result = self.session.query(Result).filter_by(fixture_id=fixture.id).first()
+            if (
+                not result
+                or result.outcome is None
+                or result.home_score is None
+                or result.away_score is None
+            ):
+                continue
+
+            prediction = predictor.predict_fixture(fixture, as_of=fixture.kickoff_at)
+            if prediction is None or not prediction.is_bully_spot:
+                continue
+
+            odds = self._bully_odds(fixture.id, prediction.favorite_side, fixture.kickoff_at)
+            multiplier = 1.0 if prediction.favorite_side == result.outcome else -1.0
+            favorite_goals = result.home_score if prediction.favorite_side == "home" else result.away_score
+            underdog_goals = result.away_score if prediction.favorite_side == "home" else result.home_score
+            self._accumulate(
+                stats,
+                model.id,
+                multiplier,
+                odds,
+                two_plus_hit=1.0 if favorite_goals >= 2 else 0.0,
+                clean_sheet_hit=1.0 if underdog_goals == 0 else 0.0,
+                two_plus_given_win=1.0 if multiplier > 0 and favorite_goals >= 2 else 0.0,
+                clean_sheet_given_win=1.0 if multiplier > 0 and underdog_goals == 0 else 0.0,
+            )
+
+        return self._summaries("bully", stats)
+
     def _spread_odds(self, pick: SpreadPrediction) -> float | None:
         query = self.session.query(OddsSnapshot).filter(OddsSnapshot.fixture_id == pick.fixture_id)
         query = query.filter(OddsSnapshot.captured_at <= pick.created_at)
@@ -198,8 +256,43 @@ class PickBacktester:
             return None
         return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[pick.outcome]
 
-    def _accumulate(self, stats: dict[int, dict[str, float]], model_id: int, multiplier: float, odds: float | None):
-        row = stats.setdefault(model_id, {"total": 0.0, "correct": 0.0, "roi_sum": 0.0})
+    def _bully_odds(self, fixture_id: int, favorite_side: str, created_at: datetime | None) -> float | None:
+        query = self.session.query(OddsSnapshot).filter(OddsSnapshot.fixture_id == fixture_id)
+        if created_at is not None:
+            query = query.filter(OddsSnapshot.captured_at <= created_at)
+        if favorite_side == "home":
+            query = query.filter(OddsSnapshot.home_odds.isnot(None))
+        else:
+            query = query.filter(OddsSnapshot.away_odds.isnot(None))
+        snap = query.order_by(OddsSnapshot.captured_at.desc()).first()
+        if not snap:
+            return None
+        return snap.home_odds if favorite_side == "home" else snap.away_odds
+
+    def _accumulate(
+        self,
+        stats: dict[int, dict[str, float]],
+        model_id: int,
+        multiplier: float,
+        odds: float | None,
+        *,
+        two_plus_hit: float | None = None,
+        clean_sheet_hit: float | None = None,
+        two_plus_given_win: float | None = None,
+        clean_sheet_given_win: float | None = None,
+    ):
+        row = stats.setdefault(
+            model_id,
+            {
+                "total": 0.0,
+                "correct": 0.0,
+                "roi_sum": 0.0,
+                "two_plus_hits": 0.0,
+                "clean_sheet_hits": 0.0,
+                "two_plus_given_win_hits": 0.0,
+                "clean_sheet_given_win_hits": 0.0,
+            },
+        )
         row["total"] += 1
         if multiplier > 0:
             row["correct"] += 1
@@ -208,6 +301,14 @@ class PickBacktester:
             row["roi_sum"] += 0.0
         else:
             row["roi_sum"] += -1.0
+        if two_plus_hit is not None:
+            row["two_plus_hits"] += two_plus_hit
+        if clean_sheet_hit is not None:
+            row["clean_sheet_hits"] += clean_sheet_hit
+        if two_plus_given_win is not None:
+            row["two_plus_given_win_hits"] += two_plus_given_win
+        if clean_sheet_given_win is not None:
+            row["clean_sheet_given_win_hits"] += clean_sheet_given_win
 
     def _summaries(self, market: str, stats: dict[int, dict[str, float]]) -> list[BacktestSummary]:
         summaries = []
@@ -222,6 +323,17 @@ class PickBacktester:
                     correct=correct,
                     accuracy=(correct / total) if total else 0.0,
                     roi=(row["roi_sum"] / total) if total else 0.0,
+                    win_two_plus_hit_rate=(
+                        row["two_plus_given_win_hits"] / total
+                    ) if market == "bully" and total else None,
+                    two_plus_hit_rate=(row["two_plus_hits"] / total) if market == "bully" and total else None,
+                    clean_sheet_hit_rate=(row["clean_sheet_hits"] / total) if market == "bully" and total else None,
+                    two_plus_given_win_rate=(
+                        row["two_plus_given_win_hits"] / correct
+                    ) if market == "bully" and correct else None,
+                    clean_sheet_given_win_rate=(
+                        row["clean_sheet_given_win_hits"] / correct
+                    ) if market == "bully" and correct else None,
                 )
             )
         return summaries

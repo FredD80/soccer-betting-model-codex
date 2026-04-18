@@ -1,7 +1,6 @@
 import json
 import re
 import time
-import requests
 
 from app.collector._retry import http_retry
 
@@ -29,6 +28,8 @@ class UnderstatClient:
 
     @http_retry
     def _get(self, url: str) -> str:
+        import requests
+
         elapsed = time.time() - self._last_request
         if elapsed < _DELAY_SECONDS:
             time.sleep(_DELAY_SECONDS - elapsed)

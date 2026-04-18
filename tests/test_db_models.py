@@ -1,6 +1,7 @@
 from app.db.models import (
     League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result,
-    Performance, BacktestRun, SchedulerLog, PredictionOutcome, ManualPick,
+    Performance, BacktestRun, BacktestJob, SchedulerLog, PredictionOutcome, ManualPick,
+    EloFormPrediction,
 )
 from datetime import datetime, timezone
 
@@ -223,6 +224,56 @@ def test_prediction_outcome_model(db):
     assert fetched.result_status == "win"
 
 
+def test_backtest_run_model_supports_bully_metrics(db):
+    mv = ModelVersion(name="elo_bully_v1", version="1.0", active=True)
+    db.add(mv)
+    db.flush()
+
+    row = BacktestRun(
+        model_id=mv.id,
+        bet_type="bully",
+        date_from=datetime.now(timezone.utc),
+        date_to=datetime.now(timezone.utc),
+        total=12,
+        correct=8,
+        accuracy=8 / 12,
+        roi=0.14,
+        two_plus_hit_rate=0.58,
+        clean_sheet_hit_rate=0.33,
+        two_plus_given_win_rate=0.75,
+        clean_sheet_given_win_rate=0.5,
+        run_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    db.flush()
+
+    fetched = db.query(BacktestRun).filter_by(id=row.id).first()
+    assert fetched.bet_type == "bully"
+    assert fetched.backtest_job_id is None
+    assert fetched.two_plus_hit_rate == 0.58
+    assert fetched.clean_sheet_hit_rate == 0.33
+    assert fetched.two_plus_given_win_rate == 0.75
+    assert fetched.clean_sheet_given_win_rate == 0.5
+
+
+def test_backtest_job_model(db):
+    row = BacktestJob(
+        task_id="celery-123",
+        status="queued",
+        requested_markets="spread,bully",
+        date_from=datetime.now(timezone.utc),
+        date_to=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    db.flush()
+
+    fetched = db.query(BacktestJob).filter_by(id=row.id).first()
+    assert fetched.task_id == "celery-123"
+    assert fetched.status == "queued"
+    assert fetched.requested_markets == "spread,bully"
+
+
 def test_manual_pick_model(db):
     fixture, _, _ = _make_fixture(db, espn_id="mp1")
     pick = ManualPick(
@@ -242,3 +293,43 @@ def test_manual_pick_model(db):
     fetched = db.query(ManualPick).filter_by(id=pick.id).first()
     assert fetched.market_type == "ou"
     assert fetched.stake_units == 2.0
+
+
+def test_elo_form_prediction_model(db):
+    fixture, _, _ = _make_fixture(db, espn_id="elo1")
+    mv = ModelVersion(name="elo_form_v1", version="1.0", active=False)
+    db.add(mv)
+    db.flush()
+    row = EloFormPrediction(
+        model_id=mv.id,
+        fixture_id=fixture.id,
+        favorite_side="home",
+        elo_gap=128.0,
+        is_bully_spot=True,
+        home_elo=1588.0,
+        away_elo=1460.0,
+        home_form_for_avg=1.94,
+        home_form_against_avg=0.82,
+        away_form_for_avg=0.77,
+        away_form_against_avg=1.71,
+        home_xg_diff_avg=0.62,
+        away_xg_diff_avg=-0.31,
+        home_xg_trend=-0.14,
+        away_xg_trend=0.09,
+        home_xg_matches_used=5,
+        away_xg_matches_used=5,
+        trend_adjustment=-0.04,
+        home_probability=0.49,
+        draw_probability=0.24,
+        away_probability=0.27,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    db.flush()
+    fetched = db.query(EloFormPrediction).filter_by(id=row.id).first()
+    assert fetched.home_elo == 1588.0
+    assert fetched.is_bully_spot is True
+    assert fetched.home_form_for_avg == 1.94
+    assert fetched.away_form_against_avg == 1.71
+    assert fetched.away_xg_trend == 0.09
+    assert fetched.home_probability + fetched.draw_probability + fetched.away_probability == 1.0

@@ -3,6 +3,7 @@ from app.tracker import ResultsTracker
 from app.db.models import (
     League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result, Performance,
     MoneylinePrediction, SpreadPrediction, OUAnalysis, PredictionOutcome, ManualPick,
+    EloFormPrediction,
 )
 
 
@@ -117,7 +118,8 @@ def make_live_fixture(db, espn_id="live1"):
     ml_model = ModelVersion(name="moneyline_v1", version="1.0", active=True)
     spread_model = ModelVersion(name="spread_v1", version="1.0", active=True)
     ou_model = ModelVersion(name="ou_v1", version="1.0", active=True)
-    db.add_all([ml_model, spread_model, ou_model])
+    bully_model = ModelVersion(name="elo_bully_v1", version="1.0", active=True)
+    db.add_all([ml_model, spread_model, ou_model, bully_model])
     db.flush()
     db.add(MoneylinePrediction(
         model_id=ml_model.id,
@@ -160,12 +162,32 @@ def make_live_fixture(db, espn_id="live1"):
         odds_snapshot_id=snap.id,
         created_at=kickoff - timedelta(hours=1),
     ))
+    db.add(EloFormPrediction(
+        model_id=bully_model.id,
+        fixture_id=fixture.id,
+        favorite_side="home",
+        elo_gap=165.0,
+        is_bully_spot=True,
+        home_elo=1620.0,
+        away_elo=1395.0,
+        home_xg_diff_avg=0.9,
+        away_xg_diff_avg=-0.4,
+        home_xg_trend=0.08,
+        away_xg_trend=-0.05,
+        home_xg_matches_used=5,
+        away_xg_matches_used=5,
+        trend_adjustment=0.03,
+        home_probability=0.64,
+        draw_probability=0.20,
+        away_probability=0.16,
+        created_at=kickoff - timedelta(hours=1),
+    ))
     db.flush()
-    return fixture, snap, ml_model, spread_model, ou_model
+    return fixture, snap, ml_model, spread_model, ou_model, bully_model
 
 
 def test_settle_live_predictions_creates_outcome_rows(db):
-    fixture, snap, ml_model, spread_model, ou_model = make_live_fixture(db)
+    fixture, snap, ml_model, spread_model, ou_model, bully_model = make_live_fixture(db)
     db.add(Result(
         fixture_id=fixture.id,
         home_score=2,
@@ -179,28 +201,37 @@ def test_settle_live_predictions_creates_outcome_rows(db):
     tracker = ResultsTracker(db)
     settled = tracker.settle_live_predictions(fixture.id)
 
-    assert settled == 3
+    assert settled == 4
     rows = db.query(PredictionOutcome).filter_by(fixture_id=fixture.id).all()
-    assert len(rows) == 3
+    assert len(rows) == 4
 
-    by_market = {row.market_type: row for row in rows}
-    assert by_market["moneyline"].result_status == "win"
-    assert round(by_market["moneyline"].profit_units, 4) == round(snap.home_odds - 1.0, 4)
-    assert by_market["spread"].result_status == "push"
-    assert by_market["spread"].profit_units == 0.0
-    assert by_market["ou"].result_status == "win"
+    moneyline_rows = [row for row in rows if row.market_type == "moneyline"]
+    assert len(moneyline_rows) == 2
+    by_model = {row.model_id: row for row in rows}
+    assert by_model[ml_model.id].result_status == "win"
+    assert round(by_model[ml_model.id].profit_units, 4) == round(snap.home_odds - 1.0, 4)
+    assert by_model[bully_model.id].selection == "home"
+    assert by_model[bully_model.id].prediction_row_id < 0
+    assert by_model[bully_model.id].result_status == "win"
+    assert round(by_model[bully_model.id].profit_units, 4) == round(snap.home_odds - 1.0, 4)
+    assert by_model[spread_model.id].result_status == "push"
+    assert by_model[spread_model.id].profit_units == 0.0
+    assert by_model[ou_model.id].result_status == "win"
 
     ml_perf = db.query(Performance).filter_by(model_id=ml_model.id, bet_type="moneyline").first()
+    bully_perf = db.query(Performance).filter_by(model_id=bully_model.id, bet_type="moneyline").first()
     spread_perf = db.query(Performance).filter_by(model_id=spread_model.id, bet_type="spread").first()
     ou_perf = db.query(Performance).filter_by(model_id=ou_model.id, bet_type="ou").first()
     assert ml_perf.total_predictions == 1
     assert ml_perf.correct == 1
+    assert bully_perf.total_predictions == 1
+    assert bully_perf.correct == 1
     assert spread_perf.roi == 0.0
     assert ou_perf.correct == 1
 
 
 def test_settle_live_predictions_is_idempotent(db):
-    fixture, _, _, _, _ = make_live_fixture(db, espn_id="live2")
+    fixture, _, _, _, _, _ = make_live_fixture(db, espn_id="live2")
     db.add(Result(
         fixture_id=fixture.id,
         home_score=1,
@@ -216,11 +247,11 @@ def test_settle_live_predictions_is_idempotent(db):
     tracker.settle_live_predictions(fixture.id)
 
     rows = db.query(PredictionOutcome).filter_by(fixture_id=fixture.id).all()
-    assert len(rows) == 3
+    assert len(rows) == 4
 
 
 def test_settle_manual_picks_updates_status_and_profit(db):
-    fixture, snap, _, _, _ = make_live_fixture(db, espn_id="manual1")
+    fixture, snap, _, _, _, _ = make_live_fixture(db, espn_id="manual1")
     db.add_all([
         ManualPick(
             fixture_id=fixture.id,

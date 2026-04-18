@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SpreadPickResponse(BaseModel):
@@ -104,6 +104,48 @@ class ScheduledFixtureResponse(BaseModel):
     away_team: str
     league: str
     kickoff_at: datetime
+    lines: ScheduleLineResponse | None = None
+
+
+class EloFormScheduleResponse(BaseModel):
+    fixture_id: int
+    home_team: str
+    away_team: str
+    league: str
+    kickoff_at: datetime
+    model_name: str
+    model_version: str
+    favorite_side: str
+    underdog_side: str
+    favorite_team: str
+    underdog_team: str
+    elo_gap: float
+    is_bully_spot: bool
+    home_elo: float
+    away_elo: float
+    home_probability: float
+    draw_probability: float
+    away_probability: float
+    home_expected_goals: float
+    away_expected_goals: float
+    home_two_plus_probability: float
+    away_two_plus_probability: float
+    home_clean_sheet_probability: float
+    away_clean_sheet_probability: float
+    favorite_probability: float
+    underdog_probability: float
+    favorite_expected_goals: float
+    underdog_expected_goals: float
+    expected_goals_delta: float
+    favorite_two_plus_probability: float
+    underdog_two_plus_probability: float
+    favorite_clean_sheet_probability: float
+    underdog_clean_sheet_probability: float
+    home_xg_diff_avg: float | None = None
+    away_xg_diff_avg: float | None = None
+    home_xg_trend: float | None = None
+    away_xg_trend: float | None = None
+    trend_adjustment: float = 0.0
     lines: ScheduleLineResponse | None = None
 
 
@@ -268,7 +310,7 @@ class FixtureManualComparisonResponse(BaseModel):
 class BacktestRunRequest(BaseModel):
     from_date: date
     to_date: date
-    markets: list[str] = ["spread", "ou", "moneyline"]
+    markets: list[str] = ["spread", "ou", "moneyline", "bully"]
 
 
 class BacktestRunResponse(BaseModel):
@@ -280,6 +322,25 @@ class BacktestRunResponse(BaseModel):
     correct: int
     accuracy: float
     roi: float
+    win_two_plus_hit_rate: float | None = None
+    two_plus_hit_rate: float | None = None
+    clean_sheet_hit_rate: float | None = None
+    two_plus_given_win_rate: float | None = None
+    clean_sheet_given_win_rate: float | None = None
     date_from: datetime
     date_to: datetime
     run_at: datetime | None = None
+
+
+class BacktestJobResponse(BaseModel):
+    id: int
+    task_id: str | None = None
+    status: str
+    requested_markets: list[str] = Field(default_factory=list)
+    date_from: datetime
+    date_to: datetime
+    error: str | None = None
+    created_at: datetime | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    results: list[BacktestRunResponse] = Field(default_factory=list)

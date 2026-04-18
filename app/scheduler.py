@@ -199,6 +199,36 @@ def moneyline_predict_job():
         session.close()
 
 
+def elo_bully_predict_job():
+    session = get_session()
+    log = SchedulerLog(job_name="elo_bully_predict", status="running", started_at=datetime.now(timezone.utc))
+    session.add(log)
+    session.commit()
+    try:
+        from app.elo_form_predictor import EloFormPredictor
+        from app.db.models import ModelVersion
+        mv = session.query(ModelVersion).filter_by(name="elo_bully_v1", active=True).first()
+        if not mv:
+            mv = ModelVersion(
+                name="elo_bully_v1",
+                version="1.0.0",
+                description="Standalone Elo bully model with last-five xG trend adjustment",
+                active=True,
+            )
+            session.add(mv)
+            session.flush()
+        EloFormPredictor(session).run(mv.id)
+        log.status = "success"
+    except Exception as e:
+        log.status = "error"
+        log.error = str(e)
+        logger.exception("elo_bully_predict_job failed")
+    finally:
+        log.completed_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+
 def parallel_spread_predict_job():
     session = get_session()
     log = SchedulerLog(job_name="parallel_spread_predict", status="running", started_at=datetime.now(timezone.utc))
@@ -336,6 +366,10 @@ def start_scheduler(model_classes):
     scheduler.add_job(
         moneyline_predict_job, IntervalTrigger(minutes=30),
         id="moneyline_predict", replace_existing=True
+    )
+    scheduler.add_job(
+        elo_bully_predict_job, IntervalTrigger(minutes=30),
+        id="elo_bully_predict", replace_existing=True
     )
     scheduler.add_job(
         parallel_spread_predict_job, IntervalTrigger(minutes=30),

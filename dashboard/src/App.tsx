@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PicksList from './pages/PicksList'
 import BacktestsPage from './pages/BacktestsPage'
 import SchedulePage from './pages/SchedulePage'
+import BullySchedulePage from './pages/BullySchedulePage'
 import MyPicks from './pages/MyPicks'
 import { api } from './api/client'
 import type { ModelView } from './api/types'
@@ -24,10 +25,19 @@ export default function App() {
 
   const handleManualSaved = () => setRefreshKey(v => v + 1)
   const showingPickTabs = tab === 'today' || tab === 'week'
+  const showingBullyModel = showingPickTabs && modelView === 'bully'
 
   const body =
-    tab === 'today' ? <PicksList label="Today's Picks" fetcher={api.picksToday} modelView={modelView} emptyText="No HIGH or ELITE picks today." onManualSaved={handleManualSaved} /> :
-    tab === 'week'  ? <PicksList label="This Week" fetcher={api.picksWeek} modelView={modelView} emptyText="No HIGH or ELITE picks this week." onManualSaved={handleManualSaved} /> :
+    tab === 'today' ? (
+      showingBullyModel
+        ? <BullySchedulePage label="Today's Bully-Model" days={1} onManualSaved={handleManualSaved} />
+        : <PicksList label="Today's Picks" fetcher={api.picksToday} modelView={modelView} emptyText="No HIGH or ELITE picks today." onManualSaved={handleManualSaved} />
+    ) :
+    tab === 'week'  ? (
+      showingBullyModel
+        ? <BullySchedulePage label="This Week's Bully-Model" days={7} onManualSaved={handleManualSaved} />
+        : <PicksList label="This Week" fetcher={api.picksWeek} modelView={modelView} emptyText="No HIGH or ELITE picks this week." onManualSaved={handleManualSaved} />
+    ) :
     tab === 'schedule' ? <SchedulePage /> :
     tab === 'backtests' ? <BacktestsPage /> :
                       <MyPicks refreshKey={refreshKey} />
@@ -57,7 +67,7 @@ export default function App() {
         {showingPickTabs && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400">
             <span className="mr-1">View</span>
-            {(['best', 'main', 'parallel'] as ModelView[]).map(view => (
+            {(['best', 'main', 'parallel', 'bully'] as ModelView[]).map(view => (
               <button
                 key={view}
                 onClick={() => setModelView(view)}

@@ -1,4 +1,4 @@
-export type ModelView = 'best' | 'main' | 'parallel'
+export type ModelView = 'best' | 'main' | 'parallel' | 'bully'
 
 export interface SpreadPick {
   model_name: string | null
@@ -102,6 +102,48 @@ export interface ScheduledFixture {
   away_team: string
   league: string
   kickoff_at: string
+  lines: ScheduleLine | null
+}
+
+export interface BullyScheduleFixture {
+  fixture_id: number
+  home_team: string
+  away_team: string
+  league: string
+  kickoff_at: string
+  model_name: string
+  model_version: string
+  favorite_side: 'home' | 'away'
+  underdog_side: 'home' | 'away'
+  favorite_team: string
+  underdog_team: string
+  elo_gap: number
+  is_bully_spot: boolean
+  home_elo: number
+  away_elo: number
+  home_probability: number
+  draw_probability: number
+  away_probability: number
+  home_expected_goals: number
+  away_expected_goals: number
+  home_two_plus_probability: number
+  away_two_plus_probability: number
+  home_clean_sheet_probability: number
+  away_clean_sheet_probability: number
+  favorite_probability: number
+  underdog_probability: number
+  favorite_expected_goals: number
+  underdog_expected_goals: number
+  expected_goals_delta: number
+  favorite_two_plus_probability: number
+  underdog_two_plus_probability: number
+  favorite_clean_sheet_probability: number
+  underdog_clean_sheet_probability: number
+  home_xg_diff_avg: number | null
+  away_xg_diff_avg: number | null
+  home_xg_trend: number | null
+  away_xg_trend: number | null
+  trend_adjustment: number
   lines: ScheduleLine | null
 }
 
@@ -218,7 +260,7 @@ export interface FixtureManualComparison {
 }
 
 export interface BacktestRun {
-  market: 'spread' | 'ou' | 'moneyline'
+  market: 'spread' | 'ou' | 'moneyline' | 'bully'
   model_id: number
   model_name: string
   model_version: string
@@ -226,6 +268,11 @@ export interface BacktestRun {
   correct: number
   accuracy: number
   roi: number
+  win_two_plus_hit_rate: number | null
+  two_plus_hit_rate: number | null
+  clean_sheet_hit_rate: number | null
+  two_plus_given_win_rate: number | null
+  clean_sheet_given_win_rate: number | null
   date_from: string
   date_to: string
   run_at: string | null
@@ -234,5 +281,19 @@ export interface BacktestRun {
 export interface BacktestRunRequest {
   from_date: string
   to_date: string
-  markets: Array<'spread' | 'ou' | 'moneyline'>
+  markets: Array<'spread' | 'ou' | 'moneyline' | 'bully'>
+}
+
+export interface BacktestJob {
+  id: number
+  task_id: string | null
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  requested_markets: string[]
+  date_from: string
+  date_to: string
+  error: string | null
+  created_at: string | null
+  started_at: string | null
+  completed_at: string | null
+  results: BacktestRun[]
 }

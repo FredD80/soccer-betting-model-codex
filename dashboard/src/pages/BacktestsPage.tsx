@@ -1,14 +1,18 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 
 import { api } from '../api/client'
-import type { BacktestRun } from '../api/types'
+import type { BacktestJob, BacktestRun } from '../api/types'
 import { modelLabel } from '../lib/modelLabels'
 
 const MARKET_OPTIONS = [
   { key: 'spread', label: 'Spread' },
   { key: 'ou', label: 'Totals' },
   { key: 'moneyline', label: 'Moneyline' },
+  { key: 'bully', label: 'Bully-Model' },
 ] as const
+
+const BACKTEST_POLL_MS = 2000
+const BACKTEST_POLL_ATTEMPTS = 180
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10)
@@ -23,28 +27,49 @@ function defaultFromDate() {
 export default function BacktestsPage() {
   const [fromDate, setFromDate] = useState(defaultFromDate)
   const [toDate, setToDate] = useState(todayDate)
-  const [selectedMarkets, setSelectedMarkets] = useState<Array<'spread' | 'ou' | 'moneyline'>>([
+  const [selectedMarkets, setSelectedMarkets] = useState<Array<'spread' | 'ou' | 'moneyline' | 'bully'>>([
     'spread',
     'ou',
     'moneyline',
+    'bully',
   ])
   const [runs, setRuns] = useState<BacktestRun[]>([])
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resultMessage, setResultMessage] = useState<string | null>(null)
+  const [activeJob, setActiveJob] = useState<BacktestJob | null>(null)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
     api.backtestRuns()
       .then(setRuns)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
+
+    return () => {
+      mountedRef.current = false
+    }
   }, [])
 
-  function toggleMarket(market: 'spread' | 'ou' | 'moneyline') {
+  function toggleMarket(market: 'spread' | 'ou' | 'moneyline' | 'bully') {
     setSelectedMarkets(current =>
       current.includes(market) ? current.filter(item => item !== market) : [...current, market],
     )
+  }
+
+  async function waitForBacktestJob(jobId: number) {
+    for (let attempt = 0; attempt < BACKTEST_POLL_ATTEMPTS; attempt += 1) {
+      const job = await api.backtestJob(jobId)
+      if (!mountedRef.current) return null
+      setActiveJob(job)
+      if (job.status === 'completed') return job
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'Backtest job failed.')
+      }
+      await new Promise(resolve => window.setTimeout(resolve, BACKTEST_POLL_MS))
+    }
+    throw new Error('Backtest job timed out while waiting for completion.')
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -56,22 +81,33 @@ export default function BacktestsPage() {
     setRunning(true)
     setError(null)
     setResultMessage(null)
+    setActiveJob(null)
     try {
-      const response = await api.runBacktestPicks({
+      const job = await api.runBacktestPicks({
         from_date: fromDate,
         to_date: toDate,
         markets: selectedMarkets,
       })
-      setRuns(response)
+      if (!mountedRef.current) return
+      setActiveJob(job)
+      setResultMessage(`Backtest job #${job.id} queued.`)
+
+      const completedJob = await waitForBacktestJob(job.id)
+      if (!completedJob || !mountedRef.current) return
+      setRuns(completedJob.results)
       setResultMessage(
-        response.length === 0
+        completedJob.results.length === 0
           ? 'No qualifying completed picks found in that window.'
-          : `Backtest completed for ${response.length} market/model result${response.length === 1 ? '' : 's'}.`,
+          : `Backtest completed for ${completedJob.results.length} market/model result${completedJob.results.length === 1 ? '' : 's'}.`,
       )
     } catch (e) {
-      setError((e as Error).message)
+      if (mountedRef.current) {
+        setError((e as Error).message)
+      }
     } finally {
-      setRunning(false)
+      if (mountedRef.current) {
+        setRunning(false)
+      }
     }
   }
 
@@ -80,7 +116,7 @@ export default function BacktestsPage() {
       <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
         <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">Backtests</h2>
         <p className="mt-2 max-w-xl text-sm text-gray-300">
-          Run a historical grade on stored HIGH and ELITE picks without leaving the app. Results are grouped by market and model.
+          Run a historical grade on stored HIGH and ELITE picks, plus Bully-Model bully spots. Bully rows also report the direct win-plus-2-goals hit rate for your combo style, along with favorite 2+ goals and shutout rates.
         </p>
         <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <label className="block text-sm">
@@ -131,6 +167,11 @@ export default function BacktestsPage() {
             </button>
             {resultMessage ? <p className="text-sm text-emerald-300">{resultMessage}</p> : null}
           </div>
+          {activeJob ? (
+            <p className="md:col-span-2 text-sm text-gray-400">
+              Job #{activeJob.id}: {activeJob.status}
+            </p>
+          ) : null}
         </form>
       </div>
 
@@ -154,8 +195,13 @@ export default function BacktestsPage() {
                     <th className="px-4 py-3 font-medium">Window</th>
                     <th className="px-4 py-3 font-medium text-right">Total</th>
                     <th className="px-4 py-3 font-medium text-right">Correct</th>
-                    <th className="px-4 py-3 font-medium text-right">Accuracy</th>
+                    <th className="px-4 py-3 font-medium text-right">Win / Hit Rate</th>
                     <th className="px-4 py-3 font-medium text-right">ROI</th>
+                    <th className="px-4 py-3 font-medium text-right">Win + 2+ Hit</th>
+                    <th className="px-4 py-3 font-medium text-right">2+ Hit</th>
+                    <th className="px-4 py-3 font-medium text-right">Shutout Hit</th>
+                    <th className="px-4 py-3 font-medium text-right">2+ Given Win</th>
+                    <th className="px-4 py-3 font-medium text-right">Shutout Given Win</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -173,6 +219,21 @@ export default function BacktestsPage() {
                       <td className="px-4 py-3 text-right text-gray-200">{run.correct}</td>
                       <td className="px-4 py-3 text-right text-gray-200">{(run.accuracy * 100).toFixed(1)}%</td>
                       <td className="px-4 py-3 text-right text-gray-200">{run.roi.toFixed(3)}</td>
+                      <td className="px-4 py-3 text-right text-gray-200">
+                        {run.win_two_plus_hit_rate == null ? '—' : `${(run.win_two_plus_hit_rate * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-200">
+                        {run.two_plus_hit_rate == null ? '—' : `${(run.two_plus_hit_rate * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-200">
+                        {run.clean_sheet_hit_rate == null ? '—' : `${(run.clean_sheet_hit_rate * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-200">
+                        {run.two_plus_given_win_rate == null ? '—' : `${(run.two_plus_given_win_rate * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-200">
+                        {run.clean_sheet_given_win_rate == null ? '—' : `${(run.clean_sheet_given_win_rate * 100).toFixed(1)}%`}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

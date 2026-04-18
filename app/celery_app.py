@@ -14,6 +14,7 @@ def _on_celery_setup_logging(**_kwargs):
 logger = logging.getLogger(__name__)
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+DEFAULT_QUEUE = os.environ.get("CELERY_QUEUES", "default").split(",")[0].strip() or "default"
 
 celery_app = Celery(
     "app",
@@ -29,6 +30,7 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    task_default_queue=DEFAULT_QUEUE,
     task_acks_late=True,           # re-queue on worker crash
     worker_prefetch_multiplier=1,  # one task at a time per worker (CPU-heavy tasks)
 )
@@ -240,5 +242,63 @@ def ou_analyze_task():
         session.commit()
         logger.info("ou_analyze_task: complete")
         return {"status": "ok"}
+    finally:
+        session.close()
+
+
+@celery_app.task(name="app.celery_app.backtest_run_task", bind=True)
+def backtest_run_task(self, backtest_job_id: int):
+    """Run a backtest asynchronously and persist job status/results."""
+    from datetime import datetime, timezone
+
+    from app.db.connection import get_session
+    from app.db.models import BacktestJob
+    from app.pick_backtester import PickBacktester
+
+    session = get_session()
+    try:
+        job = session.query(BacktestJob).filter_by(id=backtest_job_id).first()
+        if job is None:
+            logger.error("backtest_run_task: missing job_id=%s", backtest_job_id)
+            return {"job_id": backtest_job_id, "status": "missing"}
+
+        job.status = "running"
+        job.task_id = getattr(self.request, "id", None) or job.task_id
+        job.error = None
+        job.started_at = datetime.now(timezone.utc)
+        session.commit()
+
+        markets = tuple(m for m in (job.requested_markets or "").split(",") if m)
+        if not markets:
+            markets = ("spread", "ou", "moneyline", "bully")
+
+        PickBacktester(session).run(
+            job.date_from,
+            job.date_to,
+            markets=markets,
+            backtest_job_id=job.id,
+        )
+
+        job = session.query(BacktestJob).filter_by(id=backtest_job_id).first()
+        if job is not None:
+            job.status = "completed"
+            job.completed_at = datetime.now(timezone.utc)
+            session.commit()
+
+        logger.info("backtest_run_task: completed job_id=%s", backtest_job_id)
+        return {"job_id": backtest_job_id, "status": "completed"}
+    except Exception as exc:
+        session.rollback()
+        try:
+            job = session.query(BacktestJob).filter_by(id=backtest_job_id).first()
+            if job is not None:
+                job.status = "failed"
+                job.error = str(exc)
+                job.completed_at = datetime.now(timezone.utc)
+                session.commit()
+        except Exception:
+            session.rollback()
+        logger.exception("backtest_run_task: failed job_id=%s", backtest_job_id)
+        raise
     finally:
         session.close()

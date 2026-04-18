@@ -125,7 +125,7 @@ export default function MyPicks({ refreshKey }: Props) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Alpha Vs Market-Edge Vs Me</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Model Comparison</h2>
         {modelSummary.length === 0 ? (
           <p className="text-sm text-slate-500">No exact pick matches against model outcomes yet.</p>
         ) : (

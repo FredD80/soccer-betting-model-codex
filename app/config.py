@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     api_football_key: str = ""
     openweathermap_key: str = ""
     ml_lambda_enabled: bool = False     # enable XGBoost λ regressor for spreads
+    bully_xg_overlay_enabled: bool = True
 
     class Config:
         env_file = ".env"

@@ -334,6 +334,70 @@ def test_manual_vs_models_summary_groups_by_model(client, api_db):
     assert names == {"main_ou", "parallel_ou"}
 
 
+def test_manual_vs_models_includes_bully_moneyline_matches(client, api_db):
+    league = League(name="Premier League", country="England", espn_id="eng.1", odds_api_key="soccer_epl")
+    api_db.add(league)
+    api_db.flush()
+    home = Team(name="Liverpool", league_id=league.id)
+    away = Team(name="Ipswich", league_id=league.id)
+    api_db.add_all([home, away])
+    api_db.flush()
+    fixture = Fixture(
+        espn_id="compare-bully-1",
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=datetime.now(timezone.utc),
+        status="completed",
+    )
+    api_db.add(fixture)
+    bully_model = ModelVersion(name="elo_bully_v1", version="1.0", active=True)
+    api_db.add(bully_model)
+    api_db.flush()
+    manual = ManualPick(
+        fixture_id=fixture.id,
+        market_type="moneyline",
+        selection="home",
+        decimal_odds=1.7,
+        american_odds=-143,
+        stake_units=1.0,
+        result_status="win",
+        profit_units=0.7,
+        graded_at=datetime.now(timezone.utc),
+    )
+    api_db.add(manual)
+    api_db.add(PredictionOutcome(
+        fixture_id=fixture.id,
+        model_id=bully_model.id,
+        market_type="moneyline",
+        prediction_row_id=-401,
+        selection="home",
+        decimal_odds=1.7,
+        american_odds=-143,
+        model_probability=0.64,
+        final_probability=0.64,
+        edge_pct=0.05,
+        confidence_tier="HIGH",
+        result_status="win",
+        profit_units=0.7,
+        graded_at=datetime.now(timezone.utc),
+    ))
+    api_db.flush()
+
+    response = client.get("/performance/compare/manual-vs-models")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["manual_pick_id"] == manual.id
+    assert data[0]["model_name"] == "elo_bully_v1"
+
+    summary_response = client.get("/performance/compare/manual-vs-models/summary")
+    assert summary_response.status_code == 200
+    summary = summary_response.json()
+    assert len(summary) == 1
+    assert summary[0]["model_name"] == "elo_bully_v1"
+
+
 def test_compare_fixtures_returns_best_pick_per_model_even_if_different(client, api_db):
     manual = _seed_fixture_level_compare(api_db)
     response = client.get("/performance/compare/fixtures")
