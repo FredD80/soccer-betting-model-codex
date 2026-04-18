@@ -91,22 +91,66 @@ interface Props {
   onManualSaved?: () => void
 }
 
-function BullyFixtureDetails({ fixture }: { fixture: BullyScheduleFixture }) {
+function favoriteTrend(fixture: BullyScheduleFixture): number | null {
+  return fixture.favorite_side === 'home' ? fixture.home_xg_trend : fixture.away_xg_trend
+}
+
+function BullyFixtureDetails({
+  fixture,
+  variant = 'default',
+}: {
+  fixture: BullyScheduleFixture
+  variant?: 'default' | 'highlight'
+}) {
+  const isHighlight = variant === 'highlight'
+  const favoriteTrendValue = favoriteTrend(fixture)
+
   return (
-    <details className="group mt-3 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/35">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-left sm:px-4 sm:py-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Extra Info</p>
-          <p className="mt-1 hidden text-sm text-slate-300 sm:block">xG context, probabilities, odds, and expanded bully read</p>
-        </div>
-        <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition group-open:border-emerald-500/40 group-open:text-emerald-300">
-          <span className="group-open:hidden">Show</span>
-          <span className="hidden group-open:inline">Hide</span>
-        </span>
+    <details className={
+      'group mt-3 overflow-hidden rounded-2xl border bg-slate-950/35 ' +
+      (isHighlight ? 'border-amber-400/25' : 'border-slate-800')
+    }>
+      <summary className={
+        'cursor-pointer list-none text-left ' +
+        (isHighlight ? 'px-3 py-3.5 sm:px-4' : 'flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3')
+      }>
+        {isHighlight ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
+              <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200">
+                Full Bully Read
+              </span>
+              <span className="rounded-full border border-slate-700/80 bg-slate-900/70 px-2.5 py-1 text-[11px] text-slate-200">
+                SGP Lens {fmtPct(bullyComboScore(fixture))}
+              </span>
+              <span className="rounded-full border border-slate-700/80 bg-slate-900/70 px-2.5 py-1 text-[11px] text-slate-200">
+                Odds {formatAmericanFromDecimal(favoriteOdds(fixture))}
+              </span>
+              <span className="rounded-full border border-slate-700/80 bg-slate-900/70 px-2.5 py-1 text-[11px] text-slate-200">
+                {trendTone(favoriteTrendValue)}
+              </span>
+            </div>
+            <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition group-open:border-emerald-500/40 group-open:text-emerald-300">
+              <span className="group-open:hidden">Show More</span>
+              <span className="hidden group-open:inline">Hide Read</span>
+            </span>
+          </div>
+        ) : (
+          <>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Extra Info</p>
+              <p className="mt-1 hidden text-sm text-slate-300 sm:block">xG context, probabilities, odds, and expanded bully read</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition group-open:border-emerald-500/40 group-open:text-emerald-300">
+              <span className="group-open:hidden">Show</span>
+              <span className="hidden group-open:inline">Hide</span>
+            </span>
+          </>
+        )}
       </summary>
 
       <div className="border-t border-slate-800 px-4 pb-4 pt-3">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={'grid gap-3 ' + (isHighlight ? 'xl:grid-cols-4' : 'md:grid-cols-3')}>
           <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Ratings</p>
             <div className="mt-2 space-y-1 text-sm text-gray-200">
@@ -119,65 +163,109 @@ function BullyFixtureDetails({ fixture }: { fixture: BullyScheduleFixture }) {
           </div>
 
           <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Outcome Probabilities</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+              {isHighlight ? 'Bully Read' : 'Outcome Probabilities'}
+            </p>
             <div className="mt-2 space-y-1 text-sm text-gray-200">
-              <div>Home: {fmtPct(fixture.home_probability)}</div>
-              <div>Draw: {fmtPct(fixture.draw_probability)}</div>
-              <div>Away: {fmtPct(fixture.away_probability)}</div>
+              {isHighlight ? (
+                <>
+                  <div>{fixture.favorite_team} win: {fmtPct(fixture.favorite_probability)}</div>
+                  <div>{fixture.favorite_team} xG: {fmtGoals(fixture.favorite_expected_goals)}</div>
+                  <div>{fixture.underdog_team} xG: {fmtGoals(fixture.underdog_expected_goals)}</div>
+                  <div>{fixture.favorite_team} 2+: {fmtPct(fixture.favorite_two_plus_probability)}</div>
+                  <div>{fixture.favorite_team} clean sheet: {fmtPct(fixture.favorite_clean_sheet_probability)}</div>
+                </>
+              ) : (
+                <>
+                  <div>Home: {fmtPct(fixture.home_probability)}</div>
+                  <div>Draw: {fmtPct(fixture.draw_probability)}</div>
+                  <div>Away: {fmtPct(fixture.away_probability)}</div>
+                </>
+              )}
             </div>
           </div>
 
           <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Scoring Signals</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+              {isHighlight ? 'xG Context' : 'Scoring Signals'}
+            </p>
             <div className="mt-2 space-y-1 text-sm text-gray-200">
-              <div className="text-sky-300">
-                {fixture.home_team} xG: {fmtGoals(fixture.home_expected_goals)}
-              </div>
-              <div className="text-sky-300">
-                {fixture.away_team} xG: {fmtGoals(fixture.away_expected_goals)}
-              </div>
-              <div className="text-emerald-300">
-                xG delta: +{fmtGoals(fixture.expected_goals_delta)} to {fixture.favorite_team}
-              </div>
-              <div className={signalTone(fixture.home_two_plus_probability, 0.56, 0.45)}>
-                {fixture.home_team} 2+: {fmtPct(fixture.home_two_plus_probability)}
-              </div>
-              <div className={signalTone(fixture.away_two_plus_probability, 0.56, 0.45)}>
-                {fixture.away_team} 2+: {fmtPct(fixture.away_two_plus_probability)}
-              </div>
-              <div className={signalTone(fixture.home_clean_sheet_probability, 0.42, 0.30)}>
-                {fixture.home_team} clean sheet: {fmtPct(fixture.home_clean_sheet_probability)}
-              </div>
-              <div className={signalTone(fixture.away_clean_sheet_probability, 0.42, 0.30)}>
-                {fixture.away_team} clean sheet: {fmtPct(fixture.away_clean_sheet_probability)}
-              </div>
+              {isHighlight ? (
+                <>
+                  <div>{fixture.home_team}: {trendTone(fixture.home_xg_trend)} ({fmtSigned(fixture.home_xg_trend)})</div>
+                  <div>{fixture.away_team}: {trendTone(fixture.away_xg_trend)} ({fmtSigned(fixture.away_xg_trend)})</div>
+                  <div className="text-slate-400">Shift applied: {fmtSigned(fixture.trend_adjustment)}</div>
+                  <div className="text-emerald-300">
+                    xG delta: +{fmtGoals(fixture.expected_goals_delta)} to {fixture.favorite_team}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sky-300">
+                    {fixture.home_team} xG: {fmtGoals(fixture.home_expected_goals)}
+                  </div>
+                  <div className="text-sky-300">
+                    {fixture.away_team} xG: {fmtGoals(fixture.away_expected_goals)}
+                  </div>
+                  <div className="text-emerald-300">
+                    xG delta: +{fmtGoals(fixture.expected_goals_delta)} to {fixture.favorite_team}
+                  </div>
+                  <div className={signalTone(fixture.home_two_plus_probability, 0.56, 0.45)}>
+                    {fixture.home_team} 2+: {fmtPct(fixture.home_two_plus_probability)}
+                  </div>
+                  <div className={signalTone(fixture.away_two_plus_probability, 0.56, 0.45)}>
+                    {fixture.away_team} 2+: {fmtPct(fixture.away_two_plus_probability)}
+                  </div>
+                  <div className={signalTone(fixture.home_clean_sheet_probability, 0.42, 0.30)}>
+                    {fixture.home_team} clean sheet: {fmtPct(fixture.home_clean_sheet_probability)}
+                  </div>
+                  <div className={signalTone(fixture.away_clean_sheet_probability, 0.42, 0.30)}>
+                    {fixture.away_team} clean sheet: {fmtPct(fixture.away_clean_sheet_probability)}
+                  </div>
+                </>
+              )}
             </div>
           </div>
+          {isHighlight && (
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Market Snapshot</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-200">
+                <div>Moneyline: {formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
+                <div>Spread: {fixture.favorite_side === 'home'
+                  ? `${fmtLine(fixture.lines?.spread_home_line ?? null)} @ ${formatAmericanFromDecimal(fixture.lines?.spread_home_odds ?? null)}`
+                  : `${fmtLine(fixture.lines?.spread_away_line ?? null)} @ ${formatAmericanFromDecimal(fixture.lines?.spread_away_odds ?? null)}`}</div>
+                <div>Total: {fixture.lines?.total_goals_line ?? '—'}</div>
+                <div>Over: {formatAmericanFromDecimal(fixture.lines?.over_odds ?? null)}</div>
+                <div>Under: {formatAmericanFromDecimal(fixture.lines?.under_odds ?? null)}</div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3 md:col-span-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">xG Context</p>
-            <div className="mt-2 space-y-1 text-sm text-gray-200">
-              <div>{fixture.home_team}: {trendTone(fixture.home_xg_trend)} ({fmtSigned(fixture.home_xg_trend)})</div>
-              <div>{fixture.away_team}: {trendTone(fixture.away_xg_trend)} ({fmtSigned(fixture.away_xg_trend)})</div>
-              <div className="text-slate-400">Shift applied: {fmtSigned(fixture.trend_adjustment)}</div>
+        <div className={'mt-4 grid gap-3 ' + (isHighlight ? 'md:grid-cols-2' : 'md:grid-cols-3')}>
+          {!isHighlight && (
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3 md:col-span-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">xG Context</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-200">
+                <div>{fixture.home_team}: {trendTone(fixture.home_xg_trend)} ({fmtSigned(fixture.home_xg_trend)})</div>
+                <div>{fixture.away_team}: {trendTone(fixture.away_xg_trend)} ({fmtSigned(fixture.away_xg_trend)})</div>
+                <div className="text-slate-400">Shift applied: {fmtSigned(fixture.trend_adjustment)}</div>
+              </div>
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Bully Read</p>
-            <div className="mt-2 space-y-1 text-sm text-gray-200">
-              <div>{fixture.favorite_team} win: {fmtPct(fixture.favorite_probability)}</div>
-              <div>{fixture.favorite_team} xG: {fmtGoals(fixture.favorite_expected_goals)}</div>
-              <div>{fixture.underdog_team} xG: {fmtGoals(fixture.underdog_expected_goals)}</div>
-              <div>{fixture.favorite_team} 2+: {fmtPct(fixture.favorite_two_plus_probability)}</div>
-              <div>SGP Lens: {fmtPct(bullyComboScore(fixture))}</div>
-              <div>{fixture.favorite_team} clean sheet: {fmtPct(fixture.favorite_clean_sheet_probability)}</div>
+          )}
+          {!isHighlight && (
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Bully Read</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-200">
+                <div>{fixture.favorite_team} win: {fmtPct(fixture.favorite_probability)}</div>
+                <div>{fixture.favorite_team} xG: {fmtGoals(fixture.favorite_expected_goals)}</div>
+                <div>{fixture.underdog_team} xG: {fmtGoals(fixture.underdog_expected_goals)}</div>
+                <div>{fixture.favorite_team} 2+: {fmtPct(fixture.favorite_two_plus_probability)}</div>
+                <div>SGP Lens: {fmtPct(bullyComboScore(fixture))}</div>
+                <div>{fixture.favorite_team} clean sheet: {fmtPct(fixture.favorite_clean_sheet_probability)}</div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          )}
           <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Moneyline</p>
             <div className="mt-2 space-y-1 text-sm text-gray-200">
@@ -208,6 +296,36 @@ function BullyFixtureDetails({ fixture }: { fixture: BullyScheduleFixture }) {
             </div>
           </div>
         </div>
+
+        {isHighlight && (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Outcome Probabilities</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-200">
+                <div>Home: {fmtPct(fixture.home_probability)}</div>
+                <div>Draw: {fmtPct(fixture.draw_probability)}</div>
+                <div>Away: {fmtPct(fixture.away_probability)}</div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Scoring Signals</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-200">
+                <div className={signalTone(fixture.home_two_plus_probability, 0.56, 0.45)}>
+                  {fixture.home_team} 2+: {fmtPct(fixture.home_two_plus_probability)}
+                </div>
+                <div className={signalTone(fixture.away_two_plus_probability, 0.56, 0.45)}>
+                  {fixture.away_team} 2+: {fmtPct(fixture.away_two_plus_probability)}
+                </div>
+                <div className={signalTone(fixture.home_clean_sheet_probability, 0.42, 0.30)}>
+                  {fixture.home_team} clean sheet: {fmtPct(fixture.home_clean_sheet_probability)}
+                </div>
+                <div className={signalTone(fixture.away_clean_sheet_probability, 0.42, 0.30)}>
+                  {fixture.away_team} clean sheet: {fmtPct(fixture.away_clean_sheet_probability)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </details>
   )
@@ -413,7 +531,7 @@ export default function BullySchedulePage({ label = 'Bully-Model', days, refresh
                   </p>
                 </div>
               </div>
-              <BullyFixtureDetails fixture={fixture} />
+              <BullyFixtureDetails fixture={fixture} variant="highlight" />
               <div className="mt-3">
                 <ManualPickForm pick={manualPickFixture(fixture)} onSaved={onManualSaved} />
               </div>
