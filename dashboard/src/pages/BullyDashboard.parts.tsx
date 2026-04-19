@@ -393,7 +393,7 @@ export function HeroStrip({
 
 function DetailAction({ label }: { label: string }) {
   return (
-    <button className="pill justify-center py-2.5" type="button">
+    <button className="pill min-w-0 whitespace-normal break-words justify-center py-2.5 text-center leading-snug" type="button">
       {label}
     </button>
   )
@@ -401,9 +401,13 @@ function DetailAction({ label }: { label: string }) {
 
 function AngleCard({ label, value, primary = false }: { label: string; value: string; primary?: boolean }) {
   return (
-    <div className={`rounded-[10px] border p-3 ${primary ? 'border-bully/35 bg-bully/16' : 'border-line-1 bg-bg-2'}`}>
-      <div className="text-[9px] uppercase tracking-[0.2em] text-ink-3">{label}</div>
-      <div className={`mt-1 font-mono text-[14px] ${primary ? 'text-bully' : 'text-ink-0'}`}>{value}</div>
+    <div className={`min-w-0 overflow-hidden rounded-[10px] border p-3 ${primary ? 'border-bully/35 bg-bully/16' : 'border-line-1 bg-bg-2'}`}>
+      <div className="overflow-hidden text-[8.5px] uppercase tracking-[0.16em] leading-[1.25] text-ink-3 [overflow-wrap:anywhere]">
+        {label}
+      </div>
+      <div className={`mt-1 font-mono text-[14px] leading-tight [overflow-wrap:anywhere] ${primary ? 'text-bully' : 'text-ink-0'}`}>
+        {value}
+      </div>
     </div>
   )
 }
@@ -416,9 +420,11 @@ function MiniStat({ label, value, tint }: { label: string; value: string; tint?:
           : 'text-ink-0'
 
   return (
-    <div className="rounded-md border border-line-1 bg-bg-2 px-2.5 py-2">
-      <div className="text-[9px] uppercase tracking-[0.2em] text-ink-3">{label}</div>
-      <div className={`mt-0.5 font-mono text-[14px] ${color}`}>{value}</div>
+    <div className="min-w-0 overflow-hidden rounded-md border border-line-1 bg-bg-2 px-2.5 py-2">
+      <div className="overflow-hidden text-[8.5px] uppercase tracking-[0.16em] leading-[1.25] text-ink-3 [overflow-wrap:anywhere]">
+        {label}
+      </div>
+      <div className={`mt-0.5 font-mono text-[14px] leading-tight [overflow-wrap:anywhere] ${color}`}>{value}</div>
     </div>
   )
 }
@@ -449,24 +455,24 @@ export function FixtureDetailPanel({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr_1fr]">
-        <div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
           <div className="eyebrow mb-2 text-bully">Why It’s On The Board</div>
           <p className="text-[13px] leading-[1.55] text-ink-1">
             Elo gap <b className="text-bully">+{fixture.elo_gap.toFixed(0)}</b>. {fixture.favorite_team.split(' ')[0]} xG trending{' '}
             <b className={trendTone(trend)}>{fmtSigned(trend)}</b>. Model reads <b className="text-bully">{fmtPct(fixture.favorite_probability, 1)} win</b> with{' '}
             <b className="text-bully">{fmtPct(fixture.favorite_two_plus_probability, 1)} to score 2+</b>. SGP Lens: {fmtPct(bullyComboScore(fixture), 1)}.
           </p>
-          <div className="mt-3.5 grid grid-cols-3 gap-2">
+          <div className="mt-3.5 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
             <AngleCard label="Primary · ML" value={formatAmericanFromDecimal(favoriteOdds(fixture))} primary />
             <AngleCard label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} />
             <AngleCard label="Clean Sheet" value={fmtPct(fixture.favorite_clean_sheet_probability, 1)} />
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="eyebrow mb-2">Model Inputs</div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
             <MiniStat label="Fav xG" value={fmtGoals(fixture.favorite_expected_goals)} tint="alpha" />
             <MiniStat label="Dog xG" value={fmtGoals(fixture.underdog_expected_goals)} />
             <MiniStat label="Win %" value={fmtPct(fixture.favorite_probability, 1)} />
@@ -474,7 +480,7 @@ export function FixtureDetailPanel({
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="eyebrow mb-2">Actions</div>
           <div className="flex flex-col gap-2">
             <DetailAction label={`Track pick @ ${formatAmericanFromDecimal(favoriteOdds(fixture))}`} />
