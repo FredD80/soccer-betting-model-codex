@@ -33,6 +33,11 @@
     @apply bg-bg-0 text-ink-0 antialiased;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
   }
+
+  ::selection {
+    background: rgb(230 180 72 / 0.28);
+    color: rgb(var(--ink-0));
+  }
 }
 
 @layer components {
@@ -42,11 +47,7 @@
            hover:text-ink-0 hover:border-ink-3 transition-colors cursor-pointer;
   }
   .pill-active { @apply bg-bg-3 text-ink-0; }
-  .pill-bully {
-    color: oklch(var(--bully));
-    border-color: oklch(var(--bully) / 0.35);
-    background-color: oklch(var(--bully) / 0.16);
-  }
+  .pill-bully  { @apply bg-bully/16 text-bully border-bully/35; }
 
   .card { @apply bg-bg-2 border border-line-1 rounded-[14px] p-5; }
 

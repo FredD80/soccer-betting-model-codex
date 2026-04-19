@@ -4,6 +4,13 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      opacity: {
+        '08': '0.08',
+        '16': '0.16',
+        '18': '0.18',
+        '35': '0.35',
+        '45': '0.45',
+      },
       colors: {
         'bg-0': 'rgb(var(--bg-0) / <alpha-value>)',
         'bg-1': 'rgb(var(--bg-1) / <alpha-value>)',
