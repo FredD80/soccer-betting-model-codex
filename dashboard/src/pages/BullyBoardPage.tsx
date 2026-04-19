@@ -295,7 +295,7 @@ function HeroInlineStat({ label, value, accent }: { label: string; value: string
   return (
     <div className="flex flex-col items-start leading-none min-w-0">
       <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-ink-3">{label}</span>
-      <span className={`mt-1.5 font-mono text-[18px] font-medium tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>
+      <span className={`mt-1.5 font-mono text-[15px] font-medium tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>
         {value}
       </span>
     </div>
@@ -398,11 +398,11 @@ function HeroStrip({
 
   return (
     <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-[linear-gradient(90deg,rgba(224,181,78,0.16),transparent_60%),rgba(14,21,36,0.92)]">
-      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1fr_auto_auto] xl:items-center xl:gap-6">
+      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(0,1fr)_auto_auto] xl:items-center xl:gap-5">
         <div className="flex min-w-0 items-center gap-3.5">
           <TierBadge tier={tier} />
           <div className="min-w-0">
-            <div className="text-[18px] font-semibold tracking-[-0.01em] leading-tight">
+            <div className="text-[16px] font-semibold tracking-[-0.01em] leading-tight truncate">
               {fixture.favorite_team} <span className="mx-1.5 font-normal text-ink-3">vs</span> {fixture.underdog_team}
             </div>
             <div className="mt-0.5 font-mono text-[11px] tracking-[0.08em] text-ink-3">
@@ -411,7 +411,7 @@ function HeroStrip({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 text-left sm:grid-cols-6 xl:text-right">
+        <div className="grid grid-cols-3 gap-3 text-left sm:grid-cols-6 sm:gap-4 xl:text-right">
           <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
           <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability, 1)} />
           <HeroInlineStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent="text-edge" />
