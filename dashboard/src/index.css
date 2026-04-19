@@ -32,47 +32,33 @@
   body {
     @apply bg-bg-0 text-ink-0 antialiased;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
-    background-image:
-      radial-gradient(circle at top left, rgb(189 146 47 / 0.16), transparent 24rem),
-      radial-gradient(circle at top right, rgb(31 81 146 / 0.14), transparent 26rem),
-      linear-gradient(180deg, rgb(var(--bg-0)) 0%, rgb(8 12 21) 100%);
-  }
-
-  ::selection {
-    background: rgb(230 180 72 / 0.28);
-    color: rgb(var(--ink-0));
   }
 }
 
 @layer components {
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-bg-2 px-3 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink-0;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+           border border-line-2 text-ink-2 text-xs font-medium
+           hover:text-ink-0 hover:border-ink-3 transition-colors cursor-pointer;
   }
-
-  .pill-active {
-    @apply bg-bg-3 text-ink-0;
-  }
-
+  .pill-active { @apply bg-bg-3 text-ink-0; }
   .pill-bully {
     color: oklch(var(--bully));
     border-color: oklch(var(--bully) / 0.35);
     background-color: oklch(var(--bully) / 0.16);
   }
 
-  .card {
-    @apply rounded-[18px] border border-line-1 p-5 shadow-panel;
-    background-color: rgb(var(--bg-2) / 0.92);
-  }
+  .card { @apply bg-bg-2 border border-line-1 rounded-[14px] p-5; }
 
   .eyebrow {
-    @apply font-mono text-[10.5px] uppercase tracking-[0.22em] text-ink-3;
+    @apply font-mono text-[10.5px] tracking-[0.22em] uppercase text-ink-3;
   }
 
   .stat-label {
-    @apply font-mono text-[10px] uppercase tracking-[0.2em] text-ink-3;
+    @apply font-mono text-[10px] tracking-[0.2em] uppercase text-ink-3;
   }
 
   .filter-label {
-    @apply mr-1.5 text-[10.5px] uppercase tracking-[0.22em] text-ink-3;
+    @apply text-[10.5px] tracking-[0.22em] uppercase text-ink-3 mr-1.5;
   }
 }

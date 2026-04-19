@@ -20,9 +20,9 @@ const SORT_OPTIONS: { key: BullySortKey; label: string }[] = [
   { key: 'kickoff', label: 'Kickoff' },
 ]
 
-// #  Fixture   KO   Elo  Win  2+   SGP  xG F/D  L10  Odds  Tier
+// #  Fixture        KO   Elo  Win  2+   Comp  SGP  xG F/D  Odds
 const DESKTOP_GRID =
-  'lg:grid-cols-[28px_minmax(0,1.8fr)_60px_52px_52px_52px_54px_64px_72px_56px_70px]'
+  'lg:grid-cols-[28px_minmax(180px,1.6fr)_64px_52px_52px_50px_54px_54px_72px_64px]'
 
 interface Props {
   label?: string
@@ -196,49 +196,6 @@ function tierClass(tier: 'ELITE' | 'HIGH' | 'WATCH'): string {
   return 'border-line-2 bg-bg-3 text-ink-2'
 }
 
-function TierBadge({ tier }: { tier: 'ELITE' | 'HIGH' | 'WATCH' }) {
-  const styles =
-    tier === 'ELITE'
-      ? 'bg-bully text-bg-1'
-      : tier === 'HIGH'
-        ? 'border border-bully/35 bg-bully/16 text-bully'
-        : 'border border-line-2 bg-bg-3 text-ink-1'
-  return (
-    <span className={`inline-block rounded px-2 py-1 font-mono text-[9.5px] font-bold tracking-[0.22em] ${styles}`}>
-      {tier}
-    </span>
-  )
-}
-
-function WinCell({ probability }: { probability: number }) {
-  return (
-    <div className="flex flex-col gap-[3px]">
-      <div className="font-mono text-[13px] text-win tabular-nums">{fmtPct(probability, 1)}</div>
-      <div className="h-[3px] overflow-hidden rounded-sm bg-bg-3">
-        <div className="h-full bg-bully" style={{ width: `${Math.min(100, probability * 100)}%` }} />
-      </div>
-    </div>
-  )
-}
-
-function FormTrend({ fixture }: { fixture: BullyScheduleFixture }) {
-  const base = Math.round(fixture.favorite_probability * 100)
-  const bars = [-10, -4, 8, 14, -1, 6, -16, 12, -6, 10].map(offset =>
-    Math.max(18, Math.min(86, base + offset)),
-  )
-  return (
-    <div className="flex h-4 items-end gap-[1.5px]">
-      {bars.map((height, index) => (
-        <span
-          key={index}
-          className={`w-1 rounded-[1px] ${height >= 58 ? 'bg-win opacity-100' : 'bg-ink-3 opacity-50'}`}
-          style={{ height: `${height}%` }}
-        />
-      ))}
-    </div>
-  )
-}
-
 function trackerGroup(data: SeasonTrackerResponse | null) {
   if (!data) return null
   return data.model_groups.find(group => /bully/i.test(`${group.key} ${group.label} ${group.group_type}`)) ?? data.model_groups[0] ?? null
@@ -295,7 +252,7 @@ function HeroInlineStat({ label, value, accent }: { label: string; value: string
   return (
     <div className="flex flex-col items-start leading-none min-w-0">
       <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-ink-3">{label}</span>
-      <span className={`mt-1.5 font-mono text-[15px] font-medium tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>
+      <span className={`mt-1.5 font-mono text-[18px] font-medium tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>
         {value}
       </span>
     </div>
@@ -397,39 +354,53 @@ function HeroStrip({
   const edge = implied == null ? null : fixture.favorite_probability - implied
 
   return (
-    <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-[linear-gradient(90deg,rgba(224,181,78,0.16),transparent_60%),rgba(14,21,36,0.92)]">
-      <div className="flex flex-col gap-3 px-5 py-4 xl:flex-row xl:items-center xl:gap-5">
-        {/* Left: badge + team name — takes all leftover space */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <TierBadge tier={tier} />
-          <div className="min-w-0">
-            <div className="text-[15px] font-semibold tracking-[-0.01em] leading-snug">
-              {fixture.favorite_team} <span className="font-normal text-ink-3">vs</span> {fixture.underdog_team}
-            </div>
-            <div className="truncate font-mono text-[10px] tracking-[0.08em] text-ink-3 mt-0.5">
-              {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
+    <div className="overflow-hidden rounded-[16px] border border-bully/35 bg-[linear-gradient(135deg,rgba(224,181,78,0.10),rgba(14,21,36,0.96)_40%,rgba(10,14,24,0.98))] shadow-panel">
+      <div className="border-l-[3px] border-l-bully px-4 py-3.5 sm:px-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
+          {/* LEFT: tier + teams + meta */}
+          <div className="flex min-w-0 items-center gap-3 lg:flex-1">
+            <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>
+              {tier}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="truncate text-[16px] font-semibold tracking-[-0.01em] text-ink-0 sm:text-[17px]">
+                  {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
+                </span>
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[9.5px] tracking-[0.16em] uppercase text-ink-3">
+                <span className="text-bully">Top Bully</span>
+                <span className="text-line-2">·</span>
+                <span>{fixture.league}</span>
+                <span className="text-line-2">·</span>
+                <span>{formatEasternDateTime(fixture.kickoff_at)}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Center: 6 stats — fixed width, never wraps */}
-        <div className="flex shrink-0 gap-4 xl:gap-5">
-          <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
-          <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability, 1)} />
-          <HeroInlineStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent="text-edge" />
-          <HeroInlineStat label="SGP" value={fmtPct(bullyComboScore(fixture), 1)} accent="text-bully" />
-          <HeroInlineStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
-          <HeroInlineStat label="Edge" value={fmtSignedPct(edge)} accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'} />
-        </div>
+          {/* CENTER: inline stats, no card chrome */}
+          <div className="flex items-center gap-5 sm:gap-7">
+            <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
+            <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability)} accent="text-win" />
+            <HeroInlineStat label="2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
+            <HeroInlineStat label="SGP" value={fmtPct(bullyComboScore(fixture))} accent="text-edge" />
+            <HeroInlineStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
+            <HeroInlineStat
+              label="Edge"
+              value={fmtSignedPct(edge)}
+              accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'}
+            />
+          </div>
 
-        {/* Right: CTA */}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="shrink-0 self-start whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 xl:self-auto"
-        >
-          {isOpen ? 'Close' : 'Track Pick'}
-        </button>
+          {/* RIGHT: single CTA */}
+          <button
+            type="button"
+            onClick={onToggle}
+            className="shrink-0 inline-flex min-h-[36px] items-center justify-center rounded-full border border-bully/45 bg-bully/14 px-4 py-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 lg:ml-auto"
+          >
+            {isOpen ? 'Hide' : 'Details'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -563,17 +534,18 @@ function BoardRow({
           </div>
           <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3 truncate">{fixture.league}</div>
         </div>
-        <div className="font-mono text-[11.5px] text-ink-2 tabular-nums">{formatEasternDateTime(fixture.kickoff_at)}</div>
+        <div className="font-mono text-[11px] text-ink-2 tabular-nums truncate">{formatEasternDateTime(fixture.kickoff_at)}</div>
         <div className="font-mono text-[13px] text-bully tabular-nums">+{fixture.elo_gap.toFixed(0)}</div>
-        <WinCell probability={fixture.favorite_probability} />
-        <div className="font-mono text-[13px] text-edge tabular-nums">{fmtPct(fixture.favorite_two_plus_probability, 1)}</div>
-        <div className="font-mono text-[13px] text-bully tabular-nums">{fmtPct(bullyComboScore(fixture), 1)}</div>
-        <div className="font-mono text-[11px] text-alpha tabular-nums">
+        <div className="font-mono text-[13px] text-win tabular-nums">{fmtPct(fixture.favorite_probability)}</div>
+        <div className={`font-mono text-[13px] tabular-nums ${signalTone(fixture.favorite_two_plus_probability)}`}>
+          {fmtPct(fixture.favorite_two_plus_probability)}
+        </div>
+        <div className="font-mono text-[13px] text-bully tabular-nums">{fmtPct(bullyCompositeScore(fixture))}</div>
+        <div className="font-mono text-[13px] text-edge tabular-nums">{fmtPct(bullyComboScore(fixture))}</div>
+        <div className="font-mono text-[11px] text-ink-2 tabular-nums">
           {fmtGoals(fixture.favorite_expected_goals)}/{fmtGoals(fixture.underdog_expected_goals)}
         </div>
-        <FormTrend fixture={fixture} />
-        <div className="font-mono text-[13px] text-ink-0 tabular-nums">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
-        <div className="text-right"><TierBadge tier={tier} /></div>
+        <div className="font-mono text-[13px] text-ink-0 tabular-nums text-right">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
       </button>
       {isOpen && (
         <div className="hidden lg:block">
@@ -676,7 +648,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
                 onClick={() => setSortKey(option.key)}
                 className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
               >
-                {option.key === 'combo' ? 'SGP Lens' : option.key === 'two_plus' ? '2+ Goals' : option.label}
+                {option.label}
               </button>
             ))}
 
@@ -716,11 +688,10 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
             <span>Elo</span>
             <span>Win</span>
             <span>2+</span>
+            <span>Comp</span>
             <span>SGP</span>
             <span>xG F/D</span>
-            <span>L10</span>
-            <span>Odds</span>
-            <span className="text-right">Tier</span>
+            <span className="text-right">Odds</span>
           </div>
           {boardFixtures.map((fixture, index) => (
             <BoardRow
