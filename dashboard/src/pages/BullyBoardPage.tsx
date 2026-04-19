@@ -146,7 +146,7 @@ function FormHist({ results }: { results: Array<'W' | 'L' | 'D'> }) {
 
 function HeroStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="min-w-0 text-right">
+    <div className="min-w-0 text-left sm:text-right">
       <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-ink-3 truncate">{label}</div>
       <div className={`font-mono text-[17px] font-medium mt-1 tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>{value}</div>
     </div>
@@ -453,29 +453,44 @@ function HeroStrip({
 }) {
   const tier = fixtureTier(fixture)
   return (
-    <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-bully/[0.06]">
-      <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:gap-6">
-        <div className="flex items-center gap-3 min-w-0 xl:flex-1">
-          <span className={`inline-flex shrink-0 rounded border px-2 py-1 font-mono text-[9.5px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>{tier}</span>
+    <div className="overflow-hidden rounded-[18px] border border-bully/35 bg-[linear-gradient(135deg,rgba(224,181,78,0.08),rgba(14,21,36,0.96)_44%,rgba(10,14,24,0.98))] shadow-panel">
+      <div className="border-l-[3px] border-l-bully px-5 py-5 lg:px-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(420px,0.95fr)_auto] xl:items-center">
           <div className="min-w-0">
-            <div className="text-[17px] font-semibold tracking-[-0.01em] truncate">
-              {fixture.favorite_team} <span className="text-ink-3 font-normal">vs</span> {fixture.underdog_team}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 font-mono text-[9.5px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>{tier}</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-bully">Top Bully Pick</span>
             </div>
-            <div className="mt-0.5 font-mono text-[10.5px] text-ink-3 tracking-[0.08em] truncate">
-              {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
+            <div className="mt-3">
+              <div className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink-0 sm:text-[27px]">
+                {fixture.favorite_team} <span className="font-normal text-ink-3">vs</span> {fixture.underdog_team}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10.5px] tracking-[0.12em] text-ink-3">
+                <span>{fixture.league}</span>
+                <span className="text-line-2">•</span>
+                <span>{formatEasternDateTime(fixture.kickoff_at)}</span>
+                <span className="text-line-2">•</span>
+                <span className="uppercase text-bully">Bully Spot of the Day</span>
+              </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5 xl:gap-4">
+            <HeroStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
+            <HeroStat label="Win" value={fmtPct(fixture.favorite_probability)} accent="text-win" />
+            <HeroStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
+            <HeroStat label="SGP" value={fmtPct(bullyComboScore(fixture))} accent="text-edge" />
+            <HeroStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
+          </div>
+
+          <button
+            type="button"
+            onClick={onToggle}
+            className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-bully/45 bg-bully/16 px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/60 hover:bg-bully/24 xl:self-center"
+          >
+            {isOpen ? 'Hide Details' : 'Track Pick'}
+          </button>
         </div>
-        <div className="grid grid-cols-5 gap-4 xl:gap-6">
-          <HeroStat label="Elo"    value={`+${fixture.elo_gap.toFixed(0)}`}              accent="text-bully" />
-          <HeroStat label="Win"    value={fmtPct(fixture.favorite_probability)}          accent="text-win" />
-          <HeroStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
-          <HeroStat label="SGP"    value={fmtPct(bullyComboScore(fixture))}              accent="text-edge" />
-          <HeroStat label="Odds"   value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
-        </div>
-        <button type="button" onClick={onToggle} className="pill pill-bully whitespace-nowrap px-4 py-2.5 self-start xl:self-center">
-          {isOpen ? 'Close' : 'Track Pick'}
-        </button>
       </div>
     </div>
   )
