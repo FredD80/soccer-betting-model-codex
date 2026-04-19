@@ -403,10 +403,10 @@ function HeroStrip({
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <TierBadge tier={tier} />
           <div className="min-w-0">
-            <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold tracking-[-0.01em]">
+            <div className="text-[15px] font-semibold tracking-[-0.01em] leading-snug">
               {fixture.favorite_team} <span className="font-normal text-ink-3">vs</span> {fixture.underdog_team}
             </div>
-            <div className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] tracking-[0.08em] text-ink-3 mt-0.5">
+            <div className="truncate font-mono text-[10px] tracking-[0.08em] text-ink-3 mt-0.5">
               {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
             </div>
           </div>
