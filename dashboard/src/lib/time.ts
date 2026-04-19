@@ -19,6 +19,27 @@ export function formatEasternDateTime(iso: string): string {
   }).format(value)
 }
 
+export function formatEasternDate(iso: string): string {
+  const value = parseApiDateTime(iso)
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: EASTERN_TIME_ZONE,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(value)
+}
+
+export function formatEasternClock(iso: string): string {
+  const value = parseApiDateTime(iso)
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: EASTERN_TIME_ZONE,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).format(value)
+}
+
 export function formatEasternTime(iso: string): string {
   const value = parseApiDateTime(iso)
   return new Intl.DateTimeFormat('en-US', {

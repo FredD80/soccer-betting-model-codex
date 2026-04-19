@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import type { BullyScheduleFixture, FixturePick, MoneylinePick, SeasonTrackerResponse } from '../api/types'
 import ManualPickForm from '../components/ManualPickForm'
 import { decimalToAmerican, formatAmericanFromDecimal } from '../lib/odds'
-import { formatEasternDateTime } from '../lib/time'
+import { formatEasternClock, formatEasternDate, formatEasternDateTime } from '../lib/time'
 
 export type SortKey = 'composite' | 'combo' | 'elo_gap' | 'favorite_win' | 'two_plus' | 'clean_sheet' | 'kickoff'
 
@@ -19,7 +19,7 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ]
 
 const DESKTOP_GRID =
-  'lg:grid-cols-[28px_minmax(0,1.8fr)_60px_58px_58px_56px_58px_64px_72px_58px_70px]'
+  'lg:grid-cols-[28px_minmax(160px,2.2fr)_minmax(88px,1fr)_56px_58px_56px_58px_72px_72px_60px_80px]'
 
 function fmtPct(value: number | null | undefined, digits = 0): string {
   if (value == null) return '—'
@@ -251,7 +251,7 @@ function TierBadge({ tier }: { tier: 'ELITE' | 'HIGH' | 'WATCH' }) {
         : 'border border-line-2 bg-bg-3 text-ink-1'
 
   return (
-    <span className={`inline-block rounded px-2 py-1 font-mono text-[9.5px] font-bold tracking-[0.22em] ${styles}`}>
+    <span className={`inline-flex whitespace-nowrap rounded px-2 py-1 font-mono text-[9.5px] font-bold tracking-[0.18em] ${styles}`}>
       {tier}
     </span>
   )
@@ -504,26 +504,31 @@ function BoardRow({
   onManualSaved?: () => void
 }) {
   const tier = fixtureTier(fixture)
+  const kickoffDate = formatEasternDate(fixture.kickoff_at)
+  const kickoffTime = formatEasternClock(fixture.kickoff_at)
 
   return (
     <>
       <button
         type="button"
         onClick={onToggle}
-        className={`hidden w-full lg:grid ${DESKTOP_GRID} cursor-pointer items-center gap-2.5 border-b border-line-1 px-3.5 py-[7px] font-mono text-[12.5px] transition-colors hover:bg-bg-3 ${
+        className={`hidden w-full lg:grid ${DESKTOP_GRID} cursor-pointer items-center gap-2.5 border-b border-line-1 px-3.5 py-2.5 font-mono text-[12.5px] transition-colors hover:bg-bg-3 ${
           isOpen ? 'bg-bg-3' : ''
         } ${fixture.is_bully_spot ? 'border-l-[3px] border-l-bully bg-gradient-to-r from-bully/16 to-transparent pl-[11px]' : ''}`}
       >
         <div className="text-ink-3">{String(index).padStart(2, '0')}</div>
         <div className="min-w-0 overflow-hidden font-sans">
-          <div className="truncate text-[13px] font-semibold">
+          <div className="truncate text-[13px] font-semibold leading-tight text-ink-0">
               {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
           </div>
-          <div className="mt-0.5 text-[9px] uppercase tracking-[0.2em] text-ink-3">
+          <div className="mt-0.5 truncate text-[9px] uppercase tracking-[0.2em] text-ink-3">
             {fixture.league}
           </div>
         </div>
-        <div className="text-[11.5px] text-ink-2">{formatEasternDateTime(fixture.kickoff_at)}</div>
+        <div className="min-w-0 leading-tight text-ink-2">
+          <div className="whitespace-nowrap text-[10.5px]">{kickoffDate}</div>
+          <div className="mt-0.5 whitespace-nowrap text-[10px] uppercase tracking-[0.12em] text-ink-3">{kickoffTime}</div>
+        </div>
         <div className="text-bully">+{fixture.elo_gap.toFixed(0)}</div>
         <WinCell probability={fixture.favorite_probability} />
         <div className="text-edge">{fmtPct(fixture.favorite_two_plus_probability, 1)}</div>
@@ -533,7 +538,7 @@ function BoardRow({
         </div>
         <FormTrend fixture={fixture} />
         <div>{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
-        <div className="text-right">
+        <div className="flex justify-end">
           <TierBadge tier={tier} />
         </div>
       </button>
