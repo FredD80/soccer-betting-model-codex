@@ -357,11 +357,11 @@ export function HeroStrip({
 
   return (
     <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-[linear-gradient(90deg,rgba(224,181,78,0.16),transparent_60%),rgba(14,21,36,0.92)]">
-      <div className="grid gap-4 px-5 py-4 2xl:grid-cols-[minmax(420px,1.2fr)_auto_auto] 2xl:items-center 2xl:gap-6">
+      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1fr_auto_auto] xl:items-center xl:gap-6">
         <div className="flex min-w-0 items-center gap-3.5">
           <TierBadge tier={tier} />
           <div className="min-w-0">
-            <div className="text-[18px] font-semibold tracking-[-0.01em] leading-tight text-ink-0">
+            <div className="text-[18px] font-semibold tracking-[-0.01em] leading-tight">
               {fixture.favorite_team} <span className="mx-1.5 font-normal text-ink-3">vs</span> {fixture.underdog_team}
             </div>
             <div className="mt-0.5 font-mono text-[11px] tracking-[0.08em] text-ink-3">
@@ -370,7 +370,7 @@ export function HeroStrip({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-5 gap-y-3 text-left sm:grid-cols-6 2xl:text-right">
+        <div className="grid grid-cols-3 gap-5 text-left sm:grid-cols-6 xl:text-right">
           <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
           <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability, 1)} />
           <HeroInlineStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent="text-edge" />
@@ -382,7 +382,7 @@ export function HeroStrip({
         <button
           type="button"
           onClick={onToggle}
-          className="shrink-0 justify-self-start whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 2xl:justify-self-end"
+          className="shrink-0 whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22"
         >
           {isOpen ? 'Close' : 'Track Pick'}
         </button>
