@@ -359,9 +359,11 @@ function HeroStrip({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
           {/* LEFT: tier + teams + meta */}
           <div className="flex min-w-0 items-center gap-3 lg:flex-1">
-            <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>
-              {tier}
-            </span>
+            {tier !== 'WATCH' && (
+              <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>
+                {tier}
+              </span>
+            )}
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="truncate text-[16px] font-semibold tracking-[-0.01em] text-ink-0 sm:text-[17px]">
@@ -528,9 +530,11 @@ function BoardRow({
             <span className="truncate text-[13px] font-semibold text-ink-0">
               {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
             </span>
-            <span className={`shrink-0 inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] ${tierClass(tier)}`}>
-              {tier}
-            </span>
+            {tier !== 'WATCH' && (
+              <span className={`shrink-0 inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] ${tierClass(tier)}`}>
+                {tier}
+              </span>
+            )}
           </div>
           <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3 truncate">{fixture.league}</div>
         </div>
@@ -718,9 +722,11 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="eyebrow">#{String(index + 2).padStart(2, '0')}</span>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] tracking-[0.2em] ${tierClass(fixtureTier(fixture))}`}>
-                        {fixtureTier(fixture)}
-                      </span>
+                      {fixtureTier(fixture) !== 'WATCH' && (
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] tracking-[0.2em] ${tierClass(fixtureTier(fixture))}`}>
+                          {fixtureTier(fixture)}
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-2 text-base font-semibold text-ink-0">
                       {fixture.favorite_team} <span className="text-ink-3">vs {fixture.underdog_team}</span>
