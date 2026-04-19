@@ -39,36 +39,6 @@ function parseModelView(value: string | null): ModelView {
   return 'best'
 }
 
-function formatStatusTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const timestamp = new Date(value)
-  const ageMs = Date.now() - timestamp.getTime()
-  if (!Number.isFinite(ageMs) || ageMs < 0) {
-    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
-  const ageMinutes = Math.floor(ageMs / 60000)
-  if (ageMinutes < 1) return 'just now'
-  if (ageMinutes < 60) return `${ageMinutes}m`
-
-  const ageHours = Math.floor(ageMinutes / 60)
-  if (ageHours < 24) return `${ageHours}h`
-
-  const ageDays = Math.floor(ageHours / 24)
-  return `${ageDays}d`
-}
-
-function freshnessTone(value: string | null | undefined): string {
-  if (!value) return 'text-lose'
-  const ageMs = Date.now() - new Date(value).getTime()
-  if (!Number.isFinite(ageMs) || ageMs < 0) return 'text-ink-2'
-
-  const ageMinutes = ageMs / 60000
-  if (ageMinutes > 120) return 'text-lose'
-  if (ageMinutes > 30) return 'text-warn'
-  return 'text-win'
-}
-
 function shellLinkClass(active: boolean): string {
   return `pill ${active ? 'pill-bully pill-active' : ''}`
 }
@@ -134,45 +104,20 @@ export default function App() {
     <div className="min-h-screen bg-bg-0 text-ink-0">
       <header className="sticky top-0 z-30 border-b border-line-1/80 bg-bg-0/88 backdrop-blur-xl">
         <div className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] border border-bully/35 bg-[linear-gradient(180deg,rgba(224,181,78,0.18),rgba(14,21,36,0.92))] shadow-panel">
-                <span className="font-mono text-sm font-semibold uppercase tracking-[0.28em] text-bully">SBM</span>
-              </div>
-              <div className="min-w-0">
-                <p className="eyebrow text-bully">Soccer Betting Model</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-ink-0 sm:text-[34px]">
-                  Bully-first market board
-                </h1>
-                <p className="mt-2 max-w-3xl text-sm text-ink-2 sm:text-[15px]">
-                  Dense slate scanning, fast model switching, and manual tracking in one shell.
-                </p>
-              </div>
+          {/* Brand + title only — freshness moves into the right rail on BullyBoardPage */}
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-bully/35 bg-[linear-gradient(180deg,rgba(224,181,78,0.18),rgba(14,21,36,0.92))] shadow-panel">
+              <span className="font-mono text-xs font-semibold uppercase tracking-[0.28em] text-bully">SBM</span>
             </div>
-
-            <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[390px]">
-              <div className="rounded-2xl border border-line-1 bg-bg-2/88 px-4 py-3">
-                <p className="eyebrow">Picks</p>
-                <p className={`mt-1 font-mono text-lg ${freshnessTone(status?.latest_prediction_at)}`}>
-                  {formatStatusTime(status?.latest_prediction_at)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-line-1 bg-bg-2/88 px-4 py-3">
-                <p className="eyebrow">Odds</p>
-                <p className={`mt-1 font-mono text-lg ${freshnessTone(status?.latest_odds_at)}`}>
-                  {formatStatusTime(status?.latest_odds_at)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-line-1 bg-bg-2/88 px-4 py-3">
-                <p className="eyebrow">Results</p>
-                <p className={`mt-1 font-mono text-lg ${freshnessTone(status?.latest_result_at)}`}>
-                  {formatStatusTime(status?.latest_result_at)}
-                </p>
-              </div>
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow text-bully">Soccer Betting Model</p>
+              <h1 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-ink-0 sm:text-2xl">
+                Bully-first market board
+              </h1>
             </div>
           </div>
 
-          <div className={`mt-5 flex flex-col gap-4 ${showingBullyModel ? 'xl:hidden' : 'xl:flex-row xl:items-center xl:justify-between'}`}>
+          <div className={`mt-4 flex flex-col gap-3 ${showingBullyModel ? 'xl:hidden' : 'xl:flex-row xl:items-center xl:justify-between'}`}>
             <nav className="flex flex-wrap gap-2">
               {PRIMARY_TABS.map(item => (
                 <Link
