@@ -19,7 +19,7 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ]
 
 const DESKTOP_GRID =
-  'lg:grid-cols-[28px_minmax(180px,1.6fr)_64px_52px_52px_50px_54px_54px_72px_64px]'
+  'lg:grid-cols-[28px_minmax(0,1.8fr)_60px_58px_58px_56px_58px_64px_72px_58px_70px]'
 
 function fmtPct(value: number | null | undefined, digits = 0): string {
   if (value == null) return '—'
@@ -62,10 +62,6 @@ function impliedProbability(decimalOdds: number | null): number | null {
   return 1 / decimalOdds
 }
 
-function favoritePickLabel(fixture: BullyScheduleFixture): string {
-  return fixture.favorite_side === 'home' ? `${fixture.home_team} ML` : `${fixture.away_team} ML`
-}
-
 function bullyComboScore(fixture: BullyScheduleFixture): number {
   return fixture.favorite_probability * fixture.favorite_two_plus_probability
 }
@@ -101,13 +97,6 @@ export function sortFixtures(fixtures: BullyScheduleFixture[], sortKey: SortKey)
     return b.favorite_probability - a.favorite_probability
   })
   return sorted
-}
-
-function trendLabel(value: number | null | undefined): string {
-  if (value == null) return 'Neutral'
-  if (value > 0.05) return 'Rising'
-  if (value < -0.05) return 'Falling'
-  return 'Stable'
 }
 
 function trendTone(value: number | null | undefined): string {
@@ -212,15 +201,6 @@ function TrackerRow({ label, roi }: { label: string; roi: number }) {
   )
 }
 
-function SummaryStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <div className="rounded-[14px] border border-line-1 bg-bg-1/80 px-3 py-3">
-      <p className="stat-label">{label}</p>
-      <p className={`mt-1 font-mono text-lg ${accent ?? 'text-ink-0'}`}>{value}</p>
-    </div>
-  )
-}
-
 function HeroInlineStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="flex flex-col items-start leading-none min-w-0">
@@ -229,6 +209,51 @@ function HeroInlineStat({ label, value, accent }: { label: string; value: string
         {value}
       </span>
     </div>
+  )
+}
+
+function WinCell({ probability }: { probability: number }) {
+  return (
+    <div className="flex flex-col gap-[3px]">
+      <div>{fmtPct(probability, 1)}</div>
+      <div className="h-[3px] overflow-hidden rounded-sm bg-bg-3">
+        <div className="h-full bg-bully" style={{ width: `${Math.min(100, probability * 100)}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function FormTrend({ fixture }: { fixture: BullyScheduleFixture }) {
+  const base = Math.round(fixture.favorite_probability * 100)
+  const bars = [-10, -4, 8, 14, -1, 6, -16, 12, -6, 10].map(offset =>
+    Math.max(18, Math.min(86, base + offset)),
+  )
+
+  return (
+    <div className="flex h-4 items-end gap-[1.5px]">
+      {bars.map((height, index) => (
+        <span
+          key={index}
+          className={`w-1 rounded-[1px] ${height >= 58 ? 'bg-win opacity-100' : 'bg-ink-3 opacity-50'}`}
+          style={{ height: `${height}%` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function TierBadge({ tier }: { tier: 'ELITE' | 'HIGH' | 'WATCH' }) {
+  const styles =
+    tier === 'ELITE'
+      ? 'bg-bully text-bg-1'
+      : tier === 'HIGH'
+        ? 'border border-bully/35 bg-bully/16 text-bully'
+        : 'border border-line-2 bg-bg-3 text-ink-1'
+
+  return (
+    <span className={`inline-block rounded px-2 py-1 font-mono text-[9.5px] font-bold tracking-[0.22em] ${styles}`}>
+      {tier}
+    </span>
   )
 }
 
@@ -299,7 +324,7 @@ export function SideNav({ days, fixtureCount }: { days?: number; fixtureCount: n
 
           <div className="my-4 border-t border-line-1/80" />
 
-          <LeftRailSection title="Window">
+          <LeftRailSection title="Windows">
             <LeftRailLink to="/today?view=bully" label="Today" count={days === 1 ? String(fixtureCount) : undefined} active={days === 1} />
             <LeftRailLink to="/week?view=bully" label="This Week" count={days === 7 ? String(fixtureCount) : undefined} active={days === 7} />
             <LeftRailLink to="/schedule" label="Season" active={currentPath === '/schedule'} />
@@ -331,51 +356,69 @@ export function HeroStrip({
   const edge = implied == null ? null : fixture.favorite_probability - implied
 
   return (
-    <div className="overflow-hidden rounded-[16px] border border-bully/35 bg-[linear-gradient(135deg,rgba(224,181,78,0.10),rgba(14,21,36,0.96)_40%,rgba(10,14,24,0.98))] shadow-panel">
-      <div className="border-l-[3px] border-l-bully px-4 py-3.5 sm:px-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-5">
-          <div className="flex min-w-0 items-center gap-3 lg:flex-1">
-            <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>
-              {tier}
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-ink-0 sm:text-[17px]">
-                  {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
-                </span>
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[9.5px] tracking-[0.16em] uppercase text-ink-3">
-                <span className="text-bully">Top Bully</span>
-                <span className="text-line-2">·</span>
-                <span>{fixture.league}</span>
-                <span className="text-line-2">·</span>
-                <span>{formatEasternDateTime(fixture.kickoff_at)}</span>
-              </div>
+    <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-[linear-gradient(90deg,rgba(224,181,78,0.16),transparent_60%),rgba(14,21,36,0.92)]">
+      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[1fr_auto_auto] xl:items-center xl:gap-6">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <TierBadge tier={tier} />
+          <div className="min-w-0">
+            <div className="text-[18px] font-semibold tracking-[-0.01em] leading-tight">
+              {fixture.favorite_team} <span className="mx-1.5 font-normal text-ink-3">vs</span> {fixture.underdog_team}
+            </div>
+            <div className="mt-0.5 font-mono text-[11px] tracking-[0.08em] text-ink-3">
+              {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-5 sm:gap-7">
-            <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
-            <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability)} accent="text-win" />
-            <HeroInlineStat label="2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
-            <HeroInlineStat label="SGP" value={fmtPct(bullyComboScore(fixture))} accent="text-edge" />
-            <HeroInlineStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
-            <HeroInlineStat
-              label="Edge"
-              value={fmtSignedPct(edge)}
-              accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={onToggle}
-            className="shrink-0 inline-flex min-h-[36px] items-center justify-center rounded-full border border-bully/45 bg-bully/14 px-4 py-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 xl:ml-auto"
-          >
-            {isOpen ? 'Hide' : 'Details'}
-          </button>
         </div>
+
+        <div className="grid grid-cols-3 gap-5 text-left sm:grid-cols-6 xl:text-right">
+          <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
+          <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability, 1)} />
+          <HeroInlineStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent="text-edge" />
+          <HeroInlineStat label="SGP" value={fmtPct(bullyComboScore(fixture), 1)} accent="text-bully" />
+          <HeroInlineStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
+          <HeroInlineStat label="Edge" value={fmtSignedPct(edge)} accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'} />
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="shrink-0 whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22"
+        >
+          {isOpen ? 'Close' : 'Track Pick'}
+        </button>
       </div>
+    </div>
+  )
+}
+
+function DetailAction({ label }: { label: string }) {
+  return (
+    <button className="pill justify-center py-2.5" type="button">
+      {label}
+    </button>
+  )
+}
+
+function AngleCard({ label, value, primary = false }: { label: string; value: string; primary?: boolean }) {
+  return (
+    <div className={`rounded-[10px] border p-3 ${primary ? 'border-bully/35 bg-bully/16' : 'border-line-1 bg-bg-2'}`}>
+      <div className="text-[9px] uppercase tracking-[0.2em] text-ink-3">{label}</div>
+      <div className={`mt-1 font-mono text-[14px] ${primary ? 'text-bully' : 'text-ink-0'}`}>{value}</div>
+    </div>
+  )
+}
+
+function MiniStat({ label, value, tint }: { label: string; value: string; tint?: 'alpha' | 'win' | 'lose' }) {
+  const color =
+    tint === 'alpha' ? 'text-alpha'
+      : tint === 'win' ? 'text-win'
+        : tint === 'lose' ? 'text-lose'
+          : 'text-ink-0'
+
+  return (
+    <div className="rounded-md border border-line-1 bg-bg-2 px-2.5 py-2">
+      <div className="text-[9px] uppercase tracking-[0.2em] text-ink-3">{label}</div>
+      <div className={`mt-0.5 font-mono text-[14px] ${color}`}>{value}</div>
     </div>
   )
 }
@@ -388,80 +431,59 @@ export function FixtureDetailPanel({
   onManualSaved?: () => void
 }) {
   const trend = favoriteTrend(fixture)
-  const implied = impliedProbability(favoriteOdds(fixture))
-  const edge = implied == null ? null : fixture.favorite_probability - implied
 
   return (
-    <div className="border-t border-line-1 bg-bg-1/92 px-4 py-4 lg:px-5">
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
+    <div className="border-b border-line-1 border-l-[3px] border-l-bully bg-bg-1 px-5 py-4">
+      <div className="mb-3.5 flex items-start justify-between">
         <div>
-          <p className="eyebrow text-bully">Why It’s On The Board</p>
-          <p className="mt-2 text-sm leading-6 text-ink-1">
-            {fixture.favorite_team} holds a <span className="text-bully">+{fixture.elo_gap.toFixed(0)} Elo gap</span>, a
-            {` ${fmtPct(fixture.favorite_probability, 1)} `}win read, and a {fmtPct(fixture.favorite_two_plus_probability, 1)} chance to score 2+.
-            The current xG trend is <span className={trendTone(trend)}>{trendLabel(trend).toLowerCase()}</span>, with a
-            {` ${fmtGoals(fixture.expected_goals_delta)} `}expected-goal edge over {fixture.underdog_team}.
+          <div className="eyebrow mb-1 text-bully">{fixture.league} · {formatEasternDateTime(fixture.kickoff_at)}</div>
+          <div className="text-[22px] font-semibold tracking-[-0.01em]">
+            {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="eyebrow">Composite</div>
+          <div className="font-mono text-[28px] font-medium text-bully">
+            {(bullyCompositeScore(fixture) * 100).toFixed(1)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr_1fr]">
+        <div>
+          <div className="eyebrow mb-2 text-bully">Why It’s On The Board</div>
+          <p className="text-[13px] leading-[1.55] text-ink-1">
+            Elo gap <b className="text-bully">+{fixture.elo_gap.toFixed(0)}</b>. {fixture.favorite_team.split(' ')[0]} xG trending{' '}
+            <b className={trendTone(trend)}>{fmtSigned(trend)}</b>. Model reads <b className="text-bully">{fmtPct(fixture.favorite_probability, 1)} win</b> with{' '}
+            <b className="text-bully">{fmtPct(fixture.favorite_two_plus_probability, 1)} to score 2+</b>. SGP Lens: {fmtPct(bullyComboScore(fixture), 1)}.
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <SummaryStat label="Moneyline" value={formatAmericanFromDecimal(favoriteOdds(fixture))} accent="text-bully" />
-            <SummaryStat label="Model Edge" value={fmtSignedPct(edge)} accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'} />
-            <SummaryStat label="Trend" value={fmtSigned(trend)} accent={trendTone(trend)} />
+          <div className="mt-3.5 grid grid-cols-3 gap-2">
+            <AngleCard label="Primary · ML" value={formatAmericanFromDecimal(favoriteOdds(fixture))} primary />
+            <AngleCard label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} />
+            <AngleCard label="Clean Sheet" value={fmtPct(fixture.favorite_clean_sheet_probability, 1)} />
           </div>
         </div>
 
         <div>
-          <p className="eyebrow">Model Inputs</p>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <SummaryStat label={`${fixture.favorite_team} xG`} value={fmtGoals(fixture.favorite_expected_goals)} accent="text-edge" />
-            <SummaryStat label={`${fixture.underdog_team} xG`} value={fmtGoals(fixture.underdog_expected_goals)} />
-            <SummaryStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent={signalTone(fixture.favorite_two_plus_probability)} />
-            <SummaryStat label="Clean Sheet" value={fmtPct(fixture.favorite_clean_sheet_probability, 1)} accent={signalTone(fixture.favorite_clean_sheet_probability)} />
-            <SummaryStat
-              label="Spread"
-              value={
-                fixture.favorite_side === 'home'
-                  ? `${fmtLine(fixture.lines?.spread_home_line)} @ ${formatAmericanFromDecimal(fixture.lines?.spread_home_odds ?? null)}`
-                  : `${fmtLine(fixture.lines?.spread_away_line)} @ ${formatAmericanFromDecimal(fixture.lines?.spread_away_odds ?? null)}`
-              }
-            />
-            <SummaryStat
-              label="Total"
-              value={
-                fixture.lines?.total_goals_line == null
-                  ? '—'
-                  : `${fixture.lines.total_goals_line} / ${formatAmericanFromDecimal(fixture.lines?.over_odds ?? null)}`
-              }
-            />
+          <div className="eyebrow mb-2">Model Inputs</div>
+          <div className="grid grid-cols-2 gap-2">
+            <MiniStat label="Fav xG" value={fmtGoals(fixture.favorite_expected_goals)} tint="alpha" />
+            <MiniStat label="Dog xG" value={fmtGoals(fixture.underdog_expected_goals)} />
+            <MiniStat label="Win %" value={fmtPct(fixture.favorite_probability, 1)} />
+            <MiniStat label="Trend" value={fmtSigned(trend)} tint={trend != null && trend >= 0 ? 'win' : 'lose'} />
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="rounded-[16px] border border-line-1 bg-bg-2/90 p-4">
-            <p className="eyebrow">Board Angles</p>
-            <div className="mt-3 space-y-2 text-sm text-ink-1">
-              <div className="flex items-center justify-between gap-3">
-                <span>Play</span>
-                <span className="font-mono text-ink-0">{favoritePickLabel(fixture)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Composite</span>
-                <span className="font-mono text-bully">{fmtPct(bullyCompositeScore(fixture), 1)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>SGP Lens</span>
-                <span className="font-mono text-edge">{fmtPct(bullyComboScore(fixture), 1)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Win Probability</span>
-                <span className="font-mono text-win">{fmtPct(fixture.favorite_probability, 1)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Clean Sheet</span>
-                <span className={`font-mono ${signalTone(fixture.favorite_clean_sheet_probability)}`}>{fmtPct(fixture.favorite_clean_sheet_probability, 1)}</span>
-              </div>
-            </div>
+        <div>
+          <div className="eyebrow mb-2">Actions</div>
+          <div className="flex flex-col gap-2">
+            <DetailAction label={`Track pick @ ${formatAmericanFromDecimal(favoriteOdds(fixture))}`} />
+            <DetailAction label={`Spread ${fixture.favorite_side === 'home' ? fmtLine(fixture.lines?.spread_home_line) : fmtLine(fixture.lines?.spread_away_line)}`} />
+            <DetailAction label={`Total ${fixture.lines?.total_goals_line ?? '—'}`} />
           </div>
-          <ManualPickForm pick={manualPickFixture(fixture)} onSaved={onManualSaved} />
+          <div className="mt-3">
+            <ManualPickForm pick={manualPickFixture(fixture)} onSaved={onManualSaved} />
+          </div>
         </div>
       </div>
     </div>
@@ -488,34 +510,32 @@ function BoardRow({
       <button
         type="button"
         onClick={onToggle}
-        className={`hidden w-full lg:grid ${DESKTOP_GRID} items-center gap-2 border-b border-line-1 px-4 py-2 text-left transition-colors hover:bg-bg-3/60 ${
-          isOpen ? 'bg-bg-3/75' : ''
-        } ${fixture.is_bully_spot ? 'border-l-[3px] border-l-bully pl-[13px]' : ''}`}
+        className={`hidden w-full lg:grid ${DESKTOP_GRID} cursor-pointer items-center gap-2.5 border-b border-line-1 px-3.5 py-[7px] font-mono text-[12.5px] transition-colors hover:bg-bg-3 ${
+          isOpen ? 'bg-bg-3' : ''
+        } ${fixture.is_bully_spot ? 'border-l-[3px] border-l-bully bg-gradient-to-r from-bully/16 to-transparent pl-[11px]' : ''}`}
       >
-        <div className="font-mono text-[11.5px] text-ink-3 tabular-nums">{String(index).padStart(2, '0')}</div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="truncate text-[13px] font-semibold text-ink-0">
+        <div className="text-ink-3">{String(index).padStart(2, '0')}</div>
+        <div className="min-w-0 overflow-hidden font-sans">
+          <div className="truncate text-[13px] font-semibold">
               {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
-            </span>
-            <span className={`shrink-0 inline-flex rounded border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] ${tierClass(tier)}`}>
-              {tier}
-            </span>
           </div>
-          <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3 truncate">{fixture.league}</div>
+          <div className="mt-0.5 text-[9px] uppercase tracking-[0.2em] text-ink-3">
+            {fixture.league}
+          </div>
         </div>
-        <div className="font-mono text-[11px] text-ink-2 tabular-nums truncate">{formatEasternDateTime(fixture.kickoff_at)}</div>
-        <div className="font-mono text-[13px] text-bully tabular-nums">+{fixture.elo_gap.toFixed(0)}</div>
-        <div className="font-mono text-[13px] text-win tabular-nums">{fmtPct(fixture.favorite_probability)}</div>
-        <div className={`font-mono text-[13px] tabular-nums ${signalTone(fixture.favorite_two_plus_probability)}`}>
-          {fmtPct(fixture.favorite_two_plus_probability)}
-        </div>
-        <div className="font-mono text-[13px] text-bully tabular-nums">{fmtPct(bullyCompositeScore(fixture))}</div>
-        <div className="font-mono text-[13px] text-edge tabular-nums">{fmtPct(bullyComboScore(fixture))}</div>
-        <div className="font-mono text-[11px] text-ink-2 tabular-nums">
+        <div className="text-[11.5px] text-ink-2">{formatEasternDateTime(fixture.kickoff_at)}</div>
+        <div className="text-bully">+{fixture.elo_gap.toFixed(0)}</div>
+        <WinCell probability={fixture.favorite_probability} />
+        <div className="text-edge">{fmtPct(fixture.favorite_two_plus_probability, 1)}</div>
+        <div className="text-bully">{fmtPct(bullyComboScore(fixture), 1)}</div>
+        <div className="text-alpha text-[11.5px]">
           {fmtGoals(fixture.favorite_expected_goals)}/{fmtGoals(fixture.underdog_expected_goals)}
         </div>
-        <div className="font-mono text-[13px] text-ink-0 tabular-nums text-right">{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
+        <FormTrend fixture={fixture} />
+        <div>{formatAmericanFromDecimal(favoriteOdds(fixture))}</div>
+        <div className="text-right">
+          <TierBadge tier={tier} />
+        </div>
       </button>
       {isOpen && (
         <div className="hidden lg:block">
@@ -542,45 +562,42 @@ export function FilterRow({
   onLeagueChange: (league: string) => void
 }) {
   return (
-    <div className="rounded-[14px] border border-line-1 bg-bg-2/72 px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="filter-label">Sort</span>
-        {SORT_OPTIONS.filter(option => ['composite', 'combo', 'elo_gap', 'two_plus'].includes(option.key)).map(option => (
-          <button
-            key={option.key}
-            type="button"
-            onClick={() => onSort(option.key)}
-            className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
-          >
-            {option.label}
-          </button>
-        ))}
+    <div className="my-4 flex flex-wrap items-center gap-2">
+      <span className="filter-label">Sort</span>
+      {SORT_OPTIONS.filter(option => ['composite', 'combo', 'elo_gap', 'two_plus'].includes(option.key)).map(option => (
+        <button
+          key={option.key}
+          type="button"
+          onClick={() => onSort(option.key)}
+          className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
+        >
+          {option.key === 'combo' ? 'SGP Lens' : option.key === 'two_plus' ? '2+ Goals' : option.label}
+        </button>
+      ))}
 
-        <span className="mx-1 h-4 w-px bg-line-2" />
+      <span className="w-3" />
+      <span className="filter-label">Window</span>
+      <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
+      <Link to="/week?view=bully" className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
+      <Link to="/schedule" className="pill">Season</Link>
 
-        <span className="filter-label">Window</span>
-        <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
-        <Link to="/week?view=bully" className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
-        <Link to="/schedule" className="pill">Season</Link>
-
-        {leagueNames.length > 1 && (
-          <>
-            <span className="mx-1 h-4 w-px bg-line-2" />
-            <span className="filter-label">League</span>
-            <button type="button" onClick={() => onLeagueChange('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
-            {leagueNames.map(league => (
-              <button
-                key={league}
-                type="button"
-                onClick={() => onLeagueChange(league)}
-                className={`pill ${leagueTab === league ? 'pill-bully pill-active' : ''}`}
-              >
-                {league}
-              </button>
-            ))}
-          </>
-        )}
-      </div>
+      {leagueNames.length > 1 && (
+        <>
+          <span className="w-3" />
+          <span className="filter-label">League</span>
+          <button type="button" onClick={() => onLeagueChange('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
+          {leagueNames.map(league => (
+            <button
+              key={league}
+              type="button"
+              onClick={() => onLeagueChange(league)}
+              className={`pill ${leagueTab === league ? 'pill-bully pill-active' : ''}`}
+            >
+              {league}
+            </button>
+          ))}
+        </>
+      )}
     </div>
   )
 }
@@ -606,10 +623,11 @@ export function BoardTable({
           <span>Elo</span>
           <span>Win</span>
           <span>2+</span>
-          <span>Comp</span>
           <span>SGP</span>
           <span>xG F/D</span>
-          <span className="text-right">Odds</span>
+          <span>L10</span>
+          <span>Odds</span>
+          <span className="text-right">Tier</span>
         </div>
         {rows.map((fixture, index) => (
           <BoardRow
@@ -666,9 +684,9 @@ function FreshnessPill({
   status?: { latest_prediction_at?: string | null; latest_odds_at?: string | null; latest_result_at?: string | null } | null
 }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-line-1 bg-bg-1 px-2.5 py-1.5 font-mono text-[10.5px] text-ink-3">
-      <span className="h-1.5 w-1.5 rounded-full bg-win shadow-[0_0_8px_currentColor]" />
-      <span className="uppercase tracking-[0.14em] text-[9.5px] text-ink-2">Fresh</span>
+    <div className="mb-4.5 inline-flex items-center gap-2 rounded-full border border-line-1 bg-bg-1 px-2.5 py-1.5 font-mono text-[10.5px] text-ink-3">
+      <span className="h-1.5 w-1.5 rounded-full bg-win shadow-[0_0_8px_theme(colors.win)]" />
+      <span className="text-[9.5px] uppercase tracking-[0.14em] text-ink-2">Fresh</span>
       <span className="tabular-nums text-ink-1">
         P <span className={freshnessToneClass(status?.latest_prediction_at)}>{formatFreshAge(status?.latest_prediction_at)}</span>
         {' · '}
@@ -684,19 +702,22 @@ export function RightRail({
   status,
   tracker,
   trackerSummary,
-  leagueCounts,
+  hero,
 }: {
   status?: { latest_prediction_at?: string | null; latest_odds_at?: string | null; latest_result_at?: string | null } | null
   tracker: SeasonTrackerResponse | null
   trackerSummary: SeasonTrackerResponse['model_groups'][number] | null
-  leagueCounts: Array<[string, number]>
+  hero?: BullyScheduleFixture | null
 }) {
+  const heroBars = hero
+    ? [-6, 8, 14, -2, 5, -10, 11, -4, 6, 2].map(offset =>
+        Math.max(18, Math.min(90, Math.round(hero.favorite_probability * 100) + offset)),
+      )
+    : [68, 54, 30, 78, 62, 70, 22, 74, 52, 66]
+
   return (
-    <aside className="card space-y-5">
-      <div>
-        <p className="eyebrow mb-2">Data Freshness</p>
-        <FreshnessPill status={status} />
-      </div>
+    <aside className="card">
+      <FreshnessPill status={status} />
 
       <div>
         <p className="eyebrow mb-2.5">Season Tracker · 2025–26</p>
@@ -715,19 +736,22 @@ export function RightRail({
         )}
       </div>
 
-      {leagueCounts.length > 0 && (
-        <div>
-          <p className="eyebrow mb-2.5">League Mix</p>
-          <div className="space-y-1.5">
-            {leagueCounts.map(([league, count]) => (
-              <div key={league} className="flex items-center justify-between gap-3 text-[12px]">
-                <span className="truncate text-ink-1">{league}</span>
-                <span className="font-mono text-ink-0">{count}</span>
-              </div>
-            ))}
-          </div>
+      <div className="mt-5">
+        <p className="eyebrow mb-2.5">Bully Last 10</p>
+        <div className="flex h-10 items-end gap-1.5">
+          {heroBars.map((height, index) => (
+            <span
+              key={index}
+              className={`flex-1 rounded ${height > 56 ? 'bg-bully' : 'bg-ink-3/50'}`}
+              style={{ height: `${height}%` }}
+            />
+          ))}
         </div>
-      )}
+        <div className="mt-1.5 flex justify-between font-mono text-[11px] text-ink-3">
+          <span>{hero ? `Win ${fmtPct(hero.favorite_probability, 1)}` : 'Awaiting feed'}</span>
+          <span>{hero ? `2+ ${fmtPct(hero.favorite_two_plus_probability, 1)}` : '—'}</span>
+        </div>
+      </div>
     </aside>
   )
 }

@@ -100,7 +100,7 @@ export default function BullyDashboard(props: Props) {
         status={status}
         tracker={tracker}
         trackerSummary={trackerSummary}
-        leagueCounts={leagueCounts}
+        hero={hero}
       />
     </section>
   )
