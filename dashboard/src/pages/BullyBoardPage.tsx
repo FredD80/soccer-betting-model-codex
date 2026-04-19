@@ -398,20 +398,22 @@ function HeroStrip({
 
   return (
     <div className="rounded-[14px] border border-bully/35 border-l-[3px] border-l-bully bg-[linear-gradient(90deg,rgba(224,181,78,0.16),transparent_60%),rgba(14,21,36,0.92)]">
-      <div className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(0,1fr)_auto_auto] xl:items-center xl:gap-5">
-        <div className="flex min-w-0 items-center gap-3.5">
+      <div className="flex flex-col gap-3 px-5 py-4 xl:flex-row xl:items-center xl:gap-5">
+        {/* Left: badge + team name — takes all leftover space */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <TierBadge tier={tier} />
           <div className="min-w-0">
-            <div className="text-[16px] font-semibold tracking-[-0.01em] leading-tight truncate">
-              {fixture.favorite_team} <span className="mx-1.5 font-normal text-ink-3">vs</span> {fixture.underdog_team}
+            <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold tracking-[-0.01em]">
+              {fixture.favorite_team} <span className="font-normal text-ink-3">vs</span> {fixture.underdog_team}
             </div>
-            <div className="mt-0.5 font-mono text-[11px] tracking-[0.08em] text-ink-3">
+            <div className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] tracking-[0.08em] text-ink-3 mt-0.5">
               {fixture.league} · {formatEasternDateTime(fixture.kickoff_at)} · <b className="text-bully">Bully Spot of the Day</b>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-left sm:grid-cols-6 sm:gap-4 xl:text-right">
+        {/* Center: 6 stats — fixed width, never wraps */}
+        <div className="flex shrink-0 gap-4 xl:gap-5">
           <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
           <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability, 1)} />
           <HeroInlineStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability, 1)} accent="text-edge" />
@@ -420,10 +422,11 @@ function HeroStrip({
           <HeroInlineStat label="Edge" value={fmtSignedPct(edge)} accent={edge != null && edge >= 0 ? 'text-win' : 'text-lose'} />
         </div>
 
+        {/* Right: CTA */}
         <button
           type="button"
           onClick={onToggle}
-          className="shrink-0 whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22"
+          className="shrink-0 self-start whitespace-nowrap rounded-full border border-bully/45 bg-bully/14 px-4 py-2.5 font-mono text-[10.5px] font-semibold text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 xl:self-auto"
         >
           {isOpen ? 'Close' : 'Track Pick'}
         </button>
