@@ -333,14 +333,14 @@ export function HeroStrip({
   return (
     <div className="overflow-hidden rounded-[16px] border border-bully/35 bg-[linear-gradient(135deg,rgba(224,181,78,0.10),rgba(14,21,36,0.96)_40%,rgba(10,14,24,0.98))] shadow-panel">
       <div className="border-l-[3px] border-l-bully px-4 py-3.5 sm:px-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-5">
           <div className="flex min-w-0 items-center gap-3 lg:flex-1">
             <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>
               {tier}
             </span>
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
-                <span className="truncate text-[16px] font-semibold tracking-[-0.01em] text-ink-0 sm:text-[17px]">
+                <span className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-ink-0 sm:text-[17px]">
                   {fixture.favorite_team} <span className="font-normal text-ink-3">vs {fixture.underdog_team}</span>
                 </span>
               </div>
@@ -354,7 +354,7 @@ export function HeroStrip({
             </div>
           </div>
 
-          <div className="flex items-center gap-5 sm:gap-7">
+          <div className="flex flex-wrap items-center gap-5 sm:gap-7">
             <HeroInlineStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
             <HeroInlineStat label="Win" value={fmtPct(fixture.favorite_probability)} accent="text-win" />
             <HeroInlineStat label="2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
@@ -370,7 +370,7 @@ export function HeroStrip({
           <button
             type="button"
             onClick={onToggle}
-            className="shrink-0 inline-flex min-h-[36px] items-center justify-center rounded-full border border-bully/45 bg-bully/14 px-4 py-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 lg:ml-auto"
+            className="shrink-0 inline-flex min-h-[36px] items-center justify-center rounded-full border border-bully/45 bg-bully/14 px-4 py-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/65 hover:bg-bully/22 xl:ml-auto"
           >
             {isOpen ? 'Hide' : 'Details'}
           </button>
