@@ -71,6 +71,10 @@ function impliedProbability(decimalOdds: number | null): number | null {
   return 1 / decimalOdds
 }
 
+function favoritePickLabel(fixture: BullyScheduleFixture): string {
+  return fixture.favorite_side === 'home' ? `${fixture.home_team} ML` : `${fixture.away_team} ML`
+}
+
 function bullyComboScore(fixture: BullyScheduleFixture): number {
   return fixture.favorite_probability * fixture.favorite_two_plus_probability
 }
@@ -146,7 +150,7 @@ function FormHist({ results }: { results: Array<'W' | 'L' | 'D'> }) {
 
 function HeroStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="min-w-0 text-left sm:text-right">
+    <div className="min-w-0 rounded-[14px] border border-line-1/80 bg-bg-2/72 px-3 py-3 text-left">
       <div className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-ink-3 truncate">{label}</div>
       <div className={`font-mono text-[17px] font-medium mt-1 tabular-nums whitespace-nowrap ${accent ?? 'text-ink-0'}`}>{value}</div>
     </div>
@@ -452,10 +456,12 @@ function HeroStrip({
   onToggle: () => void
 }) {
   const tier = fixtureTier(fixture)
+  const implied = impliedProbability(favoriteOdds(fixture))
+  const edge = implied == null ? null : fixture.favorite_probability - implied
   return (
     <div className="overflow-hidden rounded-[18px] border border-bully/35 bg-[linear-gradient(135deg,rgba(224,181,78,0.08),rgba(14,21,36,0.96)_44%,rgba(10,14,24,0.98))] shadow-panel">
       <div className="border-l-[3px] border-l-bully px-5 py-5 lg:px-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(420px,0.95fr)_auto] xl:items-center">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.9fr)_minmax(220px,0.55fr)] xl:items-start">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 font-mono text-[9.5px] font-bold uppercase tracking-[0.22em] ${tierClass(tier)}`}>{tier}</span>
@@ -475,7 +481,7 @@ function HeroStrip({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5 xl:gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3">
             <HeroStat label="Elo" value={`+${fixture.elo_gap.toFixed(0)}`} accent="text-bully" />
             <HeroStat label="Win" value={fmtPct(fixture.favorite_probability)} accent="text-win" />
             <HeroStat label="Fav 2+" value={fmtPct(fixture.favorite_two_plus_probability)} accent={signalTone(fixture.favorite_two_plus_probability)} />
@@ -483,13 +489,34 @@ function HeroStrip({
             <HeroStat label="Odds" value={formatAmericanFromDecimal(favoriteOdds(fixture))} />
           </div>
 
-          <button
-            type="button"
-            onClick={onToggle}
-            className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-bully/45 bg-bully/16 px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/60 hover:bg-bully/24 xl:self-center"
-          >
-            {isOpen ? 'Hide Details' : 'Track Pick'}
-          </button>
+          <div className="rounded-[16px] border border-line-1/80 bg-bg-2/66 p-4">
+            <p className="eyebrow text-bully">Board Signal</p>
+            <div className="mt-3 space-y-2.5 text-sm text-ink-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-ink-2">Play</span>
+                <span className="font-mono text-ink-0">{favoritePickLabel(fixture)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-ink-2">Market</span>
+                <span className="font-mono text-bully">{formatAmericanFromDecimal(favoriteOdds(fixture))}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-ink-2">Model Edge</span>
+                <span className={`font-mono ${edge != null && edge >= 0 ? 'text-win' : 'text-lose'}`}>{fmtSignedPct(edge)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-ink-2">xG Edge</span>
+                <span className="font-mono text-edge">{fmtSigned(fixture.expected_goals_delta)}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onToggle}
+              className="mt-4 inline-flex min-h-[42px] w-full items-center justify-center rounded-full border border-bully/45 bg-bully/16 px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-bully transition-colors hover:border-bully/60 hover:bg-bully/24"
+            >
+              {isOpen ? 'Hide Details' : 'Open Details'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -602,37 +629,53 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
       />
 
       <div className="min-w-0 space-y-4">
-<HeroStrip fixture={hero} isOpen={openId === hero.fixture_id} onToggle={() => setOpenId(openId === hero.fixture_id ? null : hero.fixture_id)} />
+        <HeroStrip fixture={hero} isOpen={openId === hero.fixture_id} onToggle={() => setOpenId(openId === hero.fixture_id ? null : hero.fixture_id)} />
         {openId === hero.fixture_id && <FixtureDetailPanel fixture={hero} onManualSaved={onManualSaved} />}
 
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="rounded-[18px] border border-line-1 bg-bg-2/72 p-4">
+          <div className="grid gap-3 xl:grid-cols-[1.4fr_1fr]">
+            <div className="rounded-[14px] border border-line-1/80 bg-bg-1/35 p-3">
               <span className="filter-label">Sort</span>
-              {SORT_OPTIONS.filter(o => ['composite','combo','elo_gap','two_plus'].includes(o.key)).map(option => (
-                <button key={option.key} type="button" onClick={() => setSortKey(option.key)}
-                  className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}>
-                  {option.label}
-                </button>
-              ))}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SORT_OPTIONS.filter(o => ['composite', 'combo', 'elo_gap', 'two_plus'].includes(o.key)).map(option => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setSortKey(option.key)}
+                    className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="rounded-[14px] border border-line-1/80 bg-bg-1/35 p-3">
               <span className="filter-label">Window</span>
-              <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
-              <Link to="/week?view=bully"  className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
-              <Link to="/schedule"          className="pill">Season</Link>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
+                <Link to="/week?view=bully" className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
+                <Link to="/schedule" className="pill">Season</Link>
+              </div>
             </div>
           </div>
+
           {leagueNames.length > 1 && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="mt-3 rounded-[14px] border border-line-1/80 bg-bg-1/35 p-3">
               <span className="filter-label">League</span>
-              <button type="button" onClick={() => setLeagueTab('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
-              {leagueNames.map(league => (
-                <button key={league} type="button" onClick={() => setLeagueTab(league)}
-                  className={`pill ${leagueTab === league ? 'pill-bully pill-active' : ''}`}>
-                  {league}
-                </button>
-              ))}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" onClick={() => setLeagueTab('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
+                {leagueNames.map(league => (
+                  <button
+                    key={league}
+                    type="button"
+                    onClick={() => setLeagueTab(league)}
+                    className={`pill ${leagueTab === league ? 'pill-bully pill-active' : ''}`}
+                  >
+                    {league}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
