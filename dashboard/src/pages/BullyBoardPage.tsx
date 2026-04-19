@@ -5,7 +5,7 @@ import { api } from '../api/client'
 import type { BullyScheduleFixture, FixturePick, MoneylinePick, SeasonTrackerResponse } from '../api/types'
 import ManualPickForm from '../components/ManualPickForm'
 import { decimalToAmerican, formatAmericanFromDecimal } from '../lib/odds'
-import { formatEasternDateTime } from '../lib/time'
+import { formatEasternTime } from '../lib/time'
 
 type LeagueTab = 'all' | string
 type BullySortKey = 'composite' | 'combo' | 'elo_gap' | 'favorite_win' | 'two_plus' | 'clean_sheet' | 'kickoff'
@@ -373,7 +373,7 @@ function HeroStrip({
                 <span className="text-line-2">·</span>
                 <span>{fixture.league}</span>
                 <span className="text-line-2">·</span>
-                <span>{formatEasternDateTime(fixture.kickoff_at)}</span>
+                <span>{formatEasternTime(fixture.kickoff_at)}</span>
               </div>
             </div>
           </div>
@@ -534,7 +534,7 @@ function BoardRow({
           </div>
           <div className="mt-0.5 font-mono text-[9px] tracking-[0.18em] uppercase text-ink-3 truncate">{fixture.league}</div>
         </div>
-        <div className="font-mono text-[11px] text-ink-2 tabular-nums truncate">{formatEasternDateTime(fixture.kickoff_at)}</div>
+        <div className="font-mono text-[11px] text-ink-2 tabular-nums truncate">{formatEasternTime(fixture.kickoff_at)}</div>
         <div className="font-mono text-[13px] text-bully tabular-nums">+{fixture.elo_gap.toFixed(0)}</div>
         <div className="font-mono text-[13px] text-win tabular-nums">{fmtPct(fixture.favorite_probability)}</div>
         <div className={`font-mono text-[13px] tabular-nums ${signalTone(fixture.favorite_two_plus_probability)}`}>
@@ -725,7 +725,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
                     <h3 className="mt-2 text-base font-semibold text-ink-0">
                       {fixture.favorite_team} <span className="text-ink-3">vs {fixture.underdog_team}</span>
                     </h3>
-                    <p className="mt-1 text-xs text-ink-2">{fixture.league} · {formatEasternDateTime(fixture.kickoff_at)}</p>
+                    <p className="mt-1 text-xs text-ink-2">{fixture.league} · {formatEasternTime(fixture.kickoff_at)}</p>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-2">

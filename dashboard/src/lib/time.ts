@@ -18,3 +18,14 @@ export function formatEasternDateTime(iso: string): string {
     timeZoneName: 'short',
   }).format(value)
 }
+
+export function formatEasternTime(iso: string): string {
+  const value = parseApiDateTime(iso)
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: EASTERN_TIME_ZONE,
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(value)
+}
