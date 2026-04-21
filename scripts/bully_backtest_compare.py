@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Multi-model bully backtest — compares V1, V3.1, and V3.2 variants.
+Multi-model bully backtest — compares V1, V2.5, and V3-family variants.
 
 All models are graded on SGP outcome: favorite wins AND scores >= 2 goals.
 V1 is graded on its own is_bully_spot gate. V3.x is graded on is_bully_candidate.
@@ -49,10 +49,12 @@ v31 = _load_module("v31", "bully_engine_v3_1_cl_gpt.py")
 v32 = _load_module("v32", "bully_engine_v3_2_cl_gpt.py")
 v325 = _load_module("v325", "bully_engine_v3_2_5GPT.py")
 v33gpt = _load_module("v33gpt", "bully_engine_v3_3GPT.py")
+v25 = _load_module("v25", "bully_engine_v2_5.py")
 
 BullyEngineV31 = v31.BullyEngineV3
 BullyEngineV32 = v32.BullyEngineV3
 BullyEngineV325 = v325.BullyEngineV325GPT
+BullyEngineV25 = v25.BullyV2_5Engine
 TeamForm = v32.TeamForm
 LeagueFit = v32.LeagueFit
 MarketLine = v32.MarketLine
@@ -101,6 +103,47 @@ def _v1league_to_leaguefit(v1_fit, league_name: str) -> LeagueFit:
         home_advantage_elo=v1_fit.home_advantage_elo,
         samples_used=v1_fit.samples_used,
     )
+
+
+def _v1form_to_v25(snapshot):
+    return v25.FormSnapshot(
+        xg_for_avg=snapshot.avg_for,
+        xg_against_avg=snapshot.avg_against,
+        matches_used=snapshot.matches_used,
+        source="understat" if snapshot.source == "understat" else "results_proxy" if snapshot.source != "none" else "none",
+    )
+
+
+def _v1league_to_v25_leaguefit(v1_fit):
+    return v25.LeagueFit(
+        avg_home_goals=v1_fit.avg_home_goals,
+        avg_away_goals=v1_fit.avg_away_goals,
+        rho=v25.DEFAULT_RHO,
+        home_advantage_elo=v1_fit.home_advantage_elo,
+        samples_used=v1_fit.samples_used,
+    )
+
+
+def _league_history_from_state(history_state, league_name: str, kickoff_at):
+    state = history_state[league_name]
+    kickoff_date = kickoff_at.date().isoformat()
+    return v25.LeagueEloHistory(
+        league_name=league_name,
+        elo_gaps=tuple(state["elo_gaps"]),
+        hits=tuple(state["hits"]),
+        window_start=state["window_start"] or kickoff_date,
+        window_end=state["window_end"] or kickoff_date,
+    )
+
+
+def _append_league_history(history_state, league_name: str, kickoff_at, elo_gap: float, sgp_hit: bool):
+    state = history_state[league_name]
+    kickoff_date = kickoff_at.date().isoformat()
+    if state["window_start"] is None:
+        state["window_start"] = kickoff_date
+    state["window_end"] = kickoff_date
+    state["elo_gaps"].append(float(elo_gap))
+    state["hits"].append(bool(sgp_hit))
 
 
 def _v1form_to_v325_teamform(snapshot, team_name: str):
@@ -369,8 +412,10 @@ def run():
     # V1 predictor (no understat fetch for speed; uses form cache + results proxy)
     v1_predictor = EloFormPredictor(session, enable_understat_fetch=False)
 
+    engine_v25 = BullyEngineV25()
+
     # V3.x engine variants
-    engines = {
+    v3_engines = {
         "V3.1 (symmetric α=0.50)": BullyEngineV31(lambda_form="symmetric", lambda_alpha=0.50),
         "V3.2 (symmetric α=0.50)": BullyEngineV32(lambda_form="symmetric", lambda_alpha=0.50),
         "V3.2 (attack_w α=0.55)": BullyEngineV32(lambda_form="attack_weighted", lambda_alpha=0.55),
@@ -413,13 +458,22 @@ def run():
         return {
             "V1-legacy (elo_gap≥120)": Acc("V1-legacy (elo_gap≥120)"),
             "V1 (→V3 gate delegated)": Acc("V1 (→V3 gate delegated)"),
-            **{name: Acc(name) for name in engines},
+            "V2.5 (target-hit-rate)": Acc("V2.5 (target-hit-rate)"),
+            **{name: Acc(name) for name in v3_engines},
             **{name: Acc(name) for name in engines_v325},
             **{f"V3.3GPT (p_j≥{g:.2f})": Acc(f"V3.3GPT (p_j≥{g:.2f})") for g in V33GPT_GATES},
         }
 
     accumulators = _fresh_accs()
     league_accs: dict[str, dict[str, Acc]] = defaultdict(_fresh_accs)
+    league_history_state = defaultdict(
+        lambda: {
+            "elo_gaps": [],
+            "hits": [],
+            "window_start": None,
+            "window_end": None,
+        }
+    )
 
     # Fetch all completed fixtures with results
     fixtures_with_results = (
@@ -459,6 +513,7 @@ def run():
         und_goals = result.away_score if fav_side == "home" else result.home_score
         fav_won = (fav_side == result.outcome)
         sgp_hit = fav_won and fav_goals >= 2
+        league_history = _league_history_from_state(league_history_state, league.name, fixture.kickoff_at)
 
         ml_odds = _fav_ml_odds(session, fixture.id, cutoff, fav_side)
 
@@ -479,16 +534,31 @@ def run():
         if elo_gap >= 120.0:
             _record("V1-legacy (elo_gap≥120)")
 
-        # --- Build V3.x inputs from V1's computed form ---
         home_team_name = team_names.get(fixture.home_team_id, "Home")
         away_team_name = team_names.get(fixture.away_team_id, "Away")
+
+        try:
+            pred_v25 = engine_v25.predict(
+                home_elo=v1_pred.home_elo,
+                away_elo=v1_pred.away_elo,
+                home_form=_v1form_to_v25(v1_pred.home_form),
+                away_form=_v1form_to_v25(v1_pred.away_form),
+                league_fit=_v1league_to_v25_leaguefit(v1_pred.league_fit),
+                league_history=league_history,
+            )
+            if pred_v25.is_bully_spot:
+                _record("V2.5 (target-hit-rate)", p_joint=pred_v25.p_joint)
+        except Exception:
+            pass
+
+        # --- Build V3.x inputs from V1's computed form ---
         home_form_v3 = _v1form_to_teamform(v1_pred.home_form, home_team_name)
         away_form_v3 = _v1form_to_teamform(v1_pred.away_form, away_team_name)
         league_fit_v3 = _v1league_to_leaguefit(v1_pred.league_fit, league.name)
         market = _market_line(session, fixture.id, cutoff, fav_side)
 
         # --- V3.x predictions ---
-        for engine_name, engine in engines.items():
+        for engine_name, engine in v3_engines.items():
             try:
                 pred = engine.predict(
                     home_team=home_form_v3,
@@ -544,6 +614,14 @@ def run():
                     _record(f"V3.3GPT (p_j≥{gate:.2f})", p_joint=pred_v33["p_joint"])
         except Exception:
             pass
+
+        _append_league_history(
+            league_history_state,
+            league.name,
+            fixture.kickoff_at,
+            v1_pred.elo_gap,
+            sgp_hit,
+        )
 
         processed += 1
         if processed % 100 == 0:

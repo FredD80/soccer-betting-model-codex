@@ -72,6 +72,7 @@ def _load_module(name: str, filename: str):
 
 
 v2 = _load_module("bully_v2", "bully_engine_v2.py")
+v25 = _load_module("bully_v25", "bully_engine_v2_5.py")
 v2_gpt = _load_module("bully_v2_gpt", "bully_engine_v2_gpt.py")
 v3 = _load_module("bully_v3", "bully_engine_v3_cl_gpt.py")
 v31 = _load_module("bully_v31", "bully_engine_v3_1_cl_gpt.py")
@@ -206,8 +207,12 @@ class Acc:
 
 def _model_meta(min_elo_gap: float | None) -> tuple[ModelMeta, ...]:
     suffix = f" & elo_gap >= {min_elo_gap:.0f}" if min_elo_gap is not None else ""
+    v25_rule = "is_bully_spot (league target-hit-rate Elo gate)"
+    if min_elo_gap is not None:
+        v25_rule += f" & absolute floor >= {min_elo_gap:.0f}"
     return (
         ModelMeta("V2", "bully_engine_v2.py", f"is_bully_spot{suffix}"),
+        ModelMeta("V2.5", "bully_engine_v2_5.py", v25_rule),
         ModelMeta("GPT V2", "bully_engine_v2_gpt.py", f"is_bully_candidate{suffix}"),
         ModelMeta("V3", "bully_engine_v3_cl_gpt.py", f"is_bully_candidate{suffix}"),
         ModelMeta("V3.1", "bully_engine_v3_1_cl_gpt.py", f"is_bully_candidate{suffix}"),
@@ -223,10 +228,13 @@ def _model_meta(min_elo_gap: float | None) -> tuple[ModelMeta, ...]:
 
 def _build_engines(min_elo_gap: float | None) -> dict[str, object]:
     kwargs = {}
+    v25_kwargs = {}
     if min_elo_gap is not None:
         kwargs["min_elo_gap"] = min_elo_gap
+        v25_kwargs["min_elo_gap_absolute"] = min_elo_gap
     return {
         "V2": v2.BullyV2Engine(**kwargs),
+        "V2.5": v25.BullyV2_5Engine(**v25_kwargs),
         "GPT V2": v2_gpt.GPTBullyEngineV2(**kwargs),
         "V3": v3.BullyEngineV3(**kwargs),
         "V3.1": v31.BullyEngineV3(**kwargs),
@@ -276,6 +284,25 @@ def _v1_league_to_v2(v1_fit):
         avg_home_goals=v1_fit.avg_home_goals,
         avg_away_goals=v1_fit.avg_away_goals,
         rho=v2.DEFAULT_RHO,
+        home_advantage_elo=v1_fit.home_advantage_elo,
+        samples_used=v1_fit.samples_used,
+    )
+
+
+def _v1_form_to_v25(snapshot):
+    return v25.FormSnapshot(
+        xg_for_avg=snapshot.avg_for,
+        xg_against_avg=snapshot.avg_against,
+        matches_used=snapshot.matches_used,
+        source=_v1_source_name(snapshot.source),
+    )
+
+
+def _v1_league_to_v25(v1_fit):
+    return v25.LeagueFit(
+        avg_home_goals=v1_fit.avg_home_goals,
+        avg_away_goals=v1_fit.avg_away_goals,
+        rho=v25.DEFAULT_RHO,
         home_advantage_elo=v1_fit.home_advantage_elo,
         samples_used=v1_fit.samples_used,
     )
@@ -422,6 +449,39 @@ def _market_prob_vig_free(snapshot: OddsSnapshot | None, favorite_side: str) -> 
     )
 
 
+def _league_history(
+    history_state: defaultdict[str, dict[str, object]],
+    league_name: str,
+    kickoff_at: datetime,
+):
+    state = history_state[league_name]
+    window_start = state["window_start"] or kickoff_at.date().isoformat()
+    window_end = state["window_end"] or kickoff_at.date().isoformat()
+    return v25.LeagueEloHistory(
+        league_name=league_name,
+        elo_gaps=tuple(state["elo_gaps"]),
+        hits=tuple(state["hits"]),
+        window_start=window_start,
+        window_end=window_end,
+    )
+
+
+def _append_league_history(
+    history_state: defaultdict[str, dict[str, object]],
+    league_name: str,
+    kickoff_at: datetime,
+    elo_gap: float,
+    sgp_hit: bool,
+) -> None:
+    state = history_state[league_name]
+    kickoff_date = kickoff_at.date().isoformat()
+    if state["window_start"] is None:
+        state["window_start"] = kickoff_date
+    state["window_end"] = kickoff_date
+    state["elo_gaps"].append(float(elo_gap))
+    state["hits"].append(bool(sgp_hit))
+
+
 def _fmt_pct(value: Optional[float]) -> str:
     return f"{value:>5.1%}" if value is not None else "  n/a"
 
@@ -510,6 +570,9 @@ def _write_candidate_details_csv(csv_path: Path, rows: list[dict[str, object]]) 
         "moneyline_opposite_odds",
         "team_total_over_1_5_odds",
         "team_total_under_1_5_odds",
+        "elo_gate_threshold_used",
+        "elo_gate_threshold_source",
+        "league_history_n_fixtures",
     ]
     with csv_path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -583,6 +646,14 @@ def run(
     skipped_no_league = 0
     skipped_no_v1_pred = 0
     detail_rows: list[dict[str, object]] = []
+    league_history_state = defaultdict(
+        lambda: {
+            "elo_gaps": [],
+            "hits": [],
+            "window_start": None,
+            "window_end": None,
+        }
+    )
 
     print(f"Running comprehensive Bully backtest over {len(fixtures_with_results)} completed fixtures...")
 
@@ -615,13 +686,19 @@ def run(
         team_total_over_odds, team_total_under_odds = _favorite_team_total_1_5_odds(snapshot, favorite_side)
         market_prob, market_source = _market_prob_vig_free(snapshot, favorite_side)
         market_fair_odds = (1.0 / market_prob) if market_prob else None
+        league_history = _league_history(league_history_state, league.name, fixture.kickoff_at)
 
         home_team_name = team_names.get(fixture.home_team_id, "Home")
         away_team_name = team_names.get(fixture.away_team_id, "Away")
         favorite_team_name = home_team_name if favorite_side == "home" else away_team_name
         underdog_team_name = away_team_name if favorite_side == "home" else home_team_name
 
-        def record(model_name: str, p_joint: Optional[float]) -> None:
+        def record(
+            model_name: str,
+            p_joint: Optional[float],
+            *,
+            extra: Optional[dict[str, object]] = None,
+        ) -> None:
             season_accs[season][model_name].record(
                 sgp_hit=sgp_hit,
                 ml_win=favorite_win,
@@ -637,34 +714,38 @@ def run(
             if candidate_details_csv is None:
                 return
             meta = model_meta_by_name[model_name]
-            detail_rows.append(
-                {
-                    "season": season,
-                    "fixture_id": fixture.id,
-                    "kickoff_at": fixture.kickoff_at.isoformat(),
-                    "league": league.name,
-                    "home_team": home_team_name,
-                    "away_team": away_team_name,
-                    "model": model_name,
-                    "source_file": meta.source_file,
-                    "selection_rule": meta.selection_rule,
-                    "favorite_side": favorite_side,
-                    "favorite_team": favorite_team_name,
-                    "underdog_team": underdog_team_name,
-                    "elo_gap": round(v1_pred.elo_gap, 6),
-                    "sgp_hit": int(sgp_hit),
-                    "ml_win": int(favorite_win),
-                    "model_p_joint": round(p_joint, 6) if p_joint is not None else "",
-                    "model_fair_odds": round(1.0 / p_joint, 6) if p_joint else "",
-                    "market_source": market_source,
-                    "market_prob_vig_free": round(market_prob, 6) if market_prob is not None else "",
-                    "market_fair_odds": round(market_fair_odds, 6) if market_fair_odds is not None else "",
-                    "moneyline_favorite_odds": round(ml_odds, 6) if ml_odds is not None else "",
-                    "moneyline_opposite_odds": round(opposite_ml_odds, 6) if opposite_ml_odds is not None else "",
-                    "team_total_over_1_5_odds": round(team_total_over_odds, 6) if team_total_over_odds is not None else "",
-                    "team_total_under_1_5_odds": round(team_total_under_odds, 6) if team_total_under_odds is not None else "",
-                }
-            )
+            row = {
+                "season": season,
+                "fixture_id": fixture.id,
+                "kickoff_at": fixture.kickoff_at.isoformat(),
+                "league": league.name,
+                "home_team": home_team_name,
+                "away_team": away_team_name,
+                "model": model_name,
+                "source_file": meta.source_file,
+                "selection_rule": meta.selection_rule,
+                "favorite_side": favorite_side,
+                "favorite_team": favorite_team_name,
+                "underdog_team": underdog_team_name,
+                "elo_gap": round(v1_pred.elo_gap, 6),
+                "sgp_hit": int(sgp_hit),
+                "ml_win": int(favorite_win),
+                "model_p_joint": round(p_joint, 6) if p_joint is not None else "",
+                "model_fair_odds": round(1.0 / p_joint, 6) if p_joint else "",
+                "market_source": market_source,
+                "market_prob_vig_free": round(market_prob, 6) if market_prob is not None else "",
+                "market_fair_odds": round(market_fair_odds, 6) if market_fair_odds is not None else "",
+                "moneyline_favorite_odds": round(ml_odds, 6) if ml_odds is not None else "",
+                "moneyline_opposite_odds": round(opposite_ml_odds, 6) if opposite_ml_odds is not None else "",
+                "team_total_over_1_5_odds": round(team_total_over_odds, 6) if team_total_over_odds is not None else "",
+                "team_total_under_1_5_odds": round(team_total_under_odds, 6) if team_total_under_odds is not None else "",
+                "elo_gate_threshold_used": "",
+                "elo_gate_threshold_source": "",
+                "league_history_n_fixtures": "",
+            }
+            if extra:
+                row.update(extra)
+            detail_rows.append(row)
 
         try:
             pred_v2 = engines["V2"].predict(
@@ -678,6 +759,28 @@ def run(
                 record("V2", pred_v2.p_joint)
         except Exception:
             error_counts["V2"] += 1
+
+        try:
+            pred_v25 = engines["V2.5"].predict(
+                home_elo=v1_pred.home_elo,
+                away_elo=v1_pred.away_elo,
+                home_form=_v1_form_to_v25(v1_pred.home_form),
+                away_form=_v1_form_to_v25(v1_pred.away_form),
+                league_fit=_v1_league_to_v25(v1_pred.league_fit),
+                league_history=league_history,
+            )
+            if pred_v25.is_bully_spot:
+                record(
+                    "V2.5",
+                    pred_v25.p_joint,
+                    extra={
+                        "elo_gate_threshold_used": round(pred_v25.elo_gap_threshold_used, 6),
+                        "elo_gate_threshold_source": pred_v25.elo_gap_threshold_source,
+                        "league_history_n_fixtures": pred_v25.league_history_n_fixtures,
+                    },
+                )
+        except Exception:
+            error_counts["V2.5"] += 1
 
         try:
             pred_v2_gpt = engines["GPT V2"].predict(
@@ -760,6 +863,14 @@ def run(
                 record("V3.3GPT", float(pred_v33["p_joint"]))
         except Exception:
             error_counts["V3.3GPT"] += 1
+
+        _append_league_history(
+            league_history_state,
+            league.name,
+            fixture.kickoff_at,
+            v1_pred.elo_gap,
+            sgp_hit,
+        )
 
         if idx % 250 == 0:
             print(f"  processed {idx}/{len(fixtures_with_results)} fixtures...")
