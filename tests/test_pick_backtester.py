@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 from app.db.models import (
     BacktestRun,
+    FavoriteSgpBacktestRow,
     Fixture,
+    HistoricalOddsBundle,
     League,
     ModelVersion,
     MoneylinePrediction,
@@ -360,6 +362,148 @@ def test_pick_backtester_backtests_bully_metrics(db):
     assert run.clean_sheet_hit_rate == 1.0
     assert run.two_plus_given_win_rate == 1.0
     assert run.clean_sheet_given_win_rate == 1.0
+
+
+def test_pick_backtester_uses_synthesized_bully_odds_when_team_totals_available(db):
+    kickoff, model_id = seed_bully_history(db)
+    snap = db.query(OddsSnapshot).one()
+    snap.home_team_total_1_5_over_odds = 1.42
+    snap.home_team_total_1_5_under_odds = 2.75
+    db.flush()
+
+    backtester = PickBacktester(db)
+    summaries = backtester.run(
+        kickoff - timedelta(days=1),
+        kickoff + timedelta(days=1),
+        markets=("bully",),
+    )
+
+    expected_odds = backtester._synthesized_bully_joint_odds(
+        favorite_odds=1.55,
+        opposite_odds=6.50,
+        team_total_over_odds=1.42,
+        team_total_under_odds=2.75,
+    )
+    assert expected_odds is not None
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.market == "bully"
+    assert summary.model_id == model_id
+    assert round(summary.roi, 6) == round(expected_odds - 1.0, 6)
+
+
+def test_pick_backtester_prefers_historical_bully_components_over_snapshot(db):
+    kickoff, model_id = seed_bully_history(db)
+    fixture = db.query(Fixture).filter(Fixture.espn_id == "bully-hist-1").one()
+    db.add(
+        HistoricalOddsBundle(
+            fixture_id=fixture.id,
+            source="oddalerts",
+            source_fixture_id=114502461,
+            competition_id=200,
+            season_id=4629,
+            bookmaker_id=2,
+            bookmaker_name="Bet365",
+            odds_type="closing",
+            home_odds=1.72,
+            draw_odds=3.90,
+            away_odds=5.10,
+            home_team_total_1_5_over_odds=1.55,
+            home_team_total_1_5_under_odds=2.45,
+        )
+    )
+    db.flush()
+
+    backtester = PickBacktester(db)
+    summaries = backtester.run(
+        kickoff - timedelta(days=1),
+        kickoff + timedelta(days=1),
+        markets=("bully",),
+    )
+
+    expected_odds = backtester._synthesized_bully_joint_odds(
+        favorite_odds=1.72,
+        opposite_odds=5.10,
+        team_total_over_odds=1.55,
+        team_total_under_odds=2.45,
+    )
+    assert expected_odds is not None
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.market == "bully"
+    assert summary.model_id == model_id
+    assert round(summary.roi, 6) == round(expected_odds - 1.0, 6)
+
+
+def test_pick_backtester_prefers_prebuilt_favorite_sgp_backtest_rows(db):
+    kickoff, model_id = seed_bully_history(db)
+    fixture = db.query(Fixture).filter(Fixture.espn_id == "bully-hist-1").one()
+    bundle = HistoricalOddsBundle(
+        fixture_id=fixture.id,
+        source="oddalerts",
+        source_fixture_id=114502462,
+        competition_id=419,
+        season_id=4634,
+        bookmaker_id=1,
+        bookmaker_name="Pinnacle",
+        odds_type="closing",
+        home_odds=1.60,
+        draw_odds=4.20,
+        away_odds=6.20,
+        home_team_total_1_5_over_odds=1.40,
+        home_team_total_1_5_under_odds=2.95,
+    )
+    db.add(bundle)
+    db.flush()
+    db.add(
+        FavoriteSgpBacktestRow(
+            historical_bundle_id=bundle.id,
+            fixture_id=fixture.id,
+            league_id=fixture.league_id,
+            kickoff_at=fixture.kickoff_at,
+            bookmaker_id=1,
+            bookmaker_name="Pinnacle",
+            odds_type="closing",
+            favorite_side="home",
+            favorite_team_id=fixture.home_team_id,
+            favorite_team_name="Barcelona",
+            underdog_team_id=fixture.away_team_id,
+            underdog_team_name="Alaves",
+            favorite_ml_odds=1.60,
+            favorite_ml_american_odds=-167,
+            underdog_ml_odds=6.20,
+            underdog_ml_american_odds=520,
+            draw_odds=4.20,
+            draw_american_odds=320,
+            favorite_team_total_over_1_5_odds=1.40,
+            favorite_team_total_over_1_5_american_odds=-250,
+            favorite_team_total_under_1_5_odds=2.95,
+            favorite_team_total_under_1_5_american_odds=195,
+            p_favorite_win_fair=0.7948717949,
+            p_favorite_team_total_over_1_5_fair=0.6781609195,
+            p_joint_fair_independent=0.5383849915,
+            sgp_synth_odds=1.3937677054,
+            sgp_synth_american_odds=-254,
+            sgp_usable_odds=1.91,
+            sgp_usable_american_odds=-110,
+            favorite_won=True,
+            favorite_scored_2_plus=True,
+            favorite_ml_and_over_1_5_hit=True,
+        )
+    )
+    db.flush()
+
+    summaries = PickBacktester(db).run(
+        kickoff - timedelta(days=1),
+        kickoff + timedelta(days=1),
+        markets=("bully",),
+    )
+
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.market == "bully"
+    assert summary.model_id == model_id
+    assert round(summary.roi, 6) == round(1.91 - 1.0, 6)
 
 
 def test_pick_backtester_backtests_bully_conditional_win_metrics(db):

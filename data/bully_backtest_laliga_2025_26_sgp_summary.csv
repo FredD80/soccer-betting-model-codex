@@ -1,0 +1,8 @@
+season,league,country,model,source_file,selection_rule,fixtures_processed,candidates,priced,priced_pct,sgp_hits,sgp_hit_rate,avg_sgp_odds,roi_units,roi,max_drawdown,longest_losing_streak,avg_p_joint_hit,avg_p_joint_miss
+2025-26,La Liga,Spain,V2,bully_engine_v2.py,is_bully_spot,310,48,48,1.0,32,0.666667,1.519099,-5.37194,-0.111915,5.79281,2,0.481908,0.455387
+2025-26,La Liga,Spain,GPT V2,bully_engine_v2_gpt.py,is_bully_candidate,310,92,92,1.0,53,0.576087,1.60611,-18.622812,-0.202422,19.429134,3,0.502063,0.45455
+2025-26,La Liga,Spain,V3,bully_engine_v3_cl_gpt.py,is_bully_candidate,310,88,88,1.0,51,0.579545,1.586931,-18.764952,-0.213238,19.571275,3,0.388835,0.354592
+2025-26,La Liga,Spain,V3.1,bully_engine_v3_1_cl_gpt.py,is_bully_candidate,310,88,88,1.0,51,0.579545,1.586931,-18.764952,-0.213238,19.571275,3,0.388835,0.354592
+2025-26,La Liga,Spain,V3.2,bully_engine_v3_2_cl_gpt.py,is_bully_candidate,310,88,88,1.0,51,0.579545,1.586931,-18.764952,-0.213238,19.571275,3,0.404285,0.368638
+2025-26,La Liga,Spain,V3.2.5,bully_engine_v3_2_5GPT.py,is_bully_candidate,310,88,88,1.0,51,0.579545,1.586931,-18.764952,-0.213238,19.571275,3,0.404285,0.368638
+2025-26,La Liga,Spain,V3.3GPT,bully_engine_v3_3GPT.py,p_joint >= 0.42,310,75,75,1.0,37,0.493333,2.023678,-22.751237,-0.30335,24.975273,4,0.503083,0.474208

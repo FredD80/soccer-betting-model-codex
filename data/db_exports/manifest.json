@@ -1,0 +1,87 @@
+{
+  "generated_at": "2026-04-21T01:50:09.841355+00:00",
+  "export_root": "data/db_exports",
+  "tables": {
+    "leagues": {
+      "rows": 10,
+      "csv": "data/db_exports/csv/leagues.csv"
+    },
+    "teams": {
+      "rows": 192,
+      "csv": "data/db_exports/csv/teams.csv"
+    },
+    "team_aliases": {
+      "rows": 124,
+      "csv": "data/db_exports/csv/team_aliases.csv"
+    },
+    "fixtures": {
+      "rows": 3994,
+      "csv": "data/db_exports/csv/fixtures.csv"
+    },
+    "results": {
+      "rows": 3994,
+      "csv": "data/db_exports/csv/results.csv"
+    },
+    "historical_odds_bundles": {
+      "rows": 47928,
+      "csv": "data/db_exports/csv/historical_odds_bundles.csv"
+    },
+    "favorite_sgp_backtest_rows": {
+      "rows": 43266,
+      "csv": "data/db_exports/csv/favorite_sgp_backtest_rows.csv"
+    }
+  },
+  "sql_restore": "data/db_exports/historical_backtest_dataset_restore.sql",
+  "league_scope": [
+    {
+      "id": 1,
+      "name": "Premier League",
+      "country": "England"
+    },
+    {
+      "id": 2,
+      "name": "La Liga",
+      "country": "Spain"
+    },
+    {
+      "id": 3,
+      "name": "Bundesliga",
+      "country": "Germany"
+    },
+    {
+      "id": 4,
+      "name": "Serie A",
+      "country": "Italy"
+    },
+    {
+      "id": 5,
+      "name": "Ligue 1",
+      "country": "France"
+    },
+    {
+      "id": 7,
+      "name": "Primeira Liga",
+      "country": "Portugal"
+    },
+    {
+      "id": 9,
+      "name": "Eredivisie",
+      "country": "Netherlands"
+    },
+    {
+      "id": 10,
+      "name": "Pro League",
+      "country": "Belgium"
+    },
+    {
+      "id": 11,
+      "name": "Scottish Premiership",
+      "country": "Scotland"
+    },
+    {
+      "id": 12,
+      "name": "Championship",
+      "country": "England"
+    }
+  ]
+}

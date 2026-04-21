@@ -160,6 +160,31 @@ SAMPLE_WITH_SPREADS = [
     }
 ]
 
+SAMPLE_EVENT_TEAM_TOTALS = {
+    "id": "abc123",
+    "sport_key": "soccer_epl",
+    "home_team": "Arsenal",
+    "away_team": "Chelsea",
+    "commence_time": "2026-04-01T15:00:00Z",
+    "bookmakers": [
+        {
+            "key": "betmgm",
+            "title": "BetMGM",
+            "markets": [
+                {
+                    "key": "alternate_team_totals",
+                    "outcomes": [
+                        {"name": "Over", "description": "Arsenal", "price": 1.42, "point": 1.5},
+                        {"name": "Under", "description": "Arsenal", "price": 2.75, "point": 1.5},
+                        {"name": "Over", "description": "Chelsea", "price": 3.40, "point": 1.5},
+                        {"name": "Under", "description": "Chelsea", "price": 1.30, "point": 1.5},
+                    ],
+                }
+            ],
+        }
+    ],
+}
+
 
 @rsps.activate
 def test_fetch_odds_extracts_spreads():
@@ -190,3 +215,33 @@ def test_fetch_odds_spreads_none_when_missing():
     fixtures = client.fetch_odds("soccer_epl")
     bookmaker = fixtures[0]["bookmakers"][0]
     assert bookmaker["spreads"] is None
+
+
+@rsps.activate
+def test_fetch_event_team_totals_extracts_team_total_1_5_prices():
+    rsps.add(
+        rsps.GET,
+        "https://api.the-odds-api.com/v4/sports/soccer_epl/events/abc123/odds",
+        json=SAMPLE_EVENT_TEAM_TOTALS,
+        status=200,
+    )
+    client = OddsAPIClient(api_key="testkey")
+    fixture = client.fetch_event_team_totals("soccer_epl", "abc123")
+    bookmaker = fixture["bookmakers"][0]
+    assert bookmaker["team_totals_1_5"]["home"]["over"] == 1.42
+    assert bookmaker["team_totals_1_5"]["home"]["under"] == 2.75
+    assert bookmaker["team_totals_1_5"]["away"]["over"] == 3.40
+    assert bookmaker["team_totals_1_5"]["away"]["under"] == 1.30
+
+
+def test_parse_team_totals_1_5_returns_none_when_target_line_missing():
+    client = OddsAPIClient(api_key="testkey")
+    market = {
+        "key": "alternate_team_totals",
+        "outcomes": [
+            {"name": "Over", "description": "Arsenal", "price": 1.90, "point": 0.5},
+            {"name": "Under", "description": "Arsenal", "price": 1.90, "point": 0.5},
+        ],
+    }
+    parsed = client._parse_team_totals_1_5([market], "Arsenal", "Chelsea")
+    assert parsed is None

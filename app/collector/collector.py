@@ -6,6 +6,7 @@ from app.collector.espn_api import ESPNClient
 
 logger = logging.getLogger(__name__)
 UPCOMING_FIXTURE_WINDOW_DAYS = 30
+TEAM_TOTAL_CAPTURE_WINDOW_DAYS = 7
 
 ESPN_TO_ODDS_API_LEAGUE = {
     "eng.1": "soccer_epl",
@@ -50,7 +51,15 @@ class DataCollector:
                     espn_fixture["away_team"],
                 )
                 if odds_fixture:
+                    team_totals_by_bookmaker = self._team_totals_by_bookmaker(
+                        odds_fixture=odds_fixture,
+                        sport_key=sport_key,
+                        kickoff_at=fixture.kickoff_at,
+                        now=now,
+                    )
                     for bookmaker in odds_fixture["bookmakers"]:
+                        bookmaker = dict(bookmaker)
+                        bookmaker["team_totals_1_5"] = team_totals_by_bookmaker.get(bookmaker["key"])
                         self._save_odds_snapshot(fixture.id, bookmaker)
                 else:
                     logger.warning(
@@ -98,6 +107,9 @@ class DataCollector:
         ht_h2h = bookmaker.get("ht_h2h") or {}
         ht_totals = bookmaker.get("ht_totals") or {}
         spreads = bookmaker.get("spreads") or {}
+        team_totals = bookmaker.get("team_totals_1_5") or {}
+        home_team_totals = team_totals.get("home") or {}
+        away_team_totals = team_totals.get("away") or {}
 
         snap = OddsSnapshot(
             fixture_id=fixture_id,
@@ -118,9 +130,39 @@ class DataCollector:
             spread_home_odds=spreads.get("home_odds"),
             spread_away_line=spreads.get("away_line"),
             spread_away_odds=spreads.get("away_odds"),
+            home_team_total_1_5_over_odds=home_team_totals.get("over"),
+            home_team_total_1_5_under_odds=home_team_totals.get("under"),
+            away_team_total_1_5_over_odds=away_team_totals.get("over"),
+            away_team_total_1_5_under_odds=away_team_totals.get("under"),
             captured_at=datetime.now(timezone.utc),
         )
         self.session.add(snap)
+
+    def _team_totals_by_bookmaker(
+        self,
+        *,
+        odds_fixture: dict,
+        sport_key: str,
+        kickoff_at: datetime,
+        now: datetime,
+    ) -> dict[str, dict]:
+        odds_api_id = odds_fixture.get("odds_api_id")
+        if not odds_api_id:
+            return {}
+        if kickoff_at > now + timedelta(days=TEAM_TOTAL_CAPTURE_WINDOW_DAYS):
+            return {}
+
+        try:
+            event_odds = self.odds_client.fetch_event_team_totals(sport_key, odds_api_id)
+        except Exception as exc:
+            logger.warning("Failed team-total fetch for odds event %s: %s", odds_api_id, exc)
+            return {}
+
+        return {
+            bookmaker["key"]: bookmaker.get("team_totals_1_5")
+            for bookmaker in event_odds.get("bookmakers", [])
+            if bookmaker.get("team_totals_1_5")
+        }
 
     def _find_odds_fixture(self, odds_fixtures: list, home_team: str, away_team: str) -> dict | None:
         """

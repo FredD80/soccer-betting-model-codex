@@ -1,0 +1,11 @@
+id,name,country,espn_id,odds_api_key
+1,Premier League,England,eng.1,soccer_epl
+2,La Liga,Spain,esp.1,soccer_spain_la_liga
+3,Bundesliga,Germany,ger.1,soccer_germany_bundesliga
+4,Serie A,Italy,ita.1,soccer_italy_serie_a
+5,Ligue 1,France,fra.1,soccer_france_ligue_one
+7,Primeira Liga,Portugal,por.1,soccer_portugal_primeira_liga
+9,Eredivisie,Netherlands,ned.1,soccer_netherlands_eredivisie
+10,Pro League,Belgium,bel.1,soccer_belgium_first_div
+11,Scottish Premiership,Scotland,sco.1,soccer_spl
+12,Championship,England,eng.2,soccer_efl_champ

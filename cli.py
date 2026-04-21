@@ -576,6 +576,108 @@ def analyze_bully_sgp(from_date: str, to_date: str | None, limit: int | None, ma
         session.close()
 
 
+@cli.command("backfill-oddalerts-history")
+@click.option("--competition-id", required=True, type=int, help="OddAlerts competition id")
+@click.option("--season-id", "season_ids", multiple=True, required=True, type=int, help="OddAlerts season id (repeatable)")
+@click.option("--date-from", required=True, help="Start date YYYY-MM-DD")
+@click.option("--date-to", required=True, help="End date YYYY-MM-DD")
+@click.option("--league-name", default=None, help="Local league name override")
+@click.option("--league-country", default=None, help="Local league country override")
+@click.option("--bookmaker-id", "bookmaker_ids", multiple=True, type=int, default=(1, 2, 3, 4), help="OddAlerts bookmaker id (repeatable)")
+@click.option("--apply", is_flag=True, help="Persist changes. Without this flag the import rolls back after validation.")
+def backfill_oddalerts_history(
+    competition_id: int,
+    season_ids: tuple[int, ...],
+    date_from: str,
+    date_to: str,
+    league_name: str | None,
+    league_country: str | None,
+    bookmaker_ids: tuple[int, ...],
+    apply: bool,
+):
+    """Backfill historical ML and team-total 1.5 odds from OddAlerts."""
+    from app.collector.oddalerts_api import OddAlertsClient
+    from app.config import settings
+    from app.oddalerts_backfill import OddAlertsHistoricalOddsBackfill
+
+    if not settings.oddalerts_api_key:
+        raise click.ClickException("ODDALERTS_API_KEY is not set.")
+
+    session = get_session()
+    try:
+        stats = OddAlertsHistoricalOddsBackfill(
+            session,
+            OddAlertsClient(settings.oddalerts_api_key),
+        ).run(
+            competition_id=competition_id,
+            season_ids=season_ids,
+            date_from=_parse_utc_date_start(date_from),
+            date_to=_parse_utc_date_end(date_to),
+            league_name=league_name,
+            league_country=league_country,
+            bookmakers=bookmaker_ids,
+        )
+
+        if apply:
+            session.commit()
+        else:
+            session.rollback()
+
+        click.echo(
+            f"{'Applied' if apply else 'Dry-run complete'}: "
+            f"{stats.fixtures_seen} fixtures, {stats.fixtures_with_odds} with odds, "
+            f"{stats.fixtures_created} fixtures created, {stats.fixtures_matched} fixtures matched, "
+            f"{stats.teams_created} teams created, "
+            f"{stats.results_created} results created, {stats.results_updated} results updated, "
+            f"{stats.bundles_created} bundles created, {stats.bundles_updated} bundles updated, "
+            f"{stats.odds_rows_seen} odds rows seen, {stats.skipped_rows} skipped."
+        )
+    finally:
+        session.close()
+
+
+@cli.command("build-favorite-sgp-backtest")
+@click.option("--date-from", default=None, help="Optional start date YYYY-MM-DD")
+@click.option("--date-to", default=None, help="Optional end date YYYY-MM-DD")
+@click.option("--league-name", default=None, help="Optional local league name filter")
+@click.option("--league-country", default=None, help="Optional local league country filter")
+@click.option("--apply", is_flag=True, help="Persist changes. Without this flag the build rolls back after validation.")
+def build_favorite_sgp_backtest(
+    date_from: str | None,
+    date_to: str | None,
+    league_name: str | None,
+    league_country: str | None,
+    apply: bool,
+):
+    """Build favorite-side ML + team-total SGP rows for backtesting."""
+    from app.favorite_sgp_backfill import FavoriteSgpBacktestBuilder
+
+    session = get_session()
+    try:
+        stats = FavoriteSgpBacktestBuilder(session).run(
+            league_name=league_name,
+            league_country=league_country,
+            date_from=_parse_utc_date_start(date_from) if date_from else None,
+            date_to=_parse_utc_date_end(date_to) if date_to else None,
+        )
+
+        if apply:
+            session.commit()
+        else:
+            session.rollback()
+
+        click.echo(
+            f"{'Applied' if apply else 'Dry-run complete'}: "
+            f"{stats.bundles_seen} bundles seen, "
+            f"{stats.rows_created} rows created, "
+            f"{stats.rows_updated} rows updated, "
+            f"{stats.rows_deleted} rows deleted, "
+            f"{stats.rows_skipped} rows skipped."
+        )
+    finally:
+        session.close()
+
+
 @cli.command()
 def scheduler():
     """Start the scheduler (blocking — use as container entrypoint)."""

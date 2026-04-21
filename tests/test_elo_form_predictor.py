@@ -1,9 +1,10 @@
+import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from app.db.models import EloFormPrediction, Fixture, League, ModelVersion, Result, Team
-from app.elo_form_predictor import EloFormPredictor, project_match_goal_probs
+from app.bully_engine import EloFormPredictor, goal_projection_from_lambdas, project_match_goal_probs
 
 
 class StubUnderstatClient:
@@ -167,6 +168,12 @@ def test_elo_form_predictor_favors_higher_elo_team(db):
     assert row.home_xg_matches_used == 5
     assert row.away_xg_matches_used == 5
     assert row.home_probability + row.draw_probability + row.away_probability == pytest.approx(1.0)
+    assert row.p_joint is not None
+    assert row.p_joint_raw is not None
+    assert row.lambda_favorite is not None
+    assert row.lambda_underdog is not None
+    assert row.p_joint <= row.home_probability
+    assert json.loads(row.gate_summary)["total_gates"] >= 1
 
 
 def test_elo_form_predictor_penalizes_strong_team_with_falling_xg(db):
@@ -210,6 +217,7 @@ def test_elo_form_predictor_penalizes_strong_team_with_falling_xg(db):
     trend_row = _latest_prediction(db, trend_model.id, fixture.id)
     assert trend_row.home_probability < flat_row.home_probability
     assert trend_row.away_probability > flat_row.away_probability
+    assert trend_row.p_joint < flat_row.p_joint
     assert trend_row.home_xg_trend < 0
     assert trend_row.away_xg_trend > 0
     assert trend_row.trend_adjustment < 0
@@ -237,6 +245,7 @@ def test_elo_form_predictor_handles_leagues_without_understat(db):
     assert row.favorite_side == "home"
     assert row.is_bully_spot is True
     assert row.home_probability + row.draw_probability + row.away_probability == pytest.approx(1.0)
+    assert row.p_joint is not None
 
 
 def test_predict_fixture_fits_league_specific_home_advantage_and_draw_model(db):
@@ -291,59 +300,46 @@ def test_predict_fixture_shrinks_thin_league_draw_fit_toward_global_history(db):
     assert prediction is not None
     assert prediction.league_fit.samples_used == 1
     assert prediction.league_fit.draw_baseline_probability > 0.30
-    assert prediction.probabilities["draw"] > 0.20
+    assert 0.0 < prediction.v3.p_joint < 1.0
 
 
-def test_bully_xg_overlay_vetoes_epl_spot_when_projected_delta_is_too_small(db):
+def test_predict_fixture_computes_joint_probability_from_single_score_matrix(db):
     league = _seed_league(db, espn_id="eng.1")
-    fixture, home, away = _seed_fixture(db, league, espn_id="elo-overlay-epl")
+    fixture, home, away = _seed_fixture(db, league, espn_id="elo-joint")
     _seed_history(db, league, home, away, n_matches=12)
 
     kickoff = fixture.kickoff_at - timedelta(days=1)
     matches = [
-        _make_match(kickoff - timedelta(days=idx), home.name, f"HomeOverlay-{idx}", 1.35, 1.05)
+        _make_match(kickoff - timedelta(days=idx), home.name, f"HomeJoint-{idx}", 1.85, 0.80)
         for idx in range(5)
     ] + [
-        _make_match(kickoff - timedelta(days=idx), f"AwayOverlay-{idx}", away.name, 1.10, 0.95)
+        _make_match(kickoff - timedelta(days=idx), f"AwayJoint-{idx}", away.name, 0.85, 1.65)
         for idx in range(5)
     ]
 
     prediction = EloFormPredictor(
         db,
         understat_client=StubUnderstatClient({("EPL", 2025): matches}),
-        bully_xg_overlay_enabled=True,
     ).predict_fixture(fixture, as_of=fixture.kickoff_at)
 
     assert prediction is not None
-    assert prediction.elo_gap >= 120.0
-    assert abs(prediction.goals.home_expected_goals - prediction.goals.away_expected_goals) < 2.0
-    assert prediction.is_bully_spot is False
+    favorite_probability = prediction.probabilities[prediction.favorite_side]
+    assert 0.0 < prediction.v3.p_joint_raw <= favorite_probability
+    assert 0.0 < prediction.v3.p_joint <= prediction.v3.p_favorite_2plus
+    assert prediction.is_bully_spot == prediction.v3.is_bully_candidate
 
 
-def test_bully_xg_overlay_can_be_disabled_without_changing_elo_logic(db):
-    league = _seed_league(db, espn_id="eng.1")
-    fixture, home, away = _seed_fixture(db, league, espn_id="elo-overlay-off")
-    _seed_history(db, league, home, away, n_matches=12)
+def test_goal_projection_from_lambdas_tracks_expected_goal_side():
+    goals = goal_projection_from_lambdas(
+        favorite_side="home",
+        lambda_favorite=1.9,
+        lambda_underdog=0.8,
+    )
 
-    kickoff = fixture.kickoff_at - timedelta(days=1)
-    matches = [
-        _make_match(kickoff - timedelta(days=idx), home.name, f"HomeOverlayOff-{idx}", 1.35, 1.05)
-        for idx in range(5)
-    ] + [
-        _make_match(kickoff - timedelta(days=idx), f"AwayOverlayOff-{idx}", away.name, 1.10, 0.95)
-        for idx in range(5)
-    ]
-
-    prediction = EloFormPredictor(
-        db,
-        understat_client=StubUnderstatClient({("EPL", 2025): matches}),
-        bully_xg_overlay_enabled=False,
-    ).predict_fixture(fixture, as_of=fixture.kickoff_at)
-
-    assert prediction is not None
-    assert prediction.elo_gap >= 120.0
-    assert abs(prediction.goals.home_expected_goals - prediction.goals.away_expected_goals) < 2.0
-    assert prediction.is_bully_spot is True
+    assert goals.home_expected_goals == pytest.approx(1.9)
+    assert goals.away_expected_goals == pytest.approx(0.8)
+    assert goals.home_two_plus_probability > goals.away_two_plus_probability
+    assert goals.home_clean_sheet_probability > goals.away_clean_sheet_probability
 
 
 def test_goal_projection_favors_dominant_team_scoring_and_clean_sheet():

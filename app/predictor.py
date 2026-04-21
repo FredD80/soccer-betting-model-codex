@@ -96,6 +96,10 @@ class PredictionEngine:
             "ht_home_odds": snap.ht_home_odds, "ht_draw_odds": snap.ht_draw_odds, "ht_away_odds": snap.ht_away_odds,
             "total_goals_line": snap.total_goals_line, "over_odds": snap.over_odds, "under_odds": snap.under_odds,
             "ht_goals_line": snap.ht_goals_line, "ht_over_odds": snap.ht_over_odds, "ht_under_odds": snap.ht_under_odds,
+            "home_team_total_1_5_over_odds": snap.home_team_total_1_5_over_odds,
+            "home_team_total_1_5_under_odds": snap.home_team_total_1_5_under_odds,
+            "away_team_total_1_5_over_odds": snap.away_team_total_1_5_over_odds,
+            "away_team_total_1_5_under_odds": snap.away_team_total_1_5_under_odds,
         }
 
     def _fixture_to_dict(self, fixture: Fixture) -> dict:

@@ -58,6 +58,90 @@ class OddsSnapshot(Base):
     spread_home_odds = Column(Float)
     spread_away_line = Column(Float)    # e.g., +0.5, +1.0
     spread_away_odds = Column(Float)
+    home_team_total_1_5_over_odds = Column(Float)
+    home_team_total_1_5_under_odds = Column(Float)
+    away_team_total_1_5_over_odds = Column(Float)
+    away_team_total_1_5_under_odds = Column(Float)
+
+
+class HistoricalOddsBundle(Base):
+    __tablename__ = "historical_odds_bundles"
+    __table_args__ = (
+        UniqueConstraint(
+            "source",
+            "source_fixture_id",
+            "bookmaker_id",
+            "odds_type",
+            name="uq_historical_odds_bundle_source_fixture_bookmaker_type",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    source = Column(String, nullable=False, default="oddalerts")
+    source_fixture_id = Column(Integer, nullable=False)
+    competition_id = Column(Integer)
+    season_id = Column(Integer)
+    bookmaker_id = Column(Integer, nullable=False)
+    bookmaker_name = Column(String, nullable=False)
+    odds_type = Column(String, nullable=False)  # opening | closing | peak
+    home_odds = Column(Float)
+    draw_odds = Column(Float)
+    away_odds = Column(Float)
+    home_team_total_1_5_over_odds = Column(Float)
+    home_team_total_1_5_under_odds = Column(Float)
+    away_team_total_1_5_over_odds = Column(Float)
+    away_team_total_1_5_under_odds = Column(Float)
+    home_win_and_home_over_1_5_odds = Column(Float)
+    away_win_and_away_over_1_5_odds = Column(Float)
+    imported_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class FavoriteSgpBacktestRow(Base):
+    __tablename__ = "favorite_sgp_backtest_rows"
+    __table_args__ = (
+        UniqueConstraint(
+            "historical_bundle_id",
+            name="uq_favorite_sgp_backtest_rows_historical_bundle",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    historical_bundle_id = Column(Integer, ForeignKey("historical_odds_bundles.id"), nullable=False)
+    fixture_id = Column(Integer, ForeignKey("fixtures.id"), nullable=False)
+    league_id = Column(Integer, ForeignKey("leagues.id"), nullable=False)
+    kickoff_at = Column(DateTime, nullable=False)
+    bookmaker_id = Column(Integer, nullable=False)
+    bookmaker_name = Column(String, nullable=False)
+    odds_type = Column(String, nullable=False)
+    favorite_side = Column(String, nullable=False)  # home | away
+    favorite_team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    favorite_team_name = Column(String, nullable=False)
+    underdog_team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    underdog_team_name = Column(String, nullable=False)
+    favorite_ml_odds = Column(Float, nullable=False)
+    favorite_ml_american_odds = Column(Integer)
+    underdog_ml_odds = Column(Float, nullable=False)
+    underdog_ml_american_odds = Column(Integer)
+    draw_odds = Column(Float)
+    draw_american_odds = Column(Integer)
+    favorite_team_total_over_1_5_odds = Column(Float)
+    favorite_team_total_over_1_5_american_odds = Column(Integer)
+    favorite_team_total_under_1_5_odds = Column(Float)
+    favorite_team_total_under_1_5_american_odds = Column(Integer)
+    p_favorite_win_fair = Column(Float)
+    p_favorite_team_total_over_1_5_fair = Column(Float)
+    p_joint_fair_independent = Column(Float)
+    sgp_actual_odds = Column(Float)
+    sgp_actual_american_odds = Column(Integer)
+    sgp_synth_odds = Column(Float)
+    sgp_synth_american_odds = Column(Integer)
+    sgp_usable_odds = Column(Float)
+    sgp_usable_american_odds = Column(Integer)
+    favorite_won = Column(Boolean)
+    favorite_scored_2_plus = Column(Boolean)
+    favorite_ml_and_over_1_5_hit = Column(Boolean)
+    built_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
 class ModelVersion(Base):
@@ -253,6 +337,13 @@ class EloFormPrediction(Base):
     home_probability = Column(Float, nullable=False)
     draw_probability = Column(Float, nullable=False)
     away_probability = Column(Float, nullable=False)
+    p_joint = Column(Float)
+    p_joint_raw = Column(Float)
+    lambda_favorite = Column(Float)
+    lambda_underdog = Column(Float)
+    market_source = Column(String)
+    gate_summary = Column(Text)
+    research_mode_active = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

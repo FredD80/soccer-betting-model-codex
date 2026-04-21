@@ -1,0 +1,8 @@
+season,league,country,model,source_file,selection_rule,fixtures_processed,candidates,priced,priced_pct,sgp_hits,sgp_hit_rate,avg_sgp_odds,roi_units,roi,max_drawdown,longest_losing_streak,avg_p_joint_hit,avg_p_joint_miss
+2025-26,Ligue 1,France,V2,bully_engine_v2.py,is_bully_spot,267,36,36,1.0,21,0.583333,1.511253,-6.724157,-0.186782,6.952531,3,0.476671,0.474546
+2025-26,Ligue 1,France,V3,bully_engine_v3_cl_gpt.py,is_bully_candidate,267,73,73,1.0,39,0.534247,1.538643,-15.383537,-0.210733,16.193404,3,0.404098,0.404358
+2025-26,Ligue 1,France,V3.1,bully_engine_v3_1_cl_gpt.py,is_bully_candidate,267,73,73,1.0,39,0.534247,1.538643,-15.383537,-0.210733,16.193404,3,0.404098,0.404358
+2025-26,Ligue 1,France,V3.2,bully_engine_v3_2_cl_gpt.py,is_bully_candidate,267,73,73,1.0,39,0.534247,1.538643,-15.383537,-0.210733,16.193404,3,0.411357,0.4162
+2025-26,Ligue 1,France,V3.2.5,bully_engine_v3_2_5GPT.py,is_bully_candidate,267,73,73,1.0,39,0.534247,1.538643,-15.383537,-0.210733,16.193404,3,0.411357,0.4162
+2025-26,Ligue 1,France,GPT V2,bully_engine_v2_gpt.py,is_bully_candidate,267,79,79,1.0,40,0.506329,1.586297,-19.971001,-0.252797,20.780867,4,0.49196,0.4972
+2025-26,Ligue 1,France,V3.3GPT,bully_engine_v3_3GPT.py,p_joint >= 0.42,267,77,77,1.0,32,0.415584,2.018242,-24.52229,-0.318471,30.761889,6,0.504299,0.512098

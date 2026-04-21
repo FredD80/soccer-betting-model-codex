@@ -3,7 +3,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     database_url: str
-    odds_api_key: str
+    odds_api_key: str = ""
+    oddalerts_api_key: str = ""
     collection_interval_hours: int = 6
     prediction_lead_hours: int = 2
     spread_model_version: str = "1.0"   # version string for spread_v1 model

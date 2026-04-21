@@ -1,0 +1,125 @@
+id,team_id,alias,source
+1,8,Brighton and Hove Albion,odds_api
+4,55,1. FC Heidenheim,odds_api
+5,59,Borussia Monchengladbach,odds_api
+6,90,Paris Saint Germain,odds_api
+8,149,Moreirense FC,odds_api
+52,93,Olympique Marseille,oddalerts
+53,193,Reims,oddalerts
+54,90,Paris Saint Germain,oddalerts
+55,194,Clermont,oddalerts
+56,92,Monaco,oddalerts
+57,195,Montpellier,oddalerts
+58,96,Le Havre,oddalerts
+59,97,Rennes,oddalerts
+60,91,Olympique Lyonnais,oddalerts
+64,47,Celta de Vigo,oddalerts
+65,46,FC Barcelona,oddalerts
+66,48,Deportivo Alavés,oddalerts
+133,57,FC Bayern München,oddalerts
+134,60,Wolfsburg,oddalerts
+135,55,Heidenheim,oddalerts
+136,56,Bayer 04 Leverkusen,oddalerts
+137,187,VfL Bochum 1848,oddalerts
+138,14,Köln,oddalerts
+139,58,Union Berlin,oddalerts
+140,64,Mainz 05,oddalerts
+141,188,Darmstadt 98,oddalerts
+142,66,Freiburg,oddalerts
+143,187,Bochum,oddalerts
+144,14,FC Köln,oddalerts
+145,59,Borussia M'gladbach,oddalerts
+146,64,FSV Mainz 05,oddalerts
+147,57,Bayern München,oddalerts
+148,67,Augsburg,oddalerts
+149,58,FC Union Berlin,oddalerts
+153,17,Inter,oddalerts
+154,83,Roma,oddalerts
+155,75,Milan,oddalerts
+171,145,Sporting Braga,oddalerts
+172,146,Famalicão,oddalerts
+173,218,Portimonense,oddalerts
+174,219,Farense,oddalerts
+175,220,Vizela,oddalerts
+176,221,Chaves,oddalerts
+177,142,Estrela Amadora,oddalerts
+178,140,Vitória SC,oddalerts
+179,147,Porto,oddalerts
+180,222,Boavista,oddalerts
+199,241,FC Volendam,oddalerts
+200,242,Vitesse,oddalerts
+201,243,PSV,oddalerts
+202,244,FC Utrecht,oddalerts
+203,245,SC Heerenveen,oddalerts
+204,246,RKC Waalwijk,oddalerts
+205,247,Ajax,oddalerts
+206,248,Heracles Almelo,oddalerts
+207,249,PEC Zwolle,oddalerts
+208,250,Sparta Rotterdam,oddalerts
+209,251,NEC,oddalerts
+210,252,Excelsior,oddalerts
+211,253,AZ,oddalerts
+212,254,Go Ahead Eagles,oddalerts
+213,255,Feyenoord,oddalerts
+214,256,Fortuna Sittard,oddalerts
+215,257,Almere City,oddalerts
+216,258,FC Twente,oddalerts
+236,276,Standard Liège,oddalerts
+237,277,Union Saint-Gilloise,oddalerts
+238,278,Genk,oddalerts
+239,279,AS Eupen,oddalerts
+240,280,Cercle Brugge,oddalerts
+241,281,Sporting Charleroi,oddalerts
+242,282,OH Leuven,oddalerts
+243,283,RWDM,oddalerts
+244,284,Anderlecht,oddalerts
+245,285,Antwerp,oddalerts
+246,286,Mechelen,oddalerts
+247,287,Gent,oddalerts
+248,288,Westerlo,oddalerts
+249,280,Club Brugge,oddalerts
+250,289,Kortrijk,oddalerts
+251,290,Sint-Truiden,oddalerts
+252,291,Dender,oddalerts
+253,292,K. Beerschot V.A.,oddalerts
+254,289,KV Kortrijk,oddalerts
+267,305,Celtic,oddalerts
+268,306,Ross County,oddalerts
+269,307,Dundee,oddalerts
+270,308,Motherwell,oddalerts
+271,309,Livingston,oddalerts
+272,310,Aberdeen,oddalerts
+273,311,St. Johnstone,oddalerts
+274,312,Hearts,oddalerts
+275,313,Kilmarnock,oddalerts
+276,314,Rangers,oddalerts
+277,315,Hibernian,oddalerts
+278,316,St. Mirren,oddalerts
+303,341,Sheffield Wednesday,oddalerts
+304,342,Southampton,oddalerts
+305,343,Stoke City,oddalerts
+306,344,Rotherham United,oddalerts
+307,345,Watford,oddalerts
+308,346,Queens Park Rangers,oddalerts
+309,347,Swansea City,oddalerts
+310,348,Birmingham City,oddalerts
+311,349,Blackburn Rovers,oddalerts
+312,350,West Bromwich Albion,oddalerts
+313,351,Plymouth Argyle,oddalerts
+314,352,Huddersfield Town,oddalerts
+315,353,Bristol City,oddalerts
+316,354,Preston North End,oddalerts
+317,355,Norwich City,oddalerts
+318,356,Hull City,oddalerts
+319,357,Middlesbrough,oddalerts
+320,358,Millwall,oddalerts
+321,359,Leicester City,oddalerts
+322,360,Coventry City,oddalerts
+323,361,Leeds United,oddalerts
+324,362,Cardiff City,oddalerts
+325,363,Sunderland,oddalerts
+326,364,Ipswich Town,oddalerts
+327,94,LOSC Lille,oddalerts
+328,85,Angers SCO,oddalerts
+329,95,Paris,oddalerts
+330,87,Auxerre,oddalerts

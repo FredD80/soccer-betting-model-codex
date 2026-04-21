@@ -35,6 +35,62 @@ def test_fuzzy_close_match(db):
     assert len(aliases) == 1
 
 
+def test_normalized_exact_match_creates_alias(db):
+    lg = _lg(db)
+    t = Team(name="AS Monaco", league_id=lg.id)
+    db.add(t); db.flush()
+
+    out = resolve_team(db, lg.id, "Monaco", "oddalerts")
+
+    assert out is not None
+    assert out.id == t.id
+    aliases = db.query(TeamAlias).filter_by(team_id=t.id, source="oddalerts").all()
+    assert len(aliases) == 1
+    assert aliases[0].alias == "Monaco"
+
+
+def test_collapsed_name_match_creates_alias(db):
+    lg = _lg(db)
+    t = Team(name="Lyon", league_id=lg.id)
+    db.add(t); db.flush()
+
+    out = resolve_team(db, lg.id, "Olympique Lyonnais", "oddalerts")
+
+    assert out is not None
+    assert out.id == t.id
+    aliases = db.query(TeamAlias).filter_by(team_id=t.id, source="oddalerts").all()
+    assert len(aliases) == 1
+    assert aliases[0].alias == "Olympique Lyonnais"
+
+
+def test_normalized_fuzzy_match_creates_alias(db):
+    lg = _lg(db)
+    t = Team(name="Stade Rennais", league_id=lg.id)
+    db.add(t); db.flush()
+
+    out = resolve_team(db, lg.id, "Rennes", "oddalerts")
+
+    assert out is not None
+    assert out.id == t.id
+    aliases = db.query(TeamAlias).filter_by(team_id=t.id, source="oddalerts").all()
+    assert len(aliases) == 1
+    assert aliases[0].alias == "Rennes"
+
+
+def test_translated_name_match_creates_alias(db):
+    lg = _lg(db)
+    t = Team(name="FC Cologne", league_id=lg.id)
+    db.add(t); db.flush()
+
+    out = resolve_team(db, lg.id, "FC Köln", "oddalerts")
+
+    assert out is not None
+    assert out.id == t.id
+    aliases = db.query(TeamAlias).filter_by(team_id=t.id, source="oddalerts").all()
+    assert len(aliases) == 1
+    assert aliases[0].alias == "FC Köln"
+
+
 def test_alias_hit_short_circuits_fuzzy(db):
     lg = _lg(db)
     t = Team(name="Manchester United", league_id=lg.id)

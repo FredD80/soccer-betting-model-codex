@@ -1,7 +1,7 @@
 from app.db.models import (
     League, Team, Fixture, OddsSnapshot, ModelVersion, Prediction, Result,
     Performance, BacktestRun, BacktestJob, SchedulerLog, PredictionOutcome, ManualPick,
-    EloFormPrediction,
+    EloFormPrediction, FavoriteSgpBacktestRow, HistoricalOddsBundle,
 )
 from datetime import datetime, timezone
 
@@ -37,6 +37,10 @@ def test_odds_snapshot_stores_all_bet_types(db):
         home_odds=2.10, draw_odds=3.50, away_odds=3.20,
         total_goals_line=2.5, over_odds=1.90, under_odds=1.90,
         ht_goals_line=1.5, ht_over_odds=2.00, ht_under_odds=1.80,
+        home_team_total_1_5_over_odds=1.42,
+        home_team_total_1_5_under_odds=2.75,
+        away_team_total_1_5_over_odds=3.40,
+        away_team_total_1_5_under_odds=1.30,
         captured_at=datetime.utcnow()
     )
     db.add(snap)
@@ -44,6 +48,8 @@ def test_odds_snapshot_stores_all_bet_types(db):
     assert snap.id is not None
     assert snap.total_goals_line == 2.5
     assert snap.ht_goals_line == 1.5
+    assert snap.home_team_total_1_5_over_odds == 1.42
+    assert snap.away_team_total_1_5_under_odds == 1.30
 
 
 def test_odds_snapshot_has_spread_fields(db):
@@ -77,6 +83,132 @@ def test_odds_snapshot_has_spread_fields(db):
     assert fetched.spread_home_odds == 1.95
     assert fetched.spread_away_line == 0.5
     assert fetched.spread_away_odds == 1.85
+
+
+def test_historical_odds_bundle_stores_ml_and_team_totals(db):
+    league = League(name="Ligue 1", country="France", espn_id="fra.1", odds_api_key="soccer_france_ligue_one")
+    db.add(league)
+    db.flush()
+    home = Team(name="Olympique Marseille", league_id=league.id)
+    away = Team(name="Paris Saint Germain", league_id=league.id)
+    db.add_all([home, away])
+    db.flush()
+    fixture = Fixture(
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=datetime(2024, 3, 31, 18, 45, tzinfo=timezone.utc),
+        status="completed",
+    )
+    db.add(fixture)
+    db.flush()
+    bundle = HistoricalOddsBundle(
+        fixture_id=fixture.id,
+        source="oddalerts",
+        source_fixture_id=114502461,
+        competition_id=200,
+        season_id=4629,
+        bookmaker_id=2,
+        bookmaker_name="Bet365",
+        odds_type="closing",
+        home_odds=3.60,
+        draw_odds=3.75,
+        away_odds=1.95,
+        home_team_total_1_5_over_odds=3.75,
+        home_team_total_1_5_under_odds=1.22,
+        away_team_total_1_5_over_odds=1.83,
+        away_team_total_1_5_under_odds=1.95,
+        imported_at=datetime.now(timezone.utc),
+    )
+    db.add(bundle)
+    db.flush()
+
+    fetched = db.query(HistoricalOddsBundle).filter_by(id=bundle.id).first()
+    assert fetched.source_fixture_id == 114502461
+    assert fetched.away_odds == 1.95
+    assert fetched.home_team_total_1_5_over_odds == 3.75
+    assert fetched.away_team_total_1_5_under_odds == 1.95
+
+
+def test_favorite_sgp_backtest_row_stores_prebuilt_backtest_fields(db):
+    league = League(name="Premier League", country="England", espn_id="eng.1", odds_api_key="soccer_epl")
+    db.add(league)
+    db.flush()
+    home = Team(name="Manchester City", league_id=league.id)
+    away = Team(name="Brentford", league_id=league.id)
+    db.add_all([home, away])
+    db.flush()
+    fixture = Fixture(
+        home_team_id=home.id,
+        away_team_id=away.id,
+        league_id=league.id,
+        kickoff_at=datetime(2024, 2, 17, 15, 0, tzinfo=timezone.utc),
+        status="completed",
+    )
+    db.add(fixture)
+    db.flush()
+    bundle = HistoricalOddsBundle(
+        fixture_id=fixture.id,
+        source="oddalerts",
+        source_fixture_id=7001,
+        competition_id=423,
+        season_id=4630,
+        bookmaker_id=2,
+        bookmaker_name="Bet365",
+        odds_type="closing",
+        home_odds=1.42,
+        draw_odds=4.95,
+        away_odds=7.80,
+        home_team_total_1_5_over_odds=1.36,
+        home_team_total_1_5_under_odds=3.10,
+        imported_at=datetime.now(timezone.utc),
+    )
+    db.add(bundle)
+    db.flush()
+    row = FavoriteSgpBacktestRow(
+        historical_bundle_id=bundle.id,
+        fixture_id=fixture.id,
+        league_id=league.id,
+        kickoff_at=fixture.kickoff_at,
+        bookmaker_id=2,
+        bookmaker_name="Bet365",
+        odds_type="closing",
+        favorite_side="home",
+        favorite_team_id=home.id,
+        favorite_team_name=home.name,
+        underdog_team_id=away.id,
+        underdog_team_name=away.name,
+        favorite_ml_odds=1.42,
+        favorite_ml_american_odds=-238,
+        underdog_ml_odds=7.80,
+        underdog_ml_american_odds=680,
+        draw_odds=4.95,
+        draw_american_odds=395,
+        favorite_team_total_over_1_5_odds=1.36,
+        favorite_team_total_over_1_5_american_odds=-278,
+        favorite_team_total_under_1_5_odds=3.10,
+        favorite_team_total_under_1_5_american_odds=210,
+        p_favorite_win_fair=0.8459869848,
+        p_favorite_team_total_over_1_5_fair=0.6950672646,
+        p_joint_fair_independent=0.5881055382,
+        sgp_synth_odds=1.70,
+        sgp_synth_american_odds=-143,
+        sgp_usable_odds=1.70,
+        sgp_usable_american_odds=-143,
+        favorite_won=True,
+        favorite_scored_2_plus=True,
+        favorite_ml_and_over_1_5_hit=True,
+        built_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    db.flush()
+
+    fetched = db.query(FavoriteSgpBacktestRow).filter_by(id=row.id).first()
+    assert fetched.historical_bundle_id == bundle.id
+    assert fetched.favorite_side == "home"
+    assert fetched.favorite_ml_american_odds == -238
+    assert fetched.sgp_usable_odds == 1.70
+    assert fetched.favorite_ml_and_over_1_5_hit is True
 
 
 def test_result_has_red_card_minute(db):

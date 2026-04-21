@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 
 from app.db.models import (
     BacktestRun,
+    FavoriteSgpBacktestRow,
     Fixture,
+    HistoricalOddsBundle,
     MoneylinePrediction,
     OddsSnapshot,
     Result,
@@ -16,6 +18,7 @@ from app.db.models import (
 from app.bully_engine import EloFormPredictor
 
 _ALLOWED_TIERS = ("HIGH", "ELITE")
+_SYNTH_SGP_FACTOR = 0.75
 
 
 @dataclass
@@ -192,19 +195,20 @@ class PickBacktester:
             if prediction is None or not prediction.is_bully_spot:
                 continue
 
-            odds = self._bully_odds(fixture.id, prediction.favorite_side, fixture.kickoff_at)
-            multiplier = 1.0 if prediction.favorite_side == result.outcome else -1.0
+            odds = self._bully_joint_odds(fixture.id, prediction.favorite_side, fixture.kickoff_at)
             favorite_goals = result.home_score if prediction.favorite_side == "home" else result.away_score
             underdog_goals = result.away_score if prediction.favorite_side == "home" else result.home_score
+            favorite_win = prediction.favorite_side == result.outcome
+            sgp_hit = favorite_win and favorite_goals >= 2
             self._accumulate(
                 stats,
                 model.id,
-                multiplier,
+                1.0 if sgp_hit else -1.0,
                 odds,
                 two_plus_hit=1.0 if favorite_goals >= 2 else 0.0,
                 clean_sheet_hit=1.0 if underdog_goals == 0 else 0.0,
-                two_plus_given_win=1.0 if multiplier > 0 and favorite_goals >= 2 else 0.0,
-                clean_sheet_given_win=1.0 if multiplier > 0 and underdog_goals == 0 else 0.0,
+                two_plus_given_win=1.0 if favorite_win and favorite_goals >= 2 else 0.0,
+                clean_sheet_given_win=1.0 if favorite_win and underdog_goals == 0 else 0.0,
             )
 
         return self._summaries("bully", stats)
@@ -256,7 +260,26 @@ class PickBacktester:
             return None
         return {"home": snap.home_odds, "draw": snap.draw_odds, "away": snap.away_odds}[pick.outcome]
 
-    def _bully_odds(self, fixture_id: int, favorite_side: str, created_at: datetime | None) -> float | None:
+    def _bully_joint_odds(self, fixture_id: int, favorite_side: str, created_at: datetime | None) -> float | None:
+        prebuilt_odds = self._favorite_sgp_backtest_odds(fixture_id, favorite_side)
+        if prebuilt_odds is not None:
+            return prebuilt_odds
+
+        historical_direct = self._historical_bully_joint_odds(fixture_id, favorite_side)
+        if historical_direct is not None:
+            return historical_direct
+
+        historical_components = self._historical_bully_components(fixture_id, favorite_side)
+        if historical_components is not None:
+            synthetic_odds = self._synthesized_bully_joint_odds(
+                favorite_odds=historical_components[0],
+                opposite_odds=historical_components[1],
+                team_total_over_odds=historical_components[2],
+                team_total_under_odds=historical_components[3],
+            )
+            if synthetic_odds is not None:
+                return synthetic_odds
+
         query = self.session.query(OddsSnapshot).filter(OddsSnapshot.fixture_id == fixture_id)
         if created_at is not None:
             query = query.filter(OddsSnapshot.captured_at <= created_at)
@@ -267,7 +290,150 @@ class PickBacktester:
         snap = query.order_by(OddsSnapshot.captured_at.desc()).first()
         if not snap:
             return None
-        return snap.home_odds if favorite_side == "home" else snap.away_odds
+        team_total_over, team_total_under = self._favorite_team_total_1_5_odds(snap, favorite_side)
+        favorite_odds = snap.home_odds if favorite_side == "home" else snap.away_odds
+        opposite_odds = snap.away_odds if favorite_side == "home" else snap.home_odds
+        synthetic_odds = self._synthesized_bully_joint_odds(
+            favorite_odds=favorite_odds,
+            opposite_odds=opposite_odds,
+            team_total_over_odds=team_total_over,
+            team_total_under_odds=team_total_under,
+        )
+        if synthetic_odds is not None:
+            return synthetic_odds
+        return favorite_odds
+
+    def _favorite_sgp_backtest_odds(self, fixture_id: int, favorite_side: str) -> float | None:
+        rows = (
+            self.session.query(FavoriteSgpBacktestRow)
+            .filter(FavoriteSgpBacktestRow.fixture_id == fixture_id)
+            .filter(FavoriteSgpBacktestRow.favorite_side == favorite_side)
+            .filter(FavoriteSgpBacktestRow.sgp_usable_odds.isnot(None))
+            .all()
+        )
+        if not rows:
+            return None
+
+        odds_type_rank = {"closing": 0, "peak": 1, "opening": 2}
+        bookmaker_rank = {1: 0, 2: 1, 3: 2, 4: 3}
+        preferred = sorted(
+            rows,
+            key=lambda row: (
+                odds_type_rank.get(row.odds_type, 99),
+                bookmaker_rank.get(row.bookmaker_id, 99),
+            ),
+        )[0]
+        return preferred.sgp_usable_odds
+
+    def _historical_bully_joint_odds(self, fixture_id: int, favorite_side: str) -> float | None:
+        bundle = self._preferred_historical_bundle(
+            fixture_id,
+            lambda row: (
+                row.home_win_and_home_over_1_5_odds is not None
+                if favorite_side == "home"
+                else row.away_win_and_away_over_1_5_odds is not None
+            ),
+        )
+        if bundle is None:
+            return None
+        return (
+            bundle.home_win_and_home_over_1_5_odds
+            if favorite_side == "home"
+            else bundle.away_win_and_away_over_1_5_odds
+        )
+
+    def _historical_bully_components(self, fixture_id: int, favorite_side: str) -> tuple[float, float, float, float] | None:
+        bundle = self._preferred_historical_bundle(
+            fixture_id,
+            lambda row: (
+                self._historical_component_tuple(row, favorite_side) is not None
+            ),
+        )
+        if bundle is None:
+            return None
+        return self._historical_component_tuple(bundle, favorite_side)
+
+    def _historical_component_tuple(
+        self,
+        bundle: HistoricalOddsBundle,
+        favorite_side: str,
+    ) -> tuple[float, float, float, float] | None:
+        favorite_odds = bundle.home_odds if favorite_side == "home" else bundle.away_odds
+        opposite_odds = bundle.away_odds if favorite_side == "home" else bundle.home_odds
+        team_total_over = (
+            bundle.home_team_total_1_5_over_odds
+            if favorite_side == "home"
+            else bundle.away_team_total_1_5_over_odds
+        )
+        team_total_under = (
+            bundle.home_team_total_1_5_under_odds
+            if favorite_side == "home"
+            else bundle.away_team_total_1_5_under_odds
+        )
+        if not favorite_odds or not opposite_odds or not team_total_over or not team_total_under:
+            return None
+        return favorite_odds, opposite_odds, team_total_over, team_total_under
+
+    def _preferred_historical_bundle(
+        self,
+        fixture_id: int,
+        predicate,
+    ) -> HistoricalOddsBundle | None:
+        rows = (
+            self.session.query(HistoricalOddsBundle)
+            .filter(HistoricalOddsBundle.fixture_id == fixture_id)
+            .all()
+        )
+        if not rows:
+            return None
+
+        odds_type_rank = {"closing": 0, "peak": 1, "opening": 2}
+        bookmaker_rank = {1: 0, 2: 1, 3: 2, 4: 3}
+        ordered = sorted(
+            rows,
+            key=lambda row: (
+                odds_type_rank.get(row.odds_type, 99),
+                bookmaker_rank.get(row.bookmaker_id, 99),
+            ),
+        )
+        for row in ordered:
+            if predicate(row):
+                return row
+        return None
+
+    def _favorite_team_total_1_5_odds(self, snap: OddsSnapshot, favorite_side: str) -> tuple[float | None, float | None]:
+        if favorite_side == "home":
+            return snap.home_team_total_1_5_over_odds, snap.home_team_total_1_5_under_odds
+        return snap.away_team_total_1_5_over_odds, snap.away_team_total_1_5_under_odds
+
+    def _synthesized_bully_joint_odds(
+        self,
+        *,
+        favorite_odds: float | None,
+        opposite_odds: float | None,
+        team_total_over_odds: float | None,
+        team_total_under_odds: float | None,
+    ) -> float | None:
+        if not favorite_odds or not opposite_odds or not team_total_over_odds or not team_total_under_odds:
+            return None
+        p_win_fair = self._devig_two_way_first(favorite_odds, opposite_odds)
+        p_over_fair = self._devig_two_way_first(team_total_over_odds, team_total_under_odds)
+        if p_win_fair is None or p_over_fair is None:
+            return None
+        market_prob = min(0.99, max(0.0, (p_win_fair * p_over_fair) / _SYNTH_SGP_FACTOR))
+        if market_prob <= 0.0:
+            return None
+        return 1.0 / market_prob
+
+    def _devig_two_way_first(self, odds_a: float, odds_b: float) -> float | None:
+        if odds_a <= 1.0 or odds_b <= 1.0:
+            return None
+        imp_a = 1.0 / odds_a
+        imp_b = 1.0 / odds_b
+        overround = imp_a + imp_b
+        if overround <= 0.0:
+            return None
+        return imp_a / overround
 
     def _accumulate(
         self,
