@@ -1,0 +1,9 @@
+season,league,country,model,source_file,selection_rule,fixtures_processed,candidates,priced,priced_pct,sgp_hits,sgp_hit_rate,avg_sgp_odds,roi_units,roi,max_drawdown,longest_losing_streak,avg_p_joint_hit,avg_p_joint_miss
+2025-26,Top 5 Aggregate,Mixed,V2.5,bully_engine_v2_5.py,is_bully_spot (league target-hit-rate Elo gate),1506,12,12,1.0,10,0.833333,1.172279,-0.332123,-0.027677,2.0,2,0.492047,0.558072
+2025-26,Top 5 Aggregate,Mixed,V3,bully_engine_v3_cl_gpt.py,is_bully_candidate,1506,408,408,1.0,232,0.568627,1.56631,-67.922591,-0.166477,70.515667,10,0.399088,0.388371
+2025-26,Top 5 Aggregate,Mixed,V3.1,bully_engine_v3_1_cl_gpt.py,is_bully_candidate,1506,408,408,1.0,232,0.568627,1.56631,-67.922591,-0.166477,70.515667,10,0.399088,0.388371
+2025-26,Top 5 Aggregate,Mixed,V3.2,bully_engine_v3_2_cl_gpt.py,is_bully_candidate,1506,408,408,1.0,232,0.568627,1.56631,-67.922591,-0.166477,70.515667,10,0.410804,0.397219
+2025-26,Top 5 Aggregate,Mixed,V3.2.5,bully_engine_v3_2_5GPT.py,is_bully_candidate,1506,408,408,1.0,232,0.568627,1.56631,-67.922591,-0.166477,70.515667,10,0.410804,0.397219
+2025-26,Top 5 Aggregate,Mixed,GPT V2,bully_engine_v2_gpt.py,is_bully_candidate,1506,440,439,0.997727,243,0.552273,1.620564,-74.468529,-0.169632,77.061605,8,0.498432,0.477455
+2025-26,Top 5 Aggregate,Mixed,V2,bully_engine_v2.py,is_bully_spot,1506,166,166,1.0,100,0.60241,1.489915,-30.915887,-0.18624,31.793024,5,0.475435,0.474585
+2025-26,Top 5 Aggregate,Mixed,V3.3GPT,bully_engine_v3_3GPT.py,p_joint >= 0.42,1506,211,211,1.0,107,0.507109,1.800147,-44.82966,-0.212463,47.133932,11,0.557441,0.546172

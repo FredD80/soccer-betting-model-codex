@@ -1,0 +1,34 @@
+league,selection,train_season,test_season,edge_threshold,p_draw_min,p_draw_max,train_bets,train_hit_rate,train_roi_units,train_roi,test_bets,test_hit_rate,test_roi_units,test_roi,positive_both
+All,best_train_roi,2023-24,2025-26,0.05,0.3,0.33,220,0.263636,37.68,0.171273,94,0.148936,-36.52,-0.388511,0
+All,best_test_roi,2023-24,2025-26,0.04,0.27,0.3,475,0.174737,-77.74,-0.163663,171,0.222222,9.3,0.054386,0
+All,best_positive_both,,,,,,,,,,,,,,
+Bundesliga,best_train_roi,2023-24,2025-26,0.02,0.27,0.36,57,0.298246,12.82,0.224912,30,0.2,-5.79,-0.193,0
+Bundesliga,best_test_roi,2023-24,2025-26,0.0,0.27,0.3,71,0.267606,6.5,0.091549,55,0.290909,4.26,0.077455,1
+Bundesliga,best_positive_both,2023-24,2025-26,0.0,0.27,0.3,71,0.267606,6.5,0.091549,55,0.290909,4.26,0.077455,1
+Championship,best_train_roi,2023-24,2025-26,0.01,0.3,0.33,116,0.284483,4.54,0.039138,0,0.0,0.0,0.0,0
+Championship,best_test_roi,,,,,,,,,,,,,,
+Championship,best_positive_both,,,,,,,,,,,,,,
+Eredivisie,best_train_roi,2023-24,2025-26,0.01,0.27,0.3,69,0.275362,13.22,0.191594,0,0.0,0.0,0.0,0
+Eredivisie,best_test_roi,,,,,,,,,,,,,,
+Eredivisie,best_positive_both,,,,,,,,,,,,,,
+La Liga,best_train_roi,2023-24,2025-26,0.02,0.3,0.33,61,0.327869,17.76,0.291148,40,0.3,3.0,0.075,1
+La Liga,best_test_roi,2023-24,2025-26,0.02,0.3,1.0,88,0.295455,10.36,0.117727,51,0.313725,4.39,0.086078,1
+La Liga,best_positive_both,2023-24,2025-26,0.02,0.3,1.0,88,0.295455,10.36,0.117727,51,0.313725,4.39,0.086078,1
+Ligue 1,best_train_roi,2023-24,2025-26,0.04,0.3,0.33,50,0.36,26.4,0.528,28,0.214286,-4.33,-0.154643,0
+Ligue 1,best_test_roi,2023-24,2025-26,0.01,0.3,0.33,75,0.306667,18.44,0.245867,44,0.318182,7.22,0.164091,1
+Ligue 1,best_positive_both,2023-24,2025-26,0.01,0.3,0.33,75,0.306667,18.44,0.245867,44,0.318182,7.22,0.164091,1
+Premier League,best_train_roi,2023-24,2025-26,0.04,0.24,0.27,50,0.2,9.8,0.196,21,0.333333,13.47,0.641429,1
+Premier League,best_test_roi,2023-24,2025-26,0.03,0.0,0.27,98,0.173469,1.81,0.018469,35,0.4,34.26,0.978857,1
+Premier League,best_positive_both,2023-24,2025-26,0.03,0.0,0.27,98,0.173469,1.81,0.018469,35,0.4,34.26,0.978857,1
+Primeira Liga,best_train_roi,2023-24,2025-26,0.04,0.27,0.36,60,0.2,1.32,0.022,0,0.0,0.0,0.0,0
+Primeira Liga,best_test_roi,,,,,,,,,,,,,,
+Primeira Liga,best_positive_both,,,,,,,,,,,,,,
+Pro League,best_train_roi,2023-24,2025-26,0.05,0.24,0.3,68,0.264706,23.09,0.339559,0,0.0,0.0,0.0,0
+Pro League,best_test_roi,,,,,,,,,,,,,,
+Pro League,best_positive_both,,,,,,,,,,,,,,
+Scottish Premiership,best_train_roi,2023-24,2025-26,0.01,0.3,0.36,58,0.293103,4.6,0.07931,0,0.0,0.0,0.0,0
+Scottish Premiership,best_test_roi,,,,,,,,,,,,,,
+Scottish Premiership,best_positive_both,,,,,,,,,,,,,,
+Serie A,best_train_roi,2023-24,2025-26,0.03,0.3,0.33,63,0.333333,21.35,0.338889,56,0.160714,-20.62,-0.368214,0
+Serie A,best_test_roi,2023-24,2025-26,0.03,0.27,0.3,63,0.238095,8.29,0.131587,44,0.340909,25.73,0.584773,1
+Serie A,best_positive_both,2023-24,2025-26,0.03,0.27,0.3,63,0.238095,8.29,0.131587,44,0.340909,25.73,0.584773,1

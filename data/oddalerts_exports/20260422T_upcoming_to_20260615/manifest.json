@@ -1,0 +1,117 @@
+{
+  "exported_at": "2026-04-22T03:06:35.315111+00:00",
+  "date_from": "2026-04-22T00:00:00+00:00",
+  "date_to": "2026-06-15T23:59:59.999999+00:00",
+  "history_market_ids": [
+    6,
+    8,
+    9,
+    10,
+    13,
+    15,
+    18,
+    19,
+    20,
+    43,
+    51
+  ],
+  "bookmaker_ids": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "fixture_include": "probability,stats,odds",
+  "competitions": [
+    {
+      "league_name": "Bundesliga",
+      "country": "Germany",
+      "competition_id": 477,
+      "fixtures_exported": 36,
+      "fixtures_with_odds": 18,
+      "fixture_path": "fixtures/germany__bundesliga__477.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Championship",
+      "country": "England",
+      "competition_id": 418,
+      "fixtures_exported": 28,
+      "fixtures_with_odds": 15,
+      "fixture_path": "fixtures/england__championship__418.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Eredivisie",
+      "country": "Netherlands",
+      "competition_id": 437,
+      "fixtures_exported": 36,
+      "fixtures_with_odds": 9,
+      "fixture_path": "fixtures/netherlands__eredivisie__437.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "La Liga",
+      "country": "Spain",
+      "competition_id": 419,
+      "fixtures_exported": 66,
+      "fixtures_with_odds": 16,
+      "fixture_path": "fixtures/spain__la-liga__419.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Ligue 1",
+      "country": "France",
+      "competition_id": 200,
+      "fixtures_exported": 39,
+      "fixtures_with_odds": 21,
+      "fixture_path": "fixtures/france__ligue-1__200.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Premier League",
+      "country": "England",
+      "competition_id": 423,
+      "fixtures_exported": 50,
+      "fixtures_with_odds": 19,
+      "fixture_path": "fixtures/england__premier-league__423.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Primeira Liga",
+      "country": "Portugal",
+      "competition_id": 475,
+      "fixtures_exported": 38,
+      "fixtures_with_odds": 11,
+      "fixture_path": "fixtures/portugal__primeira-liga__475.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Pro League",
+      "country": "Belgium",
+      "competition_id": 198,
+      "fixtures_exported": 45,
+      "fixtures_with_odds": 11,
+      "fixture_path": "fixtures/belgium__pro-league__198.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Scottish Premiership",
+      "country": "Scotland",
+      "competition_id": 259,
+      "fixtures_exported": 30,
+      "fixtures_with_odds": 6,
+      "fixture_path": "fixtures/scotland__scottish-premiership__259.json",
+      "history_chunks": []
+    },
+    {
+      "league_name": "Serie A",
+      "country": "Italy",
+      "competition_id": 499,
+      "fixtures_exported": 50,
+      "fixtures_with_odds": 20,
+      "fixture_path": "fixtures/italy__serie-a__499.json",
+      "history_chunks": []
+    }
+  ]
+}

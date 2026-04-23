@@ -1,0 +1,3 @@
+fixture_id,kickoff_at,league,country,home_team,away_team,bookmaker,captured_at,home_odds,draw_odds,draw_american_odds,away_odds,model_draw_probability,fair_market_draw_probability,draw_edge,p_draw_bucket,recommendation,league_rule,rule_reason
+1342,2026-04-23T18:00:00+00:00,La Liga,Spain,Rayo Vallecano,Espanyol,ballybet,2026-04-16T12:23:06.038311+00:00,1.88,3.5,250,4.25,0.311223,0.271353,0.03987,0.30-0.33,BET,"La Liga: edge >= 0.02, p_draw >= 0.30",passes_approved_oos_rule
+1483,2026-04-26T18:45:00+00:00,Ligue 1,France,Marseille,Nice,ballybet,2026-04-16T12:23:21.648966+00:00,1.48,4.6,360,5.8,0.300619,0.204031,0.096588,0.30-0.33,BET,"Ligue 1: edge >= 0.01, p_draw >= 0.30, p_draw < 0.33",passes_approved_oos_rule

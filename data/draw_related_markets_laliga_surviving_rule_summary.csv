@@ -1,0 +1,22 @@
+subset_mode,market,category,fixtures_in_universe,fixtures_in_subset,priced_bets,coverage_pct,hits,hit_rate,baseline_hit_rate,hit_rate_lift,avg_model_probability,avg_odds,roi_units,roi,notes
+surviving_rule,draw,priced,683,139,139,1.0,42,0.302158,0.266471,0.035687,,3.828489,14.75,0.106115,historical priced market
+surviving_rule,home_tt_over_1_5,priced,683,139,115,0.827338,56,0.486957,0.43631,0.050646,,2.178609,2.31,0.020087,historical priced market
+surviving_rule,away_tt_under_1_5,priced,683,139,45,0.323741,28,0.622222,0.672035,-0.049813,,1.685556,0.67,0.014889,historical priced market
+surviving_rule,underdog_tt_over_1_5,priced,683,139,29,0.208633,10,0.344828,0.265007,0.07982,,2.891379,0.06,0.002069,historical priced market
+surviving_rule,favorite_tt_over_1_5,priced,683,139,131,0.942446,63,0.480916,0.502196,-0.02128,,2.117557,-2.48,-0.018931,historical priced market
+surviving_rule,favorite_ml,priced,683,139,139,1.0,74,0.532374,0.547584,-0.01521,,1.874029,-2.84,-0.020432,historical priced market
+surviving_rule,over_2_5,priced,683,139,139,1.0,68,0.489209,0.486091,0.003118,,2.087554,-3.88,-0.027914,historical priced market
+surviving_rule,underdog_tt_under_1_5,priced,683,139,29,0.208633,19,0.655172,0.734993,-0.07982,,1.453793,-1.31,-0.045172,historical priced market
+surviving_rule,favorite_tt_under_1_5,priced,683,139,131,0.942446,68,0.519084,0.497804,0.02128,,1.861756,-9.25,-0.070611,historical priced market
+surviving_rule,home_tt_under_1_5,priced,683,139,115,0.827338,59,0.513043,0.56369,-0.050646,,1.827826,-11.23,-0.097652,historical priced market
+surviving_rule,away_tt_over_1_5,priced,683,139,45,0.323741,17,0.377778,0.327965,0.049813,,2.460222,-4.73,-0.105111,historical priced market
+surviving_rule,under_2_5,priced,683,139,139,1.0,71,0.510791,0.513909,-0.003118,,1.826978,-15.29,-0.11,historical priced market
+surviving_rule,underdog_ml,priced,683,139,139,1.0,23,0.165468,0.183016,-0.017548,,5.427266,-27.13,-0.19518,historical priced market
+surviving_rule,btts_yes,structural_only,683,139,,1.0,77,0.553957,0.524158,0.029799,,,,,no stored historical prices for this market
+surviving_rule,exact_1_1,structural_only,683,139,,1.0,22,0.158273,0.139092,0.019181,,,,,no stored historical prices for this market
+surviving_rule,exact_0_0,structural_only,683,139,,1.0,11,0.079137,0.064422,0.014715,,,,,no stored historical prices for this market
+surviving_rule,exact_0_1,structural_only,683,139,,1.0,11,0.079137,0.068814,0.010323,,,,,no stored historical prices for this market
+surviving_rule,exact_2_2,structural_only,683,139,,1.0,7,0.05036,0.051245,-0.000885,,,,,no stored historical prices for this market
+surviving_rule,exact_1_0,structural_only,683,139,,1.0,13,0.093525,0.118594,-0.025069,,,,,no stored historical prices for this market
+surviving_rule,btts_no,structural_only,683,139,,1.0,62,0.446043,0.475842,-0.029799,,,,,no stored historical prices for this market
+surviving_rule,under_3_5,structural_only,683,139,,1.0,96,0.690647,0.733529,-0.042881,,,,,no stored historical prices for this market

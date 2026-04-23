@@ -1,0 +1,286 @@
+{
+  "exported_at": "2026-04-22T03:12:19.394451+00:00",
+  "competition_ids": [
+    198,
+    200,
+    259,
+    418,
+    419,
+    423,
+    437,
+    475,
+    477,
+    499
+  ],
+  "duration_hours": 72,
+  "presets": [
+    {
+      "name": "default_value_2leg",
+      "path": "default_value_2leg.json",
+      "total_generated": 2,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 2,
+        "value_bets_only": true
+      }
+    },
+    {
+      "name": "draw_relaxed_single",
+      "path": "draw_relaxed_single.json",
+      "total_generated": 4,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": false,
+        "markets": [
+          {
+            "id": "ft_result",
+            "outcome": "draw",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "Draw"
+          }
+        ]
+      }
+    },
+    {
+      "name": "draw_value_single",
+      "path": "draw_value_single.json",
+      "total_generated": 7,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": true,
+        "markets": [
+          {
+            "id": "ft_result",
+            "outcome": "draw",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "Draw"
+          }
+        ]
+      }
+    },
+    {
+      "name": "btts_no_relaxed_single",
+      "path": "btts_no_relaxed_single.json",
+      "total_generated": 10,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": false,
+        "markets": [
+          {
+            "id": "btts",
+            "outcome": "no",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "BTTS No"
+          }
+        ]
+      }
+    },
+    {
+      "name": "under25_relaxed_single",
+      "path": "under25_relaxed_single.json",
+      "total_generated": 10,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": false,
+        "markets": [
+          {
+            "id": "o2_goals",
+            "outcome": "no",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "Under 2.5 Goals"
+          }
+        ]
+      }
+    },
+    {
+      "name": "home_win_value_single",
+      "path": "home_win_value_single.json",
+      "total_generated": 4,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": true,
+        "markets": [
+          {
+            "id": "ft_result",
+            "outcome": "home",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "Home Win"
+          }
+        ]
+      }
+    },
+    {
+      "name": "away_win_value_single",
+      "path": "away_win_value_single.json",
+      "total_generated": 3,
+      "payload": {
+        "max_betslips": 25,
+        "duration": 259200,
+        "competitions": [
+          198,
+          200,
+          259,
+          418,
+          419,
+          423,
+          437,
+          475,
+          477,
+          499
+        ],
+        "exclude_cups": true,
+        "odds_per_item": [
+          1,
+          10
+        ],
+        "items_per_slip": 1,
+        "value_bets_only": true,
+        "markets": [
+          {
+            "id": "ft_result",
+            "outcome": "away",
+            "range": [
+              0,
+              100
+            ],
+            "enabled": true,
+            "title": "Away Win"
+          }
+        ]
+      }
+    }
+  ]
+}

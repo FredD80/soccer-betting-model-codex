@@ -1,0 +1,48 @@
+{
+  "exported_at": "2026-04-22T03:03:33.990736+00:00",
+  "date_from": "2026-04-15T00:00:00+00:00",
+  "date_to": "2026-04-21T23:59:59.999999+00:00",
+  "history_market_ids": [
+    6,
+    8,
+    9,
+    10,
+    13,
+    15,
+    18,
+    19,
+    20,
+    43,
+    51
+  ],
+  "bookmaker_ids": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "fixture_include": "probability,stats,odds",
+  "competitions": [
+    {
+      "league_name": "La Liga",
+      "country": "Spain",
+      "competition_id": 419,
+      "fixtures_exported": 4,
+      "fixtures_with_odds": 4,
+      "fixture_path": "fixtures/spain__la-liga__419.json",
+      "history_chunks": [
+        {
+          "chunk": 1,
+          "fixture_ids": [
+            368375008,
+            368375019,
+            368374819,
+            368375017
+          ],
+          "rows": 487,
+          "path": "odds_history/spain__la-liga__419__chunk_001.json"
+        }
+      ]
+    }
+  ]
+}

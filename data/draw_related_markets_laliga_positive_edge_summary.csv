@@ -1,0 +1,22 @@
+subset_mode,market,category,fixtures_in_universe,fixtures_in_subset,priced_bets,coverage_pct,hits,hit_rate,baseline_hit_rate,hit_rate_lift,avg_model_probability,avg_odds,roi_units,roi,notes
+positive_edge,favorite_ml,priced,683,462,461,0.997835,283,0.613883,0.547584,0.066299,,1.810651,30.42,0.065987,historical priced market
+positive_edge,home_tt_over_1_5,priced,683,462,336,0.727273,165,0.491071,0.43631,0.054761,,2.169018,3.72,0.011071,historical priced market
+positive_edge,favorite_tt_over_1_5,priced,683,462,384,0.831169,198,0.515625,0.502196,0.013429,,2.032292,2.66,0.006927,historical priced market
+positive_edge,over_2_5,priced,683,462,462,1.0,249,0.538961,0.486091,0.05287,,1.912814,-4.96,-0.010736,historical priced market
+positive_edge,away_tt_over_1_5,priced,683,462,174,0.376623,78,0.448276,0.327965,0.120311,,2.340747,-4.9,-0.028161,historical priced market
+positive_edge,underdog_tt_over_1_5,priced,683,462,124,0.268398,44,0.354839,0.265007,0.089831,,2.829758,-4.22,-0.034032,historical priced market
+positive_edge,underdog_tt_under_1_5,priced,683,462,124,0.268398,80,0.645161,0.734993,-0.089831,,1.478871,-7.11,-0.057339,historical priced market
+positive_edge,away_tt_under_1_5,priced,683,462,174,0.376623,96,0.551724,0.672035,-0.120311,,1.786092,-11.26,-0.064713,historical priced market
+positive_edge,draw,priced,683,462,462,1.0,110,0.238095,0.266471,-0.028376,,4.257338,-31.62,-0.068442,historical priced market
+positive_edge,favorite_tt_under_1_5,priced,683,462,384,0.831169,186,0.484375,0.497804,-0.013429,,1.960208,-34.63,-0.090182,historical priced market
+positive_edge,home_tt_under_1_5,priced,683,462,336,0.727273,171,0.508929,0.56369,-0.054761,,1.870833,-30.83,-0.091756,historical priced market
+positive_edge,under_2_5,priced,683,462,462,1.0,213,0.461039,0.513909,-0.05287,,2.06658,-45.73,-0.098983,historical priced market
+positive_edge,underdog_ml,priced,683,462,461,0.997835,68,0.147505,0.183016,-0.035511,,6.00744,-141.66,-0.307289,historical priced market
+positive_edge,btts_yes,structural_only,683,462,,1.0,245,0.530303,0.524158,0.006145,,,,,no stored historical prices for this market
+positive_edge,exact_2_2,structural_only,683,462,,1.0,23,0.049784,0.051245,-0.001461,,,,,no stored historical prices for this market
+positive_edge,exact_1_0,structural_only,683,462,,1.0,54,0.116883,0.118594,-0.001711,,,,,no stored historical prices for this market
+positive_edge,exact_0_0,structural_only,683,462,,1.0,27,0.058442,0.064422,-0.00598,,,,,no stored historical prices for this market
+positive_edge,btts_no,structural_only,683,462,,1.0,217,0.469697,0.475842,-0.006145,,,,,no stored historical prices for this market
+positive_edge,exact_0_1,structural_only,683,462,,1.0,24,0.051948,0.068814,-0.016866,,,,,no stored historical prices for this market
+positive_edge,exact_1_1,structural_only,683,462,,1.0,55,0.119048,0.139092,-0.020045,,,,,no stored historical prices for this market
+positive_edge,under_3_5,structural_only,683,462,,1.0,326,0.705628,0.733529,-0.027901,,,,,no stored historical prices for this market

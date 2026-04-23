@@ -1,0 +1,101 @@
+league,sample,sample_note,market,bet_count,roi,roi_ci_low,roi_ci_high
+Serie A,broad,,away_tt_over_1_5,220,0.114955,-0.032324,0.262233
+Serie A,broad,,draw,493,0.060609,-0.10114,0.222357
+Serie A,broad,,underdog_tt_under_1_5,100,0.0587,-0.066074,0.183474
+Serie A,broad,,favorite_tt_over_1_5,448,0.055357,-0.037873,0.148587
+Serie A,broad,,favorite_ml,491,0.03167,-0.048091,0.111431
+Serie A,broad,,home_tt_under_1_5,332,-0.017319,-0.120869,0.08623
+Serie A,broad,,over_2_5,491,-0.023931,-0.111983,0.064121
+Serie A,broad,,under_2_5,491,-0.060183,-0.144727,0.02436
+Serie A,broad,,home_tt_over_1_5,332,-0.068434,-0.180963,0.044096
+Serie A,broad,,favorite_tt_under_1_5,448,-0.122701,-0.213628,-0.031774
+Serie A,broad,,away_tt_under_1_5,220,-0.200591,-0.31538,-0.085801
+Serie A,broad,,underdog_tt_over_1_5,100,-0.226,-0.486111,0.034111
+Serie A,broad,,underdog_ml,491,-0.282322,-0.455405,-0.109238
+Serie A,strict_oos,,draw,136,0.284485,-0.067485,0.636456
+Serie A,strict_oos,,underdog_tt_under_1_5,17,0.128235,-0.182406,0.438877
+Serie A,strict_oos,,home_tt_under_1_5,89,0.094045,-0.134482,0.322571
+Serie A,strict_oos,,under_2_5,136,0.001544,-0.167001,0.17009
+Serie A,strict_oos,,favorite_tt_under_1_5,117,-0.001795,-0.203862,0.200272
+Serie A,strict_oos,,away_tt_over_1_5,45,-0.022444,-0.284004,0.239115
+Serie A,strict_oos,,favorite_ml,136,-0.023456,-0.155484,0.108572
+Serie A,strict_oos,,favorite_tt_over_1_5,117,-0.053675,-0.212234,0.104884
+Serie A,strict_oos,,over_2_5,136,-0.105882,-0.260393,0.048628
+Serie A,strict_oos,,home_tt_over_1_5,89,-0.124719,-0.321042,0.071603
+Serie A,strict_oos,,away_tt_under_1_5,45,-0.142222,-0.431721,0.147276
+Serie A,strict_oos,,underdog_tt_over_1_5,17,-0.342941,-0.926226,0.240344
+Serie A,strict_oos,,underdog_ml,136,-0.492132,-0.78838,-0.195884
+Eredivisie,broad,,draw,237,0.094304,-0.178718,0.367325
+Eredivisie,broad,,away_tt_over_1_5,119,0.03916,-0.167603,0.245922
+Eredivisie,broad,,favorite_tt_over_1_5,149,-0.004362,-0.146229,0.137504
+Eredivisie,broad,,home_tt_under_1_5,142,-0.013732,-0.176987,0.149522
+Eredivisie,broad,,underdog_tt_under_1_5,112,-0.035536,-0.170204,0.099132
+Eredivisie,broad,,underdog_tt_over_1_5,112,-0.042946,-0.283551,0.197658
+Eredivisie,broad,,favorite_ml,237,-0.055907,-0.158273,0.046458
+Eredivisie,broad,,home_tt_over_1_5,142,-0.071268,-0.238589,0.096053
+Eredivisie,broad,,favorite_tt_under_1_5,149,-0.090671,-0.262779,0.081436
+Eredivisie,broad,,away_tt_under_1_5,119,-0.130588,-0.286739,0.025563
+Eredivisie,broad,,underdog_ml,237,-0.293502,-0.528234,-0.05877
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,draw,113,0.099381,-0.356373,0.555134
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,underdog_tt_under_1_5,16,0.083125,-0.233951,0.400201
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,home_tt_under_1_5,34,0.06,-0.322253,0.442253
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,favorite_tt_under_1_5,34,0.031471,-0.390799,0.45374
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,away_tt_under_1_5,16,0.0225,-0.478763,0.523763
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,away_tt_over_1_5,16,-0.03875,-0.633139,0.555639
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,favorite_ml,113,-0.075664,-0.183659,0.032331
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,favorite_tt_over_1_5,34,-0.079706,-0.34336,0.183948
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,home_tt_over_1_5,34,-0.196765,-0.476992,0.083463
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,underdog_tt_over_1_5,16,-0.2875,-0.913813,0.338813
+Eredivisie,strict_oos,proxy_edge5_threshold_no_true_oos_sample,underdog_ml,113,-0.379469,-0.768328,0.00939
+Ligue 1,broad,,draw,441,0.021882,-0.144621,0.188385
+Ligue 1,broad,,home_tt_under_1_5,337,0.004036,-0.097576,0.105647
+Ligue 1,broad,,underdog_tt_under_1_5,188,0.001543,-0.097486,0.100571
+Ligue 1,broad,,favorite_tt_under_1_5,389,-0.016478,-0.116719,0.083763
+Ligue 1,broad,,favorite_ml,440,-0.028341,-0.115814,0.059133
+Ligue 1,broad,,over_2_5,436,-0.031078,-0.115339,0.053183
+Ligue 1,broad,,away_tt_under_1_5,242,-0.031405,-0.140846,0.078036
+Ligue 1,broad,,away_tt_over_1_5,242,-0.032479,-0.182156,0.117197
+Ligue 1,broad,,favorite_tt_over_1_5,389,-0.058509,-0.155009,0.037991
+Ligue 1,broad,,under_2_5,436,-0.071812,-0.170593,0.026969
+Ligue 1,broad,,underdog_tt_over_1_5,188,-0.098138,-0.289803,0.093527
+Ligue 1,broad,,home_tt_over_1_5,337,-0.098961,-0.210016,0.012093
+Ligue 1,broad,,underdog_ml,440,-0.134705,-0.306959,0.03755
+Ligue 1,strict_oos,,draw,119,0.21563,-0.117214,0.548475
+Ligue 1,strict_oos,,home_tt_under_1_5,99,0.124545,-0.06354,0.312631
+Ligue 1,strict_oos,,favorite_tt_under_1_5,116,0.102414,-0.077596,0.282424
+Ligue 1,strict_oos,,underdog_tt_under_1_5,45,0.007111,-0.183668,0.19789
+Ligue 1,strict_oos,,away_tt_under_1_5,62,-0.002097,-0.20771,0.203516
+Ligue 1,strict_oos,,under_2_5,119,-0.05395,-0.224608,0.116709
+Ligue 1,strict_oos,,favorite_ml,119,-0.065126,-0.238433,0.108181
+Ligue 1,strict_oos,,over_2_5,119,-0.074958,-0.245391,0.095475
+Ligue 1,strict_oos,,away_tt_over_1_5,62,-0.114677,-0.403723,0.174368
+Ligue 1,strict_oos,,favorite_tt_over_1_5,116,-0.152155,-0.335191,0.030881
+Ligue 1,strict_oos,,underdog_tt_over_1_5,45,-0.168222,-0.554819,0.218375
+Ligue 1,strict_oos,,home_tt_over_1_5,99,-0.182929,-0.392527,0.026668
+Ligue 1,strict_oos,,underdog_ml,119,-0.275462,-0.555442,0.004518
+La Liga,broad,,favorite_ml,461,0.065987,-0.016215,0.148189
+La Liga,broad,,home_tt_over_1_5,336,0.011071,-0.104409,0.126552
+La Liga,broad,,favorite_tt_over_1_5,384,0.006927,-0.094629,0.108484
+La Liga,broad,,over_2_5,462,-0.010736,-0.097306,0.075834
+La Liga,broad,,away_tt_over_1_5,174,-0.028161,-0.196392,0.14007
+La Liga,broad,,underdog_tt_over_1_5,124,-0.034032,-0.266616,0.198551
+La Liga,broad,,underdog_tt_under_1_5,124,-0.057339,-0.181706,0.067029
+La Liga,broad,,away_tt_under_1_5,174,-0.064713,-0.195791,0.066365
+La Liga,broad,,draw,462,-0.068442,-0.225997,0.089114
+La Liga,broad,,favorite_tt_under_1_5,384,-0.090182,-0.187175,0.00681
+La Liga,broad,,home_tt_under_1_5,336,-0.091756,-0.190956,0.007444
+La Liga,broad,,under_2_5,462,-0.098983,-0.192357,-0.005608
+La Liga,broad,,underdog_ml,461,-0.307289,-0.470309,-0.144268
+La Liga,strict_oos,,draw,139,0.106115,-0.178922,0.391152
+La Liga,strict_oos,,home_tt_over_1_5,115,0.020087,-0.179938,0.220111
+La Liga,strict_oos,,away_tt_under_1_5,45,0.014889,-0.225774,0.255552
+La Liga,strict_oos,,underdog_tt_over_1_5,29,0.002069,-0.511146,0.515284
+La Liga,strict_oos,,favorite_tt_over_1_5,131,-0.018931,-0.200613,0.162751
+La Liga,strict_oos,,favorite_ml,139,-0.020432,-0.180213,0.13935
+La Liga,strict_oos,,over_2_5,139,-0.027914,-0.197081,0.141254
+La Liga,strict_oos,,underdog_tt_under_1_5,29,-0.045172,-0.30265,0.212305
+La Liga,strict_oos,,favorite_tt_under_1_5,131,-0.070611,-0.227318,0.086097
+La Liga,strict_oos,,home_tt_under_1_5,115,-0.097652,-0.262404,0.0671
+La Liga,strict_oos,,away_tt_over_1_5,45,-0.105111,-0.460139,0.249917
+La Liga,strict_oos,,under_2_5,139,-0.11,-0.258368,0.038368
+La Liga,strict_oos,,underdog_ml,139,-0.19518,-0.505249,0.114889
