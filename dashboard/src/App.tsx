@@ -117,7 +117,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className={`mt-4 flex flex-col gap-3 ${showingBullyModel ? 'xl:hidden' : 'xl:flex-row xl:items-center xl:justify-between'}`}>
+          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <nav className="flex flex-wrap gap-2">
               {PRIMARY_TABS.map(item => (
                 <Link

@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-
 import { api } from '../api/client'
 import type { BullyScheduleFixture, FixturePick, MoneylinePick, SeasonTrackerResponse } from '../api/types'
 import ManualPickForm from '../components/ManualPickForm'
@@ -9,6 +7,7 @@ import { formatEasternTime } from '../lib/time'
 
 type LeagueTab = 'all' | string
 type BullySortKey = 'composite' | 'combo' | 'elo_gap' | 'favorite_win' | 'two_plus' | 'clean_sheet' | 'kickoff'
+type ConfidenceFilter = 'all' | 'ELITE' | 'HIGH'
 
 const SORT_OPTIONS: { key: BullySortKey; label: string }[] = [
   { key: 'composite', label: 'Composite' },
@@ -259,18 +258,11 @@ function HeroInlineStat({ label, value, accent }: { label: string; value: string
   )
 }
 
-/* ─── left rail ────────────────────────────────────────────────────────── */
+/* ─── left rail — filter panel ─────────────────────────────────────────── */
 
-function railDotClass(tone: 'bully' | 'best' | 'main' | 'parallel'): string {
-  if (tone === 'bully') return 'bg-bully shadow-[0_0_12px_rgba(224,181,78,0.4)]'
-  if (tone === 'best') return 'bg-win shadow-[0_0_12px_rgba(94,193,117,0.25)]'
-  if (tone === 'main') return 'bg-edge shadow-[0_0_12px_rgba(97,181,255,0.25)]'
-  return 'bg-ink-3'
-}
-
-function railLinkClass(active: boolean): string {
+function railButtonClass(active: boolean): string {
   return (
-    'flex items-center justify-between gap-3 rounded-[12px] border px-3 py-2.5 text-sm transition-colors ' +
+    'flex w-full items-center justify-between gap-3 rounded-[12px] border px-3 py-2 text-left text-sm transition-colors ' +
     (active
       ? 'border-bully/35 bg-bully/12 text-bully'
       : 'border-transparent text-ink-1 hover:border-line-1 hover:bg-bg-3/70 hover:text-ink-0')
@@ -281,57 +273,103 @@ function LeftRailSection({ title, children }: { title: string; children: React.R
   return (
     <div>
       <p className="eyebrow">{title}</p>
-      <div className="mt-3 space-y-1.5">{children}</div>
+      <div className="mt-3 space-y-1">{children}</div>
     </div>
   )
 }
 
-function LeftRailLink({
-  to, label, count, active, tone,
-}: {
-  to: string; label: string; count?: string; active?: boolean; tone?: 'bully' | 'best' | 'main' | 'parallel'
-}) {
+function RailButton({
+  active, onClick, label, count,
+}: { active: boolean; onClick: () => void; label: string; count?: number }) {
   return (
-    <Link to={to} className={railLinkClass(Boolean(active))}>
-      <span className="flex min-w-0 items-center gap-2.5">
-        {tone && <span className={`h-2 w-2 shrink-0 rounded-full ${railDotClass(tone)}`} />}
-        <span className="truncate">{label}</span>
-      </span>
-      {count && <span className="font-mono text-xs text-ink-3">{count}</span>}
-    </Link>
+    <button type="button" onClick={onClick} className={railButtonClass(active)}>
+      <span className="truncate">{label}</span>
+      {count != null && <span className="font-mono text-xs text-ink-3 tabular-nums">{count}</span>}
+    </button>
   )
 }
 
-function LeftRail({ days, fixtureCount }: { days?: number; fixtureCount: number }) {
-  const location = useLocation()
-  const pickPath = days === 7 ? '/week' : '/today'
-  const currentPath = location.pathname
-
+function LeftRail({
+  sortKey,
+  setSortKey,
+  leagueTab,
+  setLeagueTab,
+  leagueCounts,
+  totalCount,
+  confidence,
+  setConfidence,
+  tierCounts,
+}: {
+  sortKey: BullySortKey
+  setSortKey: (k: BullySortKey) => void
+  leagueTab: LeagueTab
+  setLeagueTab: (t: LeagueTab) => void
+  leagueCounts: [string, number][]
+  totalCount: number
+  confidence: ConfidenceFilter
+  setConfidence: (c: ConfidenceFilter) => void
+  tierCounts: { ELITE: number; HIGH: number }
+}) {
   return (
     <aside>
       <div className="space-y-4 xl:sticky xl:top-[118px]">
         <div className="card">
-          <LeftRailSection title="Views">
-            <LeftRailLink to={`${pickPath}?view=bully`} label="Bully Board" count={String(fixtureCount)} active tone="bully" />
-            <LeftRailLink to={`${pickPath}?view=best`} label="Best" tone="best" />
-            <LeftRailLink to={`${pickPath}?view=main`} label="Main" tone="main" />
-            <LeftRailLink to={`${pickPath}?view=parallel`} label="Parallel" tone="parallel" />
+          <LeftRailSection title="Sort">
+            {SORT_OPTIONS.map(option => (
+              <RailButton
+                key={option.key}
+                active={sortKey === option.key}
+                onClick={() => setSortKey(option.key)}
+                label={option.label}
+              />
+            ))}
           </LeftRailSection>
 
           <div className="my-4 border-t border-line-1/80" />
 
-          <LeftRailSection title="Window">
-            <LeftRailLink to="/today?view=bully" label="Today" count={days === 1 ? String(fixtureCount) : undefined} active={days === 1} />
-            <LeftRailLink to="/week?view=bully" label="This Week" count={days === 7 ? String(fixtureCount) : undefined} active={days === 7} />
-            <LeftRailLink to="/schedule" label="Season" active={currentPath === '/schedule'} />
+          <LeftRailSection title="Confidence">
+            <RailButton
+              active={confidence === 'all'}
+              onClick={() => setConfidence('all')}
+              label="All"
+              count={totalCount}
+            />
+            <RailButton
+              active={confidence === 'ELITE'}
+              onClick={() => setConfidence('ELITE')}
+              label="Elite"
+              count={tierCounts.ELITE}
+            />
+            <RailButton
+              active={confidence === 'HIGH'}
+              onClick={() => setConfidence('HIGH')}
+              label="High"
+              count={tierCounts.HIGH}
+            />
           </LeftRailSection>
 
-          <div className="my-4 border-t border-line-1/80" />
-
-          <LeftRailSection title="Tools">
-            <LeftRailLink to="/backtests" label="Backtests" active={currentPath === '/backtests'} />
-            <LeftRailLink to="/tracking" label="Season Tracker" active={currentPath === '/tracking'} />
-          </LeftRailSection>
+          {leagueCounts.length > 1 && (
+            <>
+              <div className="my-4 border-t border-line-1/80" />
+              <LeftRailSection title="League">
+                <RailButton
+                  active={leagueTab === 'all'}
+                  onClick={() => setLeagueTab('all')}
+                  label="All"
+                  count={totalCount}
+                />
+                {leagueCounts.map(([league, count]) => (
+                  <RailButton
+                    key={league}
+                    active={leagueTab === league}
+                    onClick={() => setLeagueTab(league)}
+                    label={league}
+                    count={count}
+                  />
+                ))}
+              </LeftRailSection>
+            </>
+          )}
         </div>
       </div>
     </aside>
@@ -560,7 +598,7 @@ function BoardRow({
   )
 }
 
-/* ─── right rail: freshness pill + tracker + league mix ────────────────── */
+/* ─── right rail: freshness pill + tracker ─────────────────────────────── */
 
 function FreshnessPill({
   status,
@@ -589,6 +627,7 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
   const [tracker, setTracker] = useState<SeasonTrackerResponse | null>(null)
   const [leagueTab, setLeagueTab] = useState<LeagueTab>('all')
   const [sortKey, setSortKey] = useState<BullySortKey>('composite')
+  const [confidence, setConfidence] = useState<ConfidenceFilter>('all')
   const [openId, setOpenId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -617,8 +656,22 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
     return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [fixtures])
 
-  const leagueNames = leagueCounts.map(([league]) => league)
-  const filteredFixtures = leagueTab === 'all' ? fixtures : fixtures.filter(fixture => fixture.league === leagueTab)
+  const leagueFilteredFixtures = leagueTab === 'all' ? fixtures : fixtures.filter(fixture => fixture.league === leagueTab)
+
+  const tierCounts = useMemo(() => {
+    let elite = 0
+    let high = 0
+    for (const f of leagueFilteredFixtures) {
+      const tier = fixtureTier(f)
+      if (tier === 'ELITE') elite++
+      else if (tier === 'HIGH') high++
+    }
+    return { ELITE: elite, HIGH: high }
+  }, [leagueFilteredFixtures])
+
+  const filteredFixtures = confidence === 'all'
+    ? leagueFilteredFixtures
+    : leagueFilteredFixtures.filter(f => fixtureTier(f) === confidence)
   const visibleFixtures = useMemo(() => sortFixtures(filteredFixtures, sortKey), [filteredFixtures, sortKey])
   const hero = visibleFixtures[0] ?? null
   const boardFixtures = hero ? visibleFixtures.slice(1) : []
@@ -630,7 +683,17 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
 
   return (
     <section className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_280px]">
-      <LeftRail days={days} fixtureCount={visibleFixtures.length} />
+      <LeftRail
+        sortKey={sortKey}
+        setSortKey={setSortKey}
+        leagueTab={leagueTab}
+        setLeagueTab={setLeagueTab}
+        leagueCounts={leagueCounts}
+        totalCount={leagueFilteredFixtures.length}
+        confidence={confidence}
+        setConfidence={setConfidence}
+        tierCounts={tierCounts}
+      />
 
       <div className="min-w-0 space-y-4">
         {/* HERO — single row strip */}
@@ -640,48 +703,6 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
           onToggle={() => setOpenId(openId === hero.fixture_id ? null : hero.fixture_id)}
         />
         {openId === hero.fixture_id && <FixtureDetailPanel fixture={hero} onManualSaved={onManualSaved} />}
-
-        {/* FILTERS — flat single-row strip, no nested cards */}
-        <div className="rounded-[14px] border border-line-1 bg-bg-2/72 px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="filter-label">Sort</span>
-            {SORT_OPTIONS.filter(o => ['composite', 'combo', 'elo_gap', 'two_plus'].includes(o.key)).map(option => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setSortKey(option.key)}
-                className={`pill ${sortKey === option.key ? 'pill-bully pill-active' : ''}`}
-              >
-                {option.label}
-              </button>
-            ))}
-
-            <span className="mx-1 h-4 w-px bg-line-2" />
-
-            <span className="filter-label">Window</span>
-            <Link to="/today?view=bully" className={`pill ${days === 1 ? 'pill-bully pill-active' : ''}`}>Today</Link>
-            <Link to="/week?view=bully" className={`pill ${days === 7 ? 'pill-bully pill-active' : ''}`}>Week</Link>
-            <Link to="/schedule" className="pill">Season</Link>
-
-            {leagueNames.length > 1 && (
-              <>
-                <span className="mx-1 h-4 w-px bg-line-2" />
-                <span className="filter-label">League</span>
-                <button type="button" onClick={() => setLeagueTab('all')} className={`pill ${leagueTab === 'all' ? 'pill-bully pill-active' : ''}`}>All</button>
-                {leagueNames.map(league => (
-                  <button
-                    key={league}
-                    type="button"
-                    onClick={() => setLeagueTab(league)}
-                    className={`pill ${leagueTab === league ? 'pill-bully pill-active' : ''}`}
-                  >
-                    {league}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
 
         {/* TABLE (desktop) */}
         <div className="card hidden overflow-hidden p-0 lg:block">
@@ -773,20 +794,6 @@ export default function BullyBoardPage({ days, refreshKey = 0, onManualSaved, st
           )}
         </div>
 
-        {/* League Mix */}
-        {leagueCounts.length > 0 && (
-          <div>
-            <p className="eyebrow mb-2.5">League Mix</p>
-            <div className="space-y-1.5">
-              {leagueCounts.map(([league, count]) => (
-                <div key={league} className="flex items-center justify-between gap-3 text-[12px]">
-                  <span className="truncate text-ink-1">{league}</span>
-                  <span className="font-mono text-ink-0">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </aside>
     </section>
   )
